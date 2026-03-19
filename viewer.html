@@ -167,6 +167,25 @@ body::-webkit-scrollbar { display: none; }
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 
+/* MONTHLY ANALYSIS */
+.monthly-analysis { display: flex; flex-direction: column; gap: 10px; }
+.month-analysis-row {
+  display: flex; align-items: center; gap: 10px;
+}
+.month-analysis-label { font-size: 13px; font-weight: 600; color: var(--navy); width: 36px; flex-shrink: 0; }
+.month-analysis-bar-bg {
+  flex: 1; height: 28px; background: #eef2f8; border-radius: 8px; overflow: hidden;
+}
+.month-analysis-bar {
+  height: 100%; border-radius: 8px; display: flex; align-items: center;
+  padding: 0 10px; font-size: 12px; font-weight: 600; color: white;
+  transition: width 0.6s ease; min-width: 40px; white-space: nowrap;
+}
+.bar-month-youth { background: linear-gradient(90deg, #2c5aa0, #4a7fd4); }
+.bar-month-young { background: linear-gradient(90deg, #b8922a, #c9a84c); }
+.bar-month-adult { background: linear-gradient(90deg, #276749, #38a169); }
+.month-analysis-meta { font-size: 11px; color: var(--muted); width: 52px; text-align: right; flex-shrink: 0; }
+
 /* CONSECUTIVE ABSENT */
 .consec-list { display: flex; flex-direction: column; gap: 8px; }
 .consec-row {
@@ -319,6 +338,26 @@ function renderConsecBlock(list) {
     </div>`).join('')}</div>`;
 }
 
+// ── 장년 월별 결석 집계 ────────────────────────────
+function adultMonthSummary(data) {
+  const map = {};
+  data.forEach(row => {
+    const [y, m] = row.date.split('-');
+    const key = `${y}-${m}`;
+    if (!map[key]) map[key] = { absent: 0, weeks: 0 };
+    map[key].absent += (row.adult || {}).absent || 0;
+    map[key].weeks++;
+  });
+  return Object.entries(map)
+    .sort((a, b) => a[0].localeCompare(b[0]))
+    .map(([key, v]) => ({
+      label: `${parseInt(key.split('-')[1])}월`,
+      absent: v.absent,
+      weeks: v.weeks,
+      avg: v.weeks ? Math.round(v.absent / v.weeks * 10) / 10 : 0
+    }));
+}
+
 // ── 중고등부 / 청년부 패널 ──────────────────────────
 function renderGroupPanel(group) {
   const panelId = `panel-${group}`;
@@ -386,17 +425,25 @@ function renderGroupPanel(group) {
       </div>
     </div>
 
-    <!-- 월별 출석률 -->
+    <!-- 월별 출석 분석 -->
     <div class="card">
-      <div class="card-title">📅 월별 출석률</div>
-      <div class="month-grid">
-        ${months.slice(-4).map(m => `
-          <div class="month-box">
-            <div class="lbl">${m.label}</div>
-            <div class="val">${m.rate}%</div>
-            <div class="sub">${m.present}/${m.total}명 · ${m.weeks}주</div>
-          </div>`).join('')}
-      </div>
+      <div class="card-title">📊 월별 출석 분석</div>
+      ${(() => {
+        const months = monthSummary(allData, group);
+        if (!months.length) return '<div style="font-size:13px;color:var(--muted)">데이터 없음</div>';
+        const maxRate = 100;
+        const barClass = group === 'youth' ? 'bar-month-youth' : 'bar-month-young';
+        return `<div class="monthly-analysis">${months.map(m => `
+          <div class="month-analysis-row">
+            <div class="month-analysis-label">${m.label}</div>
+            <div class="month-analysis-bar-bg">
+              <div class="month-analysis-bar ${barClass}" style="width:${m.rate}%">
+                ${m.rate}%
+              </div>
+            </div>
+            <div class="month-analysis-meta">${m.present}/${m.total}명</div>
+          </div>`).join('')}</div>`;
+      })()}
     </div>
 
     <!-- 연속 결석 -->
@@ -476,6 +523,28 @@ function renderAdultPanel() {
       <div class="zone-absent-list">${buildZoneRows(d2)}</div>` : ''}
     </div>
 
+    <!-- 장년 월별 결석 분석 -->
+    <div class="card">
+      <div class="card-title">📊 월별 결석 분석</div>
+      ${(() => {
+        const months = adultMonthSummary(allData);
+        if (!months.length) return '<div style="font-size:13px;color:var(--muted)">데이터 없음</div>';
+        const maxAbsent = Math.max(...months.map(m => m.absent), 1);
+        return `<div class="monthly-analysis">${months.map(m => {
+          const w = Math.round(m.absent / maxAbsent * 100);
+          return `<div class="month-analysis-row">
+            <div class="month-analysis-label">${m.label}</div>
+            <div class="month-analysis-bar-bg">
+              <div class="month-analysis-bar bar-month-adult" style="width:${Math.max(w,12)}%">
+                ${m.absent}명
+              </div>
+            </div>
+            <div class="month-analysis-meta">주평균 ${m.avg}명</div>
+          </div>`;
+        }).join('')}</div>`;
+      })()}
+    </div>
+
     <!-- 장년 연속 결석 -->
     <div class="card">
       <div class="card-title">🔴 연속 결석</div>
@@ -505,12 +574,10 @@ function renderAdultPanel() {
       <div class="card-title">📋 전체 주일 기록</div>
       ${allData.slice().reverse().map(row => {
         const a = row.adult || {};
-        const zNames = (a.zones || []).map(z => `${z.zone}: ${z.names.join('·')}`).join('  ');
         return `<div class="history-row">
           <div class="history-date">${fmtDate(row.date)}</div>
           <div class="history-right">
             <span style="font-size:14px;font-weight:600;color:#e53e3e">${a.absent ?? '-'}명 결석</span>
-            ${zNames ? `<div class="absent-names-small">${zNames}</div>` : ''}
           </div>
         </div>`;
       }).join('')}
