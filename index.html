@@ -1623,18 +1623,27 @@ async function generateReport() {
 }
 
 async function downloadAndSave(blob, filename) {
-  const mode = settings.nasMode;
-  // Always download first
-  triggerDownload(blob, filename);
+  const file = new File([blob], filename, { type: blob.type });
 
-  // Also try NAS save
-  if (mode === 'filesystem' && dirHandle) {
-    await saveToFileSystem(blob, filename);
-  } else if (mode === 'webdav' && settings.nasUrl) {
-    await saveToWebDAV(blob, filename);
-  } else {
-    toast('✅ 다운로드 완료! Downloads 폴더를 확인하세요.');
+  // 📱 스마트폰: Web Share API → DS File 앱으로 전달
+  if (navigator.canShare && navigator.canShare({ files: [file] })) {
+    try {
+      await navigator.share({
+        files: [file],
+        title: filename,
+        text: '주일 사역 보고서',
+      });
+      // 사용자가 DS File 등으로 공유 완료
+      return;
+    } catch (e) {
+      if (e.name === 'AbortError') return; // 취소
+      // 공유 실패 시 다운로드로 폴백
+    }
   }
+
+  // 💻 PC / 공유 미지원 기기: 다운로드
+  triggerDownload(blob, filename);
+  toast('✅ 다운로드 완료 — DS File 앱 또는 웹에서 NAS에 업로드하세요');
 }
 
 function triggerDownload(blob, filename) {
