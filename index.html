@@ -67,15 +67,15 @@ body {
 .tabs {
   position: sticky; top: calc(var(--safe-top) + 66px); z-index: 99;
   background: var(--navy);
-  display: flex; overflow-x: auto; gap: 0;
+  display: flex; overflow-x: hidden; gap: 0;
   scrollbar-width: none; border-bottom: 1px solid rgba(255,255,255,0.1);
 }
 .tabs::-webkit-scrollbar { display: none; }
 .tab {
-  flex-shrink: 0; padding: 10px 16px;
-  font-size: 13px; font-weight: 500; color: rgba(255,255,255,0.5);
+  flex: 1; padding: 8px 2px;
+  font-size: 11.5px; font-weight: 500; color: rgba(255,255,255,0.5);
   border: none; background: none; cursor: pointer; border-bottom: 2px solid transparent;
-  transition: all 0.2s; white-space: nowrap;
+  transition: all 0.2s; white-space: nowrap; text-align: center;
 }
 .tab.active { color: var(--gold); border-bottom-color: var(--gold); }
 /* MAIN */
@@ -711,6 +711,10 @@ textarea { resize: vertical; min-height: 60px; }
       <button class="btn-wide btn-blue" onclick="forceRefresh()" style="margin-bottom:8px">🔄 강제 새로고침 (캐시 초기화)</button>
       <button class="btn-wide btn-outline" onclick="resetApp()" style="border-color:#e53e3e;color:#e53e3e">🗑️ 모든 데이터 초기화</button>
     </div>
+
+    <p style="text-align:center;font-size:11px;color:var(--text-muted);margin-top:4px;padding-bottom:4px">
+      연천장로교회 사역보고서 v<span id="appVersionText"></span>
+    </p>
   </div>
 </div>
 
@@ -728,6 +732,11 @@ textarea { resize: vertical; min-height: 60px; }
 
 <script>
 // ───────────────────────────────
+// ───────────────────────────────
+// APP VERSION
+// ───────────────────────────────
+const APP_VERSION = '0.1.3';
+
 // DEFAULT DATA
 // ───────────────────────────────
 const DEFAULT_YOUTH = [
@@ -1188,6 +1197,9 @@ async function pickContact(i) {
 // SETTINGS
 // ───────────────────────────────
 function openSettings() {
+  // 버전 표시
+  const vEl = document.getElementById('appVersionText');
+  if (vEl) vEl.textContent = APP_VERSION;
   // 아코디언 초기화 (모두 닫힌 상태)
   ['accYouth','accYoung','accPhone'].forEach(id => {
     const btn = document.getElementById(id);
