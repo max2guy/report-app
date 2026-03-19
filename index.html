@@ -741,6 +741,27 @@ textarea { resize: vertical; min-height: 60px; }
       </div>
     </div>
 
+    <!-- GitHub 동기화 -->
+    <div class="setting-group">
+      <button class="accordion-btn" id="accGit" onclick="toggleAccordion('accGit','accGitContent')">
+        <span>☁️ GitHub 동기화</span>
+        <span class="acc-arrow">▶</span>
+      </button>
+      <div class="accordion-content" id="accGitContent">
+        <p style="font-size:12px;color:var(--text-muted);margin-bottom:10px">결석자 이름 포함 history.json을 GitHub에 업로드합니다.<br>GitHub Personal Access Token(repo 권한)이 필요합니다.</p>
+        <label style="font-size:12px;color:var(--text-muted);display:block;margin-bottom:4px">GitHub Token</label>
+        <input type="password" id="gitTokenInput" placeholder="ghp_xxxxxxxxxxxx"
+          style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;margin-bottom:8px"
+          oninput="localStorage.setItem('githubToken', this.value)">
+        <label style="font-size:12px;color:var(--text-muted);display:block;margin-bottom:4px">저장소 (owner/repo)</label>
+        <input type="text" id="gitRepoInput" placeholder="max2guy/report-app"
+          style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;margin-bottom:8px"
+          oninput="localStorage.setItem('githubRepo', this.value)">
+        <div id="gitSyncStatus" style="font-size:12px;color:var(--text-muted);margin-bottom:8px"></div>
+        <button class="btn-wide btn-blue" onclick="syncHistoryToGitHub(true)">☁️ 지금 동기화</button>
+      </div>
+    </div>
+
     <div class="setting-group">
       <h3>🔄 앱 관리</h3>
       <button class="btn-wide btn-blue" onclick="forceRefresh()" style="margin-bottom:8px">🔄 강제 새로고침 (캐시 초기화)</button>
@@ -1090,6 +1111,74 @@ function toggleAccordion(btnId, contentId) {
 // ───────────────────────────────
 // 강제 새로고침
 // ───────────────────────────────
+// ───────────────────────────────
+// GITHUB SYNC
+// ───────────────────────────────
+function updateGitSyncStatus(msg) {
+  const el = document.getElementById('gitSyncStatus');
+  if (!el) return;
+  const last = localStorage.getItem('githubLastSync');
+  if (msg) { el.textContent = msg; return; }
+  el.textContent = last ? `마지막 동기화: ${last}` : '아직 동기화 안 됨';
+}
+
+async function syncHistoryToGitHub(manual = false) {
+  const token = localStorage.getItem('githubToken') || '';
+  const repo  = (localStorage.getItem('githubRepo') || 'max2guy/report-app').trim();
+  if (!token) {
+    if (manual) showToast('⚠️ GitHub Token을 설정에 입력하세요');
+    return;
+  }
+
+  const path = 'history.json';
+  const apiBase = `https://api.github.com/repos/${repo}/contents/${path}`;
+  const headers = {
+    'Authorization': `token ${token}`,
+    'Accept': 'application/vnd.github+json',
+    'Content-Type': 'application/json'
+  };
+
+  try {
+    updateGitSyncStatus('동기화 중...');
+    if (manual) showToast('⏳ GitHub 동기화 중...');
+
+    // 현재 파일 SHA 가져오기
+    const infoRes = await fetch(apiBase, { headers });
+    let sha = null;
+    let remoteData = [];
+    if (infoRes.ok) {
+      const info = await infoRes.json();
+      sha = info.sha;
+      try { remoteData = JSON.parse(atob(info.content.replace(/\n/g,''))); } catch(_) {}
+    }
+
+    // 로컬 데이터가 더 상세 (이름 포함) → 로컬 우선 병합
+    const mergeMap = {};
+    remoteData.forEach(r => { mergeMap[r.date] = r; });
+    reportHistory.forEach(r => { mergeMap[r.date] = r; }); // 로컬로 덮어쓰기
+    const merged = Object.values(mergeMap).sort((a, b) => a.date.localeCompare(b.date));
+
+    const content = btoa(unescape(encodeURIComponent(JSON.stringify(merged, null, 2))));
+    const body = { message: `sync: history update ${new Date().toISOString().slice(0,10)}`, content };
+    if (sha) body.sha = sha;
+
+    const putRes = await fetch(apiBase, { method: 'PUT', headers, body: JSON.stringify(body) });
+    if (!putRes.ok) {
+      const err = await putRes.json();
+      throw new Error(err.message || putRes.status);
+    }
+
+    const now = new Date().toLocaleString('ko-KR', { month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit' });
+    localStorage.setItem('githubLastSync', now);
+    updateGitSyncStatus(`✅ 동기화 완료: ${now}`);
+    if (manual) showToast('✅ GitHub 동기화 완료');
+  } catch(e) {
+    updateGitSyncStatus(`❌ 실패: ${e.message}`);
+    if (manual) showToast('❌ 동기화 실패: ' + e.message);
+    console.error('GitHub sync error', e);
+  }
+}
+
 async function forceRefresh() {
   if (!confirm('캐시를 초기화하고 최신 버전으로 새로고침할까요?')) return;
   if ('caches' in window) {
@@ -1390,12 +1479,18 @@ function openSettings() {
   const vEl = document.getElementById('appVersionText');
   if (vEl) vEl.textContent = APP_VERSION;
   // 아코디언 초기화 (모두 닫힌 상태)
-  ['accYouth','accYoung','accPhone'].forEach(id => {
+  ['accYouth','accYoung','accPhone','accGit'].forEach(id => {
     const btn = document.getElementById(id);
     const content = document.getElementById(id + 'Content');
     if (btn) btn.classList.remove('open');
     if (content) content.classList.remove('open');
   });
+  // GitHub 설정값 복원
+  const tokEl  = document.getElementById('gitTokenInput');
+  const repoEl = document.getElementById('gitRepoInput');
+  if (tokEl)  tokEl.value  = localStorage.getItem('githubToken') || '';
+  if (repoEl) repoEl.value = localStorage.getItem('githubRepo')  || 'max2guy/report-app';
+  updateGitSyncStatus();
   document.getElementById('settingsModal').classList.add('open');
 }
 function closeModal(e, id) {
@@ -1474,6 +1569,8 @@ async function generateReport() {
     const dateStr = state.date.replace(/-/g, '');
     const filename = `주일사역보고서_${dateStr}_${state.reporter}.docx`;
     await downloadAndSave(blob, filename);
+    // 보고서 생성 시 GitHub 자동 동기화 (백그라운드)
+    syncHistoryToGitHub(false);
   } catch(e) {
     toast('❌ 생성 실패: ' + e.message);
     console.error(e);
