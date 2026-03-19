@@ -820,6 +820,29 @@ let reportHistory = JSON.parse(localStorage.getItem('reportHistory') || '[]');
 let statsGroup = 'youth';   // 'youth' | 'young'
 let statsPeriod = 'monthly'; // 'monthly' | 'yearly'
 
+// history.json에서 시드 데이터 로드 후 로컬과 병합
+async function loadHistorySeed() {
+  try {
+    const res = await fetch('./history.json?v=' + Date.now());
+    if (!res.ok) return;
+    const seed = await res.json();
+    let changed = false;
+    seed.forEach(entry => {
+      if (!reportHistory.find(h => h.date === entry.date)) {
+        reportHistory.push(entry);
+        changed = true;
+      }
+    });
+    if (changed) {
+      reportHistory.sort((a, b) => a.date.localeCompare(b.date));
+      localStorage.setItem('reportHistory', JSON.stringify(reportHistory));
+      renderStats();
+    }
+  } catch (e) {
+    console.log('history.json 로드 실패 (오프라인?):', e.message);
+  }
+}
+
 function saveToHistory() {
   if (!state.date) return;
   const entry = {
@@ -1061,6 +1084,7 @@ function init() {
   renderZoneGrid();
   updateNasStatus();
   renderStats();
+  loadHistorySeed(); // history.json 시드 데이터 병합
 }
 
 // ───────────────────────────────

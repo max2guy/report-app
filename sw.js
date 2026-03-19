@@ -1,11 +1,12 @@
-const CACHE_NAME = 'report-app-v4';
+const CACHE_NAME = 'report-app-v5';
 const APP_SHELL = [
   './',
   './index.html',
   './manifest.json',
   './icon.svg',
   './icon-192.png',
-  './icon-512.png'
+  './icon-512.png',
+  './history.json'
 ];
 
 // 설치: 앱 셸 캐시
@@ -24,11 +25,11 @@ self.addEventListener('activate', e => {
       .then(keys => Promise.all(
         keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k))
       ))
-      .then(() => self.clients.claim())  // 열려있는 탭 즉시 제어
+      .then(() => self.clients.claim())
   );
 });
 
-// fetch: 네트워크 우선 → 실패 시 캐시 (항상 최신 파일 사용)
+// fetch: 네트워크 우선 → 캐시에 저장 → 실패 시 캐시
 self.addEventListener('fetch', e => {
   const url = e.request.url;
 
@@ -36,6 +37,22 @@ self.addEventListener('fetch', e => {
   if (url.includes('cdnjs') || url.includes('fonts.googleapis') || url.includes('unpkg')) {
     e.respondWith(
       caches.match(e.request).then(r => r || fetch(e.request))
+    );
+    return;
+  }
+
+  // history.json: 네트워크 우선 (항상 최신 데이터)
+  if (url.includes('history.json')) {
+    e.respondWith(
+      fetch(e.request)
+        .then(response => {
+          if (response.ok) {
+            const clone = response.clone();
+            caches.open(CACHE_NAME).then(c => c.put(e.request, clone));
+          }
+          return response;
+        })
+        .catch(() => caches.match(e.request))
     );
     return;
   }
@@ -54,7 +71,7 @@ self.addEventListener('fetch', e => {
   );
 });
 
-// 메시지: SKIP_WAITING 명령 수신 (수동 강제업데이트용)
+// 메시지: SKIP_WAITING 명령 수신
 self.addEventListener('message', e => {
   if (e.data === 'SKIP_WAITING') self.skipWaiting();
 });
