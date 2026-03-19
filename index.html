@@ -1170,7 +1170,12 @@ function updateHeaderDate() {
 // ───────────────────────────────
 // MEMBER GRID
 // ───────────────────────────────
+function sortMembers(group) {
+  state[group].members.sort((a, b) => a.name.localeCompare(b.name, 'ko'));
+}
+
 function renderYouthGrid() {
+  sortMembers('youth');
   const grid = document.getElementById('youthGrid');
   grid.innerHTML = '';
   state.youth.members.forEach((m, i) => {
@@ -1185,6 +1190,7 @@ function renderYouthGrid() {
 }
 
 function renderYoungGrid() {
+  sortMembers('young');
   const grid = document.getElementById('youngGrid');
   grid.innerHTML = '';
   state.young.members.forEach((m, i) => {
