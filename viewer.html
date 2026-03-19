@@ -75,26 +75,25 @@ body::-webkit-scrollbar{display:none}
 }
 
 /* STAT ROW */
-.latest-date{font-size:clamp(15px,4vw,18px);font-weight:700;color:var(--navy);margin-bottom:10px}
-.stat-row{display:flex;gap:8px}
+.stat-row{display:flex;gap:6px}
 .stat-box{
   flex:1;text-align:center;background:#f7f9fc;
-  border-radius:10px;padding:clamp(8px,2.5vw,11px) 6px;
+  border-radius:8px;padding:clamp(5px,1.8vw,7px) 4px;
 }
-.stat-label{font-size:11px;color:var(--muted);margin-bottom:2px}
-.stat-val{font-size:clamp(18px,5vw,22px);font-weight:700;color:var(--navy)}
-.stat-sub{font-size:10px;color:var(--muted);margin-top:1px}
+.stat-label{font-size:10px;color:var(--muted);margin-bottom:1px}
+.stat-val{font-size:clamp(15px,4vw,18px);font-weight:700;color:var(--navy)}
+.stat-sub{font-size:10px;color:var(--muted);margin-top:0}
 .badge-rate{
-  display:inline-block;padding:2px 8px;border-radius:20px;
-  font-size:11px;font-weight:600;margin-top:8px;
+  display:inline-block;padding:2px 7px;border-radius:20px;
+  font-size:11px;font-weight:600;
 }
 .rate-good{background:#f0fff4;color:#276749}
 .rate-mid{background:#fffbeb;color:#975a16}
 .rate-low{background:#fff5f5;color:#c53030}
 
 /* ABSENT NAMES */
-.absent-block{margin-top:10px;padding-top:10px;border-top:1px solid var(--border)}
-.absent-block-title{font-size:11px;color:var(--muted);margin-bottom:6px;font-weight:500}
+.absent-block{margin-top:8px;padding-top:8px;border-top:1px solid var(--border)}
+.absent-block-title{font-size:10px;color:var(--muted);margin-bottom:4px;font-weight:500}
 .name-chips{display:flex;flex-wrap:wrap;gap:5px}
 .name-chip{
   background:#fff5f5;color:#c53030;border:1px solid #fecaca;
@@ -548,14 +547,15 @@ function renderGroupPanel(group) {
 
   el.innerHTML = `
     <div class="card">
-      <div class="card-title"><span>📅 최근 주일</span></div>
-      <div class="latest-date">${fmtDate(latest.date)}</div>
+      <div class="card-title">
+        <span>📅 ${fmtDate(latest.date)}</span>
+        <span class="badge-rate ${rateClass(rate)}">출석률 ${rate}%</span>
+      </div>
       <div class="stat-row">
         <div class="stat-box"><div class="stat-label">출석</div><div class="stat-val" style="color:#2c7be5">${gData.present ?? '-'}</div><div class="stat-sub">명</div></div>
         <div class="stat-box"><div class="stat-label">결석</div><div class="stat-val" style="color:#e53e3e">${gData.absent ?? '-'}</div><div class="stat-sub">명</div></div>
         <div class="stat-box"><div class="stat-label">전체</div><div class="stat-val">${gData.total ?? '-'}</div><div class="stat-sub">명</div></div>
       </div>
-      <div style="text-align:center"><span class="badge-rate ${rateClass(rate)}">출석률 ${rate}%</span></div>
       <div class="absent-block">
         <div class="absent-block-title">결석자</div>
         <div class="name-chips">
@@ -625,10 +625,9 @@ function renderAdultPanel() {
 
   el.innerHTML = `
     <div class="card">
-      <div class="card-title"><span>📅 최근 주일 — ${fmtDate(latest.date)}</span></div>
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
-        <span style="font-size:13px;color:var(--muted)">장년 결석</span>
-        <span style="font-size:clamp(18px,5vw,22px);font-weight:700;color:#e53e3e">${adult.absent ?? '-'}명</span>
+      <div class="card-title">
+        <span>📅 ${fmtDate(latest.date)}</span>
+        <span style="font-size:12px;font-weight:700;color:#e53e3e;background:#fff5f5;padding:2px 8px;border-radius:20px">결석 ${adult.absent ?? '-'}명</span>
       </div>
       ${!d1.length && !d2.length ? '<div class="empty" style="padding:12px 0">결석자 없음</div>' : ''}
       ${d1.length ? `<div class="district-title">1교구 (1~6구역) · 교구장 이명숙</div><div class="zone-absent-list">${buildZoneRows(d1)}</div>` : ''}
