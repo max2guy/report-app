@@ -1,0 +1,1396 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="사역보고서">
+<meta name="theme-color" content="#0f2044">
+<link rel="manifest" href="./manifest.json">
+<link rel="apple-touch-icon" href="./icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<title>주일 사역 보고서</title>
+<style>
+:root {
+  --safe-top: env(safe-area-inset-top);
+  --safe-bottom: env(safe-area-inset-bottom);
+  --navy: #0f2044;
+  --navy2: #1a3a7a;
+  --blue: #2c5aa0;
+  --blue-light: #4a7fd4;
+  --gold: #c9a84c;
+  --gold-light: #e8d280;
+  --bg: #f0f4f8;
+  --card: #ffffff;
+  --text: #1a202c;
+  --text-muted: #718096;
+  --border: #e2e8f0;
+  --success: #38a169;
+  --danger: #e53e3e;
+  --radius: 16px;
+  --shadow: 0 2px 16px rgba(15,32,68,0.1);
+  --shadow-lg: 0 8px 32px rgba(15,32,68,0.15);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+body {
+  font-family: 'Noto Sans KR', -apple-system, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 15px;
+  line-height: 1.6;
+  overscroll-behavior: none;
+}
+/* HEADER */
+.header {
+  position: sticky; top: 0; z-index: 100;
+  background: linear-gradient(135deg, var(--navy), var(--navy2));
+  padding: calc(var(--safe-top) + 14px) 20px 14px;
+  display: flex; align-items: center; justify-content: space-between;
+  box-shadow: 0 2px 20px rgba(0,0,0,0.3);
+}
+.header-title { color: white; }
+.header-title h1 { font-size: 18px; font-weight: 700; letter-spacing: -0.3px; }
+.header-title p { font-size: 12px; opacity: 0.7; margin-top: 1px; }
+.header-actions { display: flex; gap: 8px; }
+.btn-icon {
+  width: 38px; height: 38px; border-radius: 50%;
+  border: none; background: rgba(255,255,255,0.15);
+  color: white; font-size: 18px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: background 0.2s;
+}
+.btn-icon:hover { background: rgba(255,255,255,0.25); }
+/* TABS */
+.tabs {
+  position: sticky; top: calc(var(--safe-top) + 66px); z-index: 99;
+  background: var(--navy);
+  display: flex; overflow-x: auto; gap: 0;
+  scrollbar-width: none; border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+.tabs::-webkit-scrollbar { display: none; }
+.tab {
+  flex-shrink: 0; padding: 10px 16px;
+  font-size: 13px; font-weight: 500; color: rgba(255,255,255,0.5);
+  border: none; background: none; cursor: pointer; border-bottom: 2px solid transparent;
+  transition: all 0.2s; white-space: nowrap;
+}
+.tab.active { color: var(--gold); border-bottom-color: var(--gold); }
+/* MAIN */
+.main { padding: 20px 16px calc(100px + var(--safe-bottom)); max-width: 680px; margin: 0 auto; }
+/* SECTION */
+.section { display: none; }
+.section.active { display: block; }
+/* CARD */
+.card {
+  background: var(--card); border-radius: var(--radius);
+  box-shadow: var(--shadow); margin-bottom: 16px; overflow: hidden;
+}
+.card-header {
+  background: linear-gradient(135deg, var(--navy), var(--navy2));
+  padding: 14px 20px; display: flex; align-items: center; gap: 10px;
+}
+.card-header-icon { font-size: 20px; }
+.card-header h2 { color: white; font-size: 15px; font-weight: 600; flex: 1; }
+.card-header .badge {
+  background: var(--gold); color: var(--navy);
+  font-size: 12px; font-weight: 700; padding: 2px 10px; border-radius: 20px;
+}
+.card-body { padding: 16px 20px; }
+/* FORM ELEMENTS */
+.form-row { margin-bottom: 14px; }
+.form-row:last-child { margin-bottom: 0; }
+label { display: block; font-size: 12px; font-weight: 600; color: var(--text-muted); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
+input[type="text"], input[type="date"], input[type="password"], input[type="url"], textarea, select {
+  width: 100%; font-size: 15px; font-family: inherit;
+  border: 1.5px solid var(--border); border-radius: 10px;
+  padding: 10px 14px; background: #f8fafc; color: var(--text);
+  transition: border-color 0.2s, box-shadow 0.2s; outline: none;
+}
+input:focus, textarea:focus, select:focus {
+  border-color: var(--blue); box-shadow: 0 0 0 3px rgba(44,90,160,0.12);
+  background: white;
+}
+textarea { resize: vertical; min-height: 80px; }
+.form-row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+/* MEMBER CHECKLIST */
+.member-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 8px;
+}
+.member-chip {
+  display: flex; align-items: center; justify-content: center;
+  padding: 8px 4px; border-radius: 10px; border: 1.5px solid var(--border);
+  background: #f8fafc; cursor: pointer; transition: all 0.15s;
+  font-size: 13px; font-weight: 500; gap: 6px; user-select: none;
+  touch-action: manipulation;
+}
+.member-chip.present {
+  background: linear-gradient(135deg, #ebf8ff, #e6fffa);
+  border-color: #63b3ed; color: #2b6cb0;
+}
+.member-chip.absent {
+  background: #fff5f5; border-color: #feb2b2; color: #c53030;
+  text-decoration: line-through; opacity: 0.8;
+}
+.member-chip.school-issue {
+  background: linear-gradient(135deg, #fffbeb, #fff3cd);
+  border-color: var(--gold); color: #975a16;
+}
+.member-chip .status-dot {
+  width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0;
+}
+.present .status-dot { background: #38b2ac; }
+.absent .status-dot { background: #fc8181; }
+.school-issue .status-dot { background: var(--gold); }
+.member-actions {
+  display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; align-items: center;
+}
+.btn-sm {
+  padding: 6px 14px; border-radius: 8px; border: 1.5px solid; font-size: 13px;
+  font-weight: 500; cursor: pointer; font-family: inherit; transition: all 0.15s;
+  touch-action: manipulation;
+}
+.btn-present { border-color: #63b3ed; color: #2b6cb0; background: #ebf8ff; }
+.btn-absent { border-color: #feb2b2; color: #c53030; background: #fff5f5; }
+.btn-school { border-color: var(--gold); color: #975a16; background: #fffbeb; }
+.btn-add { border-color: var(--blue); color: var(--blue); background: #ebf8ff; }
+/* SUMMARY BAR */
+.summary-bar {
+  display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap;
+}
+.summary-item {
+  flex: 1; min-width: 80px; background: #f8fafc; border-radius: 10px;
+  padding: 10px 12px; text-align: center; border: 1.5px solid var(--border);
+}
+.summary-item .num { font-size: 22px; font-weight: 700; }
+.summary-item .lbl { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+.num-present { color: #2b6cb0; }
+.num-absent { color: #c53030; }
+.num-total { color: var(--navy); }
+/* ZONE GRID */
+.zone-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.zone-item label { margin-bottom: 4px; font-size: 11px; }
+.zone-item input { font-size: 13px; padding: 8px 10px; }
+.zone-total {
+  grid-column: 1 / -1; background: linear-gradient(135deg, var(--navy), var(--navy2));
+  border-radius: 10px; padding: 12px 16px; color: white;
+  display: flex; justify-content: space-between; align-items: center;
+}
+.zone-total .total-num { font-size: 24px; font-weight: 700; color: var(--gold); }
+/* ACTION BAR */
+.action-bar {
+  position: fixed; bottom: 0; left: 0; right: 0; z-index: 100;
+  background: white; border-top: 1px solid var(--border);
+  padding: 12px 16px calc(12px + var(--safe-bottom));
+  display: flex; gap: 10px; box-shadow: 0 -4px 20px rgba(0,0,0,0.1);
+}
+.btn {
+  flex: 1; padding: 13px; border-radius: 12px; border: none;
+  font-size: 15px; font-weight: 600; font-family: inherit; cursor: pointer;
+  transition: all 0.15s; touch-action: manipulation;
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+}
+.btn-primary { background: linear-gradient(135deg, var(--navy), var(--navy2)); color: white; }
+.btn-primary:active { transform: scale(0.97); }
+.btn-gold { background: linear-gradient(135deg, var(--gold), #b8922a); color: white; }
+.btn-gold:active { transform: scale(0.97); }
+.btn-secondary { background: var(--bg); color: var(--text-muted); border: 1.5px solid var(--border); }
+/* MODAL */
+.modal-overlay {
+  position: fixed; inset: 0; z-index: 200;
+  background: rgba(15,32,68,0.7); backdrop-filter: blur(4px);
+  display: none; align-items: flex-end;
+}
+.modal-overlay.open { display: flex; }
+.modal {
+  background: white; border-radius: 24px 24px 0 0; width: 100%;
+  max-height: 90vh; overflow-y: auto;
+  padding: 24px 20px calc(24px + var(--safe-bottom));
+  transform: translateY(100%); transition: transform 0.35s cubic-bezier(0.32,0.72,0,1);
+}
+.modal-overlay.open .modal { transform: translateY(0); }
+.modal-handle {
+  width: 40px; height: 4px; background: var(--border);
+  border-radius: 2px; margin: 0 auto 20px;
+}
+.modal-title {
+  font-size: 18px; font-weight: 700; color: var(--navy);
+  margin-bottom: 20px; display: flex; align-items: center; gap: 8px;
+}
+/* SETTINGS SECTION */
+.setting-group { margin-bottom: 20px; }
+.setting-group h3 {
+  font-size: 12px; font-weight: 600; color: var(--text-muted);
+  text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 10px;
+  padding-bottom: 6px; border-bottom: 1px solid var(--border);
+}
+.btn-wide {
+  width: 100%; padding: 12px; border-radius: 12px; border: none;
+  font-size: 15px; font-weight: 600; font-family: inherit; cursor: pointer;
+  transition: all 0.15s; margin-bottom: 10px; touch-action: manipulation;
+}
+.btn-blue { background: linear-gradient(135deg, var(--navy), var(--blue)); color: white; }
+.btn-outline { background: white; border: 1.5px solid var(--blue); color: var(--blue); }
+/* TOAST */
+.toast {
+  position: fixed; bottom: calc(90px + var(--safe-bottom)); left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  background: var(--navy); color: white; padding: 10px 20px;
+  border-radius: 24px; font-size: 14px; font-weight: 500;
+  white-space: nowrap; z-index: 300; opacity: 0;
+  transition: all 0.3s; pointer-events: none; box-shadow: var(--shadow-lg);
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+/* ADD MEMBER INPUT */
+.add-member-row {
+  display: flex; gap: 8px; margin-top: 12px;
+}
+.add-member-row input { flex: 1; margin: 0; }
+.btn-add-submit {
+  padding: 0 16px; border-radius: 10px; border: none;
+  background: var(--blue); color: white; font-size: 20px; cursor: pointer;
+  touch-action: manipulation;
+}
+/* PROGRESS */
+.progress-bar {
+  height: 3px; background: rgba(255,255,255,0.2);
+  position: absolute; bottom: 0; left: 0; right: 0;
+}
+.progress-fill {
+  height: 100%; background: var(--gold);
+  transition: width 0.3s; border-radius: 2px;
+}
+/* NAS STATUS */
+.nas-status {
+  display: flex; align-items: center; gap: 8px;
+  padding: 10px 14px; border-radius: 10px; font-size: 13px;
+  margin-bottom: 12px;
+}
+.nas-status.connected { background: #f0fff4; border: 1px solid #9ae6b4; color: #276749; }
+.nas-status.disconnected { background: #fff5f5; border: 1px solid #feb2b2; color: #c53030; }
+.nas-status-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.connected .nas-status-dot { background: #38a169; }
+.disconnected .nas-status-dot { background: #e53e3e; }
+/* MEMBER MANAGE */
+.member-manage-list { display: flex; flex-direction: column; gap: 6px; }
+.member-manage-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 12px; background: #f8fafc; border-radius: 8px;
+}
+.member-manage-item span { flex: 1; font-size: 14px; }
+.btn-delete {
+  width: 28px; height: 28px; border-radius: 50%; border: none;
+  background: #fff5f5; color: #c53030; font-size: 16px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  touch-action: manipulation;
+}
+/* DIVIDER */
+.divider { height: 1px; background: var(--border); margin: 16px 0; }
+/* RESPONSIVE */
+@media (min-width: 480px) {
+  .member-grid { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); }
+}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header class="header">
+  <div class="header-title">
+    <h1>⛪ 주일 사역 보고서</h1>
+    <p id="headerDate">날짜를 선택하세요</p>
+  </div>
+  <div class="header-actions">
+    <button class="btn-icon" onclick="openSettings()" title="설정">⚙️</button>
+  </div>
+</header>
+
+<!-- TABS -->
+<nav class="tabs">
+  <button class="tab active" onclick="switchTab(0)">📋 기본</button>
+  <button class="tab" onclick="switchTab(1)">🎓 중고등</button>
+  <button class="tab" onclick="switchTab(2)">🙏 청년부</button>
+  <button class="tab" onclick="switchTab(3)">⛪ 교구</button>
+  <button class="tab" onclick="switchTab(4)">📝 내용</button>
+</nav>
+
+<!-- MAIN -->
+<main class="main">
+
+  <!-- TAB 0: 기본 정보 -->
+  <section class="section active" id="tab0">
+    <div class="card">
+      <div class="card-header">
+        <span class="card-header-icon">📋</span>
+        <h2>기본 정보</h2>
+      </div>
+      <div class="card-body">
+        <div class="form-row-2">
+          <div class="form-row">
+            <label>보고 주일</label>
+            <input type="date" id="reportDate" oninput="onDateChange()">
+          </div>
+          <div class="form-row">
+            <label>보고자</label>
+            <input type="text" id="reporter" placeholder="이름" value="김우중">
+          </div>
+        </div>
+        <div class="form-row">
+          <label>담당 부서</label>
+          <input type="text" id="department" placeholder="중고등부 / 청년부" value="중고등부 / 청년부">
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- TAB 1: 중고등부 -->
+  <section class="section" id="tab1">
+    <div class="card">
+      <div class="card-header">
+        <span class="card-header-icon">🎓</span>
+        <h2>중고등부 출석 현황</h2>
+        <span class="badge" id="youthBadge">0명</span>
+      </div>
+      <div class="card-body">
+        <div class="summary-bar">
+          <div class="summary-item">
+            <div class="num num-present" id="youthPresentCount">0</div>
+            <div class="lbl">출석</div>
+          </div>
+          <div class="summary-item">
+            <div class="num num-absent" id="youthAbsentCount">0</div>
+            <div class="lbl">결석</div>
+          </div>
+          <div class="summary-item">
+            <div class="num num-total" id="youthTotalCount">0</div>
+            <div class="lbl">전체</div>
+          </div>
+        </div>
+        <div class="member-actions" style="margin-bottom:12px">
+          <button class="btn-sm btn-present" onclick="setAllYouth('present')">전원 출석</button>
+          <button class="btn-sm btn-absent" onclick="setAllYouth('absent')">전원 결석</button>
+        </div>
+        <div class="member-grid" id="youthGrid"></div>
+        <div class="add-member-row">
+          <input type="text" id="addYouthInput" placeholder="이름 추가..." style="font-size:14px">
+          <button class="btn-add-submit" onclick="addMember('youth')">+</button>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <span class="card-header-icon">📝</span>
+        <h2>중고등부 특이사항</h2>
+      </div>
+      <div class="card-body">
+        <textarea id="youthNote" placeholder="예) 수련회 준비 중, 시험 기간 등" rows="3"></textarea>
+      </div>
+    </div>
+  </section>
+
+  <!-- TAB 2: 청년부 -->
+  <section class="section" id="tab2">
+    <div class="card">
+      <div class="card-header">
+        <span class="card-header-icon">🙏</span>
+        <h2>청년부 출석 현황</h2>
+        <span class="badge" id="youngBadge">0명</span>
+      </div>
+      <div class="card-body">
+        <div class="summary-bar">
+          <div class="summary-item">
+            <div class="num num-present" id="youngPresentCount">0</div>
+            <div class="lbl">출석</div>
+          </div>
+          <div class="summary-item">
+            <div class="num num-absent" id="youngAbsentCount">0</div>
+            <div class="lbl">결석</div>
+          </div>
+          <div class="summary-item">
+            <div class="num" style="color:#975a16" id="youngSchoolCount">0</div>
+            <div class="lbl">학교이슈</div>
+          </div>
+        </div>
+        <div class="member-actions" style="margin-bottom:8px">
+          <button class="btn-sm btn-present" onclick="setAllYoung('present')">전원 출석</button>
+          <button class="btn-sm btn-absent" onclick="setAllYoung('absent')">전원 결석</button>
+        </div>
+        <p style="font-size:12px;color:var(--text-muted);margin-bottom:10px">탭: 출석 → 결석 → 학교이슈 → 출석 (순환)</p>
+        <div class="member-grid" id="youngGrid"></div>
+        <div class="add-member-row">
+          <input type="text" id="addYoungInput" placeholder="이름 추가..." style="font-size:14px">
+          <button class="btn-add-submit" onclick="addMember('young')">+</button>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <span class="card-header-icon">📝</span>
+        <h2>청년부 특이사항</h2>
+      </div>
+      <div class="card-body">
+        <textarea id="youngNote" placeholder="예) 장기결석 청년 방문 예정 등" rows="3"></textarea>
+      </div>
+    </div>
+  </section>
+
+  <!-- TAB 3: 교구 -->
+  <section class="section" id="tab3">
+    <div class="card">
+      <div class="card-header">
+        <span class="card-header-icon">⛪</span>
+        <h2>교구 결석 현황</h2>
+      </div>
+      <div class="card-body">
+        <div class="zone-grid" id="zoneGrid"></div>
+        <div class="divider"></div>
+        <div class="form-row">
+          <label>교구 특이사항</label>
+          <textarea id="parishNote" placeholder="예) 권찰들에게 결석자 자료 전달 완료" rows="2"></textarea>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- TAB 4: 기타 내용 -->
+  <section class="section" id="tab4">
+    <div class="card">
+      <div class="card-header">
+        <span class="card-header-icon">📅</span>
+        <h2>차주 사역 계획</h2>
+      </div>
+      <div class="card-body">
+        <textarea id="nextWeekPlan" placeholder="예) 각 부서 예배, 청년부 MT 준비" rows="4"></textarea>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <span class="card-header-icon">🙏</span>
+        <h2>기도 제목</h2>
+      </div>
+      <div class="card-body">
+        <textarea id="prayer" placeholder="예) 오늘 나오지 않은 학생 및 청년들이 예배 자리로 나아올 수 있도록..." rows="4"></textarea>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <span class="card-header-icon">💬</span>
+        <h2>종합 의견 및 건의사항</h2>
+      </div>
+      <div class="card-body">
+        <textarea id="generalOpinion" placeholder="예) 오늘은 청년들 결석이 많았습니다..." rows="5"></textarea>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<!-- ACTION BAR -->
+<div class="action-bar">
+  <button class="btn btn-secondary" onclick="saveDraft()" style="flex:0.6">
+    💾 저장
+  </button>
+  <button class="btn btn-gold" onclick="generateReport()">
+    📄 보고서 생성
+  </button>
+</div>
+
+<!-- SETTINGS MODAL -->
+<div class="modal-overlay" id="settingsModal" onclick="closeModal(event,'settingsModal')">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">⚙️ 설정</div>
+
+    <!-- NAS 설정 -->
+    <div class="setting-group">
+      <h3>🖥️ NAS 저장 설정</h3>
+      <div id="nasStatusBar" class="nas-status disconnected">
+        <div class="nas-status-dot"></div>
+        <span id="nasStatusText">NAS 미설정</span>
+      </div>
+      <div class="form-row">
+        <label>저장 방식</label>
+        <select id="nasMode" onchange="onNasModeChange()">
+          <option value="download">다운로드만 (NAS 없음)</option>
+          <option value="filesystem">폴더 선택 (Mac 네트워크 드라이브)</option>
+          <option value="webdav">WebDAV (NAS 직접 연결)</option>
+        </select>
+      </div>
+      <div id="filesystemSection" style="display:none">
+        <button class="btn-wide btn-blue" onclick="pickFolder()">📁 NAS 폴더 선택</button>
+        <p style="font-size:12px;color:var(--text-muted)">Finder에서 NAS를 마운트한 후 폴더를 선택하세요</p>
+      </div>
+      <div id="webdavSection" style="display:none">
+        <div class="form-row">
+          <label>WebDAV URL</label>
+          <input type="url" id="nasUrl" placeholder="http://192.168.1.x:5005/dav">
+        </div>
+        <div class="form-row">
+          <label>사용자명</label>
+          <input type="text" id="nasUser" placeholder="admin" autocomplete="username">
+        </div>
+        <div class="form-row">
+          <label>비밀번호</label>
+          <input type="password" id="nasPass" placeholder="••••••••" autocomplete="current-password">
+        </div>
+        <div class="form-row">
+          <label>저장 경로</label>
+          <input type="text" id="nasPath" placeholder="/사역보고서">
+        </div>
+        <button class="btn-wide btn-outline" onclick="testNAS()">🔗 연결 테스트</button>
+      </div>
+    </div>
+
+    <!-- 멤버 관리 -->
+    <div class="setting-group">
+      <h3>🎓 중고등부 멤버 관리</h3>
+      <div class="member-manage-list" id="youthMemberList"></div>
+      <div class="add-member-row" style="margin-top:8px">
+        <input type="text" id="addYouthManage" placeholder="이름 추가">
+        <button class="btn-add-submit" onclick="addMemberFromManage('youth')">+</button>
+      </div>
+    </div>
+    <div class="setting-group">
+      <h3>🙏 청년부 멤버 관리</h3>
+      <div class="member-manage-list" id="youngMemberList"></div>
+      <div class="add-member-row" style="margin-top:8px">
+        <input type="text" id="addYoungManage" placeholder="이름 추가">
+        <button class="btn-add-submit" onclick="addMemberFromManage('young')">+</button>
+      </div>
+    </div>
+
+    <div class="setting-group">
+      <h3>⚠️ 데이터</h3>
+      <button class="btn-wide btn-outline" onclick="resetApp()" style="border-color:#e53e3e;color:#e53e3e">🗑️ 모든 데이터 초기화</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ───────────────────────────────
+// DEFAULT DATA
+// ───────────────────────────────
+const DEFAULT_YOUTH = [
+  '김규인','김주영','김주혁','이예진','이태양',
+  '이호석','정서원','정시원','정소원',
+  '김주찬','변아영','변현섭','최우진'
+];
+const DEFAULT_YOUNG = [
+  '고현아','라규미','안수용','유다희','유세희',
+  '이석준','정은정','정혜정','한상희',
+  '김태양','한혜원','신승환','차예담','황원영',
+  '김보은','김정인','김주은','박시은'
+];
+
+// ───────────────────────────────
+// STATE
+// ───────────────────────────────
+let state = {
+  date: '',
+  reporter: '김우중',
+  department: '중고등부 / 청년부',
+  youth: { members: [], note: '' },
+  young: { members: [], note: '' },
+  zones: Array(12).fill(''),
+  parishNote: '',
+  nextWeekPlan: '',
+  prayer: '',
+  generalOpinion: ''
+};
+
+let settings = {
+  nasMode: 'download',
+  nasUrl: '',
+  nasUser: '',
+  nasPass: '',
+  nasPath: '/사역보고서',
+};
+
+let dirHandle = null;
+
+// ───────────────────────────────
+// INIT
+// ───────────────────────────────
+function init() {
+  const today = new Date().toISOString().slice(0, 10);
+  document.getElementById('reportDate').value = today;
+  state.date = today;
+  updateHeaderDate();
+
+  // Load settings (nasMode 기본값은 항상 'download')
+  const savedSettings = localStorage.getItem('reportSettings');
+  if (savedSettings) {
+    const parsed = JSON.parse(savedSettings);
+    settings = { ...settings, ...parsed };
+    // filesystem 모드는 dirHandle이 없으면 download로 폴백
+    if (settings.nasMode === 'filesystem' && !dirHandle) {
+      settings.nasMode = 'download';
+    }
+    applySettings();
+  }
+
+  // Load or initialize members
+  const savedState = localStorage.getItem('reportDraft');
+  if (savedState) {
+    const s = JSON.parse(savedState);
+    // Members: if no saved members, use defaults
+    if (!s.youth?.members?.length) {
+      state.youth.members = DEFAULT_YOUTH.map(n => ({ name: n, status: 'present' }));
+    } else {
+      state.youth = s.youth;
+    }
+    if (!s.young?.members?.length) {
+      state.young.members = DEFAULT_YOUNG.map(n => ({ name: n, status: 'present' }));
+    } else {
+      state.young = s.young;
+    }
+  } else {
+    state.youth.members = DEFAULT_YOUTH.map(n => ({ name: n, status: 'present' }));
+    state.young.members = DEFAULT_YOUNG.map(n => ({ name: n, status: 'present' }));
+  }
+
+  renderYouthGrid();
+  renderYoungGrid();
+  renderZoneGrid();
+  updateNasStatus();
+}
+
+// ───────────────────────────────
+// TABS
+// ───────────────────────────────
+let currentTab = 0;
+function switchTab(idx) {
+  document.querySelectorAll('.tab').forEach((t, i) => t.classList.toggle('active', i === idx));
+  document.querySelectorAll('.section').forEach((s, i) => s.classList.toggle('active', i === idx));
+  currentTab = idx;
+}
+
+// ───────────────────────────────
+// DATE
+// ───────────────────────────────
+function onDateChange() {
+  state.date = document.getElementById('reportDate').value;
+  updateHeaderDate();
+}
+function updateHeaderDate() {
+  if (!state.date) return;
+  const d = new Date(state.date + 'T00:00:00');
+  const opts = { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' };
+  document.getElementById('headerDate').textContent = d.toLocaleDateString('ko-KR', opts);
+}
+
+// ───────────────────────────────
+// MEMBER GRID
+// ───────────────────────────────
+function renderYouthGrid() {
+  const grid = document.getElementById('youthGrid');
+  grid.innerHTML = '';
+  state.youth.members.forEach((m, i) => {
+    const chip = document.createElement('div');
+    chip.className = `member-chip ${m.status}`;
+    chip.innerHTML = `<div class="status-dot"></div>${m.name}`;
+    chip.onclick = () => toggleYouth(i);
+    grid.appendChild(chip);
+  });
+  updateYouthStats();
+  renderMemberManageList('youth');
+}
+
+function renderYoungGrid() {
+  const grid = document.getElementById('youngGrid');
+  grid.innerHTML = '';
+  state.young.members.forEach((m, i) => {
+    const chip = document.createElement('div');
+    chip.className = `member-chip ${m.status}`;
+    chip.innerHTML = `<div class="status-dot"></div>${m.name}`;
+    chip.onclick = () => toggleYoung(i);
+    grid.appendChild(chip);
+  });
+  updateYoungStats();
+  renderMemberManageList('young');
+}
+
+function toggleYouth(i) {
+  const m = state.youth.members[i];
+  m.status = m.status === 'present' ? 'absent' : 'present';
+  renderYouthGrid();
+}
+
+function toggleYoung(i) {
+  const m = state.young.members[i];
+  // cycle: present → absent → school-issue → present
+  const cycle = ['present', 'absent', 'school-issue'];
+  const idx = cycle.indexOf(m.status);
+  m.status = cycle[(idx + 1) % cycle.length];
+  renderYoungGrid();
+}
+
+function setAllYouth(status) {
+  state.youth.members.forEach(m => m.status = status);
+  renderYouthGrid();
+}
+function setAllYoung(status) {
+  state.young.members.forEach(m => m.status = status);
+  renderYoungGrid();
+}
+
+function updateYouthStats() {
+  const present = state.youth.members.filter(m => m.status === 'present').length;
+  const absent = state.youth.members.filter(m => m.status === 'absent').length;
+  const total = state.youth.members.length;
+  document.getElementById('youthPresentCount').textContent = present;
+  document.getElementById('youthAbsentCount').textContent = absent;
+  document.getElementById('youthTotalCount').textContent = total;
+  document.getElementById('youthBadge').textContent = `출석 ${present}명`;
+}
+function updateYoungStats() {
+  const present = state.young.members.filter(m => m.status === 'present').length;
+  const absent = state.young.members.filter(m => m.status === 'absent').length;
+  const school = state.young.members.filter(m => m.status === 'school-issue').length;
+  document.getElementById('youngPresentCount').textContent = present;
+  document.getElementById('youngAbsentCount').textContent = absent;
+  document.getElementById('youngSchoolCount').textContent = school;
+  document.getElementById('youngBadge').textContent = `출석 ${present}명`;
+}
+
+function addMember(group) {
+  const inputId = group === 'youth' ? 'addYouthInput' : 'addYoungInput';
+  const input = document.getElementById(inputId);
+  const name = input.value.trim();
+  if (!name) return;
+  state[group === 'youth' ? 'youth' : 'young'].members.push({ name, status: 'present' });
+  input.value = '';
+  group === 'youth' ? renderYouthGrid() : renderYoungGrid();
+  toast(`${name} 추가됨`);
+}
+
+// ───────────────────────────────
+// ZONE GRID
+// ───────────────────────────────
+function renderZoneGrid() {
+  const grid = document.getElementById('zoneGrid');
+  grid.innerHTML = '';
+  for (let i = 0; i < 12; i++) {
+    const div = document.createElement('div');
+    div.className = 'zone-item form-row';
+    div.innerHTML = `
+      <label>${i + 1}구역 결석자</label>
+      <input type="text" placeholder="이름 입력..."
+        value="${state.zones[i] || ''}"
+        oninput="state.zones[${i}]=this.value;updateZoneTotal()"
+        style="font-size:13px;padding:8px 10px">
+    `;
+    grid.appendChild(div);
+  }
+  // Total row
+  const totalDiv = document.createElement('div');
+  totalDiv.className = 'zone-total';
+  totalDiv.innerHTML = `
+    <div>
+      <div style="font-size:12px;opacity:0.7">교구 총 결석</div>
+      <div style="font-size:13px;opacity:0.6;margin-top:2px">(장기결석·비정기·유병자 포함)</div>
+    </div>
+    <div class="total-num" id="zoneTotalNum">0명</div>
+  `;
+  grid.appendChild(totalDiv);
+  updateZoneTotal();
+}
+
+function updateZoneTotal() {
+  // Count names in all zones (comma/space separated)
+  let total = 0;
+  state.zones.forEach(z => {
+    if (!z.trim()) return;
+    const names = z.split(/[,，\s]+/).filter(n => n.trim());
+    total += names.length;
+  });
+  const el = document.getElementById('zoneTotalNum');
+  if (el) el.textContent = total + '명';
+}
+
+// ───────────────────────────────
+// SETTINGS
+// ───────────────────────────────
+function openSettings() {
+  document.getElementById('settingsModal').classList.add('open');
+  applySettings();
+}
+function closeModal(e, id) {
+  if (e.target === e.currentTarget) document.getElementById(id).classList.remove('open');
+}
+function applySettings() {
+  document.getElementById('nasMode').value = settings.nasMode;
+  document.getElementById('nasUrl').value = settings.nasUrl;
+  document.getElementById('nasUser').value = settings.nasUser;
+  document.getElementById('nasPass').value = settings.nasPass;
+  document.getElementById('nasPath').value = settings.nasPath;
+  onNasModeChange();
+  updateNasStatus();
+}
+function saveSettings() {
+  settings.nasMode = document.getElementById('nasMode').value;
+  settings.nasUrl = document.getElementById('nasUrl').value;
+  settings.nasUser = document.getElementById('nasUser').value;
+  settings.nasPass = document.getElementById('nasPass').value;
+  settings.nasPath = document.getElementById('nasPath').value;
+  localStorage.setItem('reportSettings', JSON.stringify(settings));
+  updateNasStatus();
+}
+function onNasModeChange() {
+  const mode = document.getElementById('nasMode').value;
+  document.getElementById('filesystemSection').style.display = mode === 'filesystem' ? 'block' : 'none';
+  document.getElementById('webdavSection').style.display = mode === 'webdav' ? 'block' : 'none';
+  saveSettings();
+}
+function updateNasStatus() {
+  const bar = document.getElementById('nasStatusBar');
+  const text = document.getElementById('nasStatusText');
+  if (settings.nasMode === 'download') {
+    bar.className = 'nas-status disconnected';
+    text.textContent = '다운로드 모드 (NAS 미연결)';
+  } else if (settings.nasMode === 'filesystem') {
+    if (dirHandle) {
+      bar.className = 'nas-status connected';
+      text.textContent = `📁 ${dirHandle.name} 폴더 연결됨`;
+    } else {
+      bar.className = 'nas-status disconnected';
+      text.textContent = '폴더를 선택하세요';
+    }
+  } else if (settings.nasMode === 'webdav') {
+    if (settings.nasUrl) {
+      bar.className = 'nas-status connected';
+      text.textContent = `🌐 ${settings.nasUrl}`;
+    } else {
+      bar.className = 'nas-status disconnected';
+      text.textContent = 'WebDAV URL을 입력하세요';
+    }
+  }
+}
+
+async function pickFolder() {
+  if (!window.showDirectoryPicker) {
+    toast('이 브라우저에서는 지원되지 않습니다 (Chrome 권장)');
+    return;
+  }
+  try {
+    dirHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
+    settings.nasMode = 'filesystem';
+    saveSettings();
+    updateNasStatus();
+    toast(`✅ ${dirHandle.name} 폴더 선택됨`);
+  } catch (e) {
+    if (e.name !== 'AbortError') toast('폴더 선택 실패: ' + e.message);
+  }
+}
+
+async function testNAS() {
+  saveSettings();
+  if (!settings.nasUrl) { toast('URL을 입력하세요'); return; }
+  try {
+    toast('연결 테스트 중...');
+    const res = await fetch(settings.nasUrl + '/', {
+      method: 'PROPFIND',
+      headers: {
+        'Authorization': 'Basic ' + btoa(settings.nasUser + ':' + settings.nasPass),
+        'Depth': '0'
+      }
+    });
+    if (res.ok || res.status === 207) {
+      toast('✅ NAS 연결 성공!');
+      updateNasStatus();
+    } else {
+      toast('❌ 연결 실패: ' + res.status);
+    }
+  } catch (e) {
+    toast('❌ 연결 실패 (CORS 또는 네트워크 오류)');
+  }
+}
+
+// ───────────────────────────────
+// MEMBER MANAGE
+// ───────────────────────────────
+function renderMemberManageList(group) {
+  const listId = group === 'youth' ? 'youthMemberList' : 'youngMemberList';
+  const list = document.getElementById(listId);
+  if (!list) return;
+  const members = state[group].members;
+  list.innerHTML = '';
+  members.forEach((m, i) => {
+    const item = document.createElement('div');
+    item.className = 'member-manage-item';
+    item.innerHTML = `<span>${m.name}</span><button class="btn-delete" onclick="deleteMember('${group}',${i})">✕</button>`;
+    list.appendChild(item);
+  });
+}
+function addMemberFromManage(group) {
+  const inputId = group === 'youth' ? 'addYouthManage' : 'addYoungManage';
+  const input = document.getElementById(inputId);
+  const name = input.value.trim();
+  if (!name) return;
+  state[group].members.push({ name, status: 'present' });
+  input.value = '';
+  group === 'youth' ? renderYouthGrid() : renderYoungGrid();
+  toast(`${name} 추가됨`);
+}
+function deleteMember(group, idx) {
+  state[group].members.splice(idx, 1);
+  group === 'youth' ? renderYouthGrid() : renderYoungGrid();
+}
+
+// ───────────────────────────────
+// DRAFT SAVE
+// ───────────────────────────────
+function collectState() {
+  state.date = document.getElementById('reportDate').value;
+  state.reporter = document.getElementById('reporter').value;
+  state.department = document.getElementById('department').value;
+  state.youth.note = document.getElementById('youthNote').value;
+  state.young.note = document.getElementById('youngNote').value;
+  state.parishNote = document.getElementById('parishNote').value;
+  state.nextWeekPlan = document.getElementById('nextWeekPlan').value;
+  state.prayer = document.getElementById('prayer').value;
+  state.generalOpinion = document.getElementById('generalOpinion').value;
+}
+function saveDraft() {
+  collectState();
+  localStorage.setItem('reportDraft', JSON.stringify(state));
+  toast('💾 임시저장 완료');
+}
+function resetApp() {
+  if (!confirm('모든 데이터를 초기화할까요?')) return;
+  localStorage.removeItem('reportDraft');
+  localStorage.removeItem('reportSettings');
+  location.reload();
+}
+
+// ───────────────────────────────
+// DOCX GENERATION
+// ───────────────────────────────
+async function generateReport() {
+  collectState();
+  if (!state.date) { toast('날짜를 입력하세요'); switchTab(0); return; }
+  saveDraft();
+  toast('⏳ 보고서 생성 중...');
+  try {
+    const blob = await buildDocx();
+    const dateStr = state.date.replace(/-/g, '');
+    const filename = `주일사역보고서_${dateStr}_${state.reporter}.docx`;
+    await downloadAndSave(blob, filename);
+  } catch(e) {
+    toast('❌ 생성 실패: ' + e.message);
+    console.error(e);
+  }
+}
+
+async function downloadAndSave(blob, filename) {
+  const mode = settings.nasMode;
+  // Always download first
+  triggerDownload(blob, filename);
+
+  // Also try NAS save
+  if (mode === 'filesystem' && dirHandle) {
+    await saveToFileSystem(blob, filename);
+  } else if (mode === 'webdav' && settings.nasUrl) {
+    await saveToWebDAV(blob, filename);
+  } else {
+    toast('✅ 다운로드 완료! Downloads 폴더를 확인하세요.');
+  }
+}
+
+function triggerDownload(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 3000);
+}
+
+async function saveToFileSystem(blob, filename) {
+  try {
+    const fileHandle = await dirHandle.getFileHandle(filename, { create: true });
+    const writable = await fileHandle.createWritable();
+    await writable.write(blob);
+    await writable.close();
+    toast(`✅ NAS 저장 완료: ${filename}`);
+  } catch (e) {
+    toast('❌ NAS 저장 실패: ' + e.message);
+  }
+}
+
+async function saveToWebDAV(blob, filename) {
+  const path = (settings.nasPath || '') + '/' + filename;
+  const url = settings.nasUrl.replace(/\/$/, '') + path;
+  try {
+    const res = await fetch(url, {
+      method: 'PUT',
+      headers: {
+        'Authorization': 'Basic ' + btoa(settings.nasUser + ':' + settings.nasPass),
+        'Content-Type': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+      },
+      body: blob
+    });
+    if (res.ok || res.status === 201) {
+      toast(`✅ NAS 저장 완료`);
+    } else {
+      toast('❌ NAS 저장 실패: ' + res.status);
+    }
+  } catch (e) {
+    toast('❌ NAS 저장 실패 (CORS 오류 가능)');
+  }
+}
+
+// ───────────────────────────────
+// DOCX XML BUILDER
+// ───────────────────────────────
+async function buildDocx() {
+  if (typeof JSZip === 'undefined') throw new Error('JSZip 라이브러리가 로드되지 않았습니다');
+
+  const zip = new JSZip();
+
+  zip.file('[Content_Types].xml', contentTypesXml());
+  zip.file('_rels/.rels', relsXml());
+  zip.file('word/_rels/document.xml.rels', documentRelsXml());
+  zip.file('word/document.xml', buildDocumentXml());
+  zip.file('word/styles.xml', stylesXml());
+  zip.file('word/settings.xml', settingsXml());
+
+  const buffer = await zip.generateAsync({ type: 'arraybuffer' });
+  return new Blob([buffer], {
+    type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+  });
+}
+
+function esc(s) {
+  return String(s || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+function wParagraph(text, opts = {}) {
+  const {
+    bold = false, color = '000000', size = 24,
+    align = 'left', spacing = 240
+  } = opts;
+  return `
+<w:p>
+  <w:pPr>
+    <w:spacing w:line="${spacing}" w:lineRule="auto"/>
+    ${align !== 'left' ? `<w:jc w:val="${align}"/>` : ''}
+  </w:pPr>
+  <w:r>
+    <w:rPr>
+      ${bold ? '<w:b/>' : ''}
+      <w:color w:val="${color}"/>
+      <w:sz w:val="${size}"/>
+      <w:szCs w:val="${size}"/>
+    </w:rPr>
+    <w:t xml:space="preserve">${esc(text)}</w:t>
+  </w:r>
+</w:p>`;
+}
+
+function wTableRow(cells, isHeader = false) {
+  const tcWidth = Math.floor(8638 / cells.length);
+  return `
+<w:tr>
+  ${cells.map((cell, i) => `
+  <w:tc>
+    <w:tcPr>
+      <w:tcW w:w="${tcWidth}" w:type="dxa"/>
+      ${isHeader && i === 0 ? '<w:shd w:val="clear" w:color="auto" w:fill="2C5AA0"/>' : ''}
+    </w:tcPr>
+    <w:p>
+      <w:r>
+        <w:rPr>
+          ${isHeader && i === 0 ? '<w:b/><w:color w:val="FFFFFF"/>' : ''}
+          <w:sz w:val="22"/><w:szCs w:val="22"/>
+        </w:rPr>
+        <w:t xml:space="preserve">${esc(cell)}</w:t>
+      </w:r>
+    </w:p>
+  </w:tc>`).join('')}
+</w:tr>`;
+}
+
+function wInfoTable(rows) {
+  return `
+<w:tbl>
+  <w:tblPr>
+    <w:tblW w:w="8638" w:type="dxa"/>
+    <w:tblBorders>
+      <w:top w:val="single" w:sz="4" w:space="0" w:color="2C5AA0"/>
+      <w:left w:val="single" w:sz="4" w:space="0" w:color="2C5AA0"/>
+      <w:bottom w:val="single" w:sz="4" w:space="0" w:color="2C5AA0"/>
+      <w:right w:val="single" w:sz="4" w:space="0" w:color="2C5AA0"/>
+      <w:insideH w:val="single" w:sz="4" w:space="0" w:color="CCCCCC"/>
+      <w:insideV w:val="single" w:sz="4" w:space="0" w:color="CCCCCC"/>
+    </w:tblBorders>
+    <w:tblCellMar>
+      <w:top w:w="80" w:type="dxa"/>
+      <w:left w:w="120" w:type="dxa"/>
+      <w:bottom w:w="80" w:type="dxa"/>
+      <w:right w:w="120" w:type="dxa"/>
+    </w:tblCellMar>
+  </w:tblPr>
+  <w:tblGrid>
+    <w:gridCol w:w="2160"/>
+    <w:gridCol w:w="6478"/>
+  </w:tblGrid>
+  ${rows.map(r => wTableRow(r)).join('')}
+</w:tbl>`;
+}
+
+function wSectionTitle(num, title) {
+  return `
+<w:p>
+  <w:pPr><w:spacing w:before="200" w:after="80" w:line="240" w:lineRule="auto"/></w:pPr>
+  <w:r>
+    <w:rPr>
+      <w:b/>
+      <w:color w:val="2C5AA0"/>
+      <w:sz w:val="26"/><w:szCs w:val="26"/>
+    </w:rPr>
+    <w:t>${num}. ${esc(title)}</w:t>
+  </w:r>
+</w:p>`;
+}
+
+function wSubTitle(title) {
+  return `
+<w:p>
+  <w:pPr><w:spacing w:before="80" w:after="40" w:line="240" w:lineRule="auto"/></w:pPr>
+  <w:r>
+    <w:rPr>
+      <w:b/>
+      <w:color w:val="1a3a7a"/>
+      <w:sz w:val="24"/><w:szCs w:val="24"/>
+    </w:rPr>
+    <w:t xml:space="preserve">▶ ${esc(title)}</w:t>
+  </w:r>
+</w:p>`;
+}
+
+function wBullet(label, value) {
+  return `
+<w:p>
+  <w:pPr>
+    <w:ind w:left="280"/>
+    <w:spacing w:line="240" w:lineRule="auto"/>
+  </w:pPr>
+  <w:r>
+    <w:rPr><w:b/><w:sz w:val="22"/><w:szCs w:val="22"/></w:rPr>
+    <w:t xml:space="preserve">${esc(label)}: </w:t>
+  </w:r>
+  <w:r>
+    <w:rPr><w:sz w:val="22"/><w:szCs w:val="22"/></w:rPr>
+    <w:t xml:space="preserve">${esc(value)}</w:t>
+  </w:r>
+</w:p>`;
+}
+
+function wText(text) {
+  const lines = String(text || '').split('\n');
+  return lines.map(line => `
+<w:p>
+  <w:pPr>
+    <w:ind w:left="280"/>
+    <w:spacing w:line="240" w:lineRule="auto"/>
+  </w:pPr>
+  <w:r>
+    <w:rPr><w:sz w:val="22"/><w:szCs w:val="22"/></w:rPr>
+    <w:t xml:space="preserve">${esc(line || ' ')}</w:t>
+  </w:r>
+</w:p>`).join('');
+}
+
+function buildDocumentXml() {
+  const d = state;
+  const yPresent = d.youth.members.filter(m => m.status === 'present');
+  const yAbsent  = d.youth.members.filter(m => m.status === 'absent');
+  const gPresent = d.young.members.filter(m => m.status === 'present');
+  const gAbsent  = d.young.members.filter(m => m.status === 'absent');
+  const gSchool  = d.young.members.filter(m => m.status === 'school-issue');
+
+  // Zone absent list
+  const zoneLines = d.zones.map((z, i) => {
+    const names = (z || '').trim();
+    return names ? `(${i+1}구역) ${names}` : null;
+  }).filter(Boolean);
+
+  // Total zone absent count
+  let zoneTotal = 0;
+  d.zones.forEach(z => {
+    if (!z.trim()) return;
+    zoneTotal += z.split(/[,，\s]+/).filter(n => n.trim()).length;
+  });
+
+  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"
+            xmlns:w14="http://schemas.microsoft.com/office/word/2010/wordml"
+            xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
+<w:body>
+
+${wParagraph('교역자 주일사역 보고서', { bold: true, color: '2C5AA0', size: 36, align: 'center', spacing: 360 })}
+
+${wParagraph('', { size: 22, spacing: 120 })}
+
+${wInfoTable([
+  ['보고 주일', d.date],
+  ['보고자', d.reporter],
+  ['담당부서', d.department],
+])}
+
+${wParagraph('', { size: 22, spacing: 160 })}
+
+${wSectionTitle('1', '부서별 주일 사역')}
+
+${wSubTitle('중고등부')}
+${wBullet('출석', `${yPresent.length}명`)}
+${yPresent.length ? wBullet('1) 출석자 명단', yPresent.map(m => m.name).join(' ')) : ''}
+${yAbsent.length ? wBullet('2) 결석자 명단', yAbsent.map(m => m.name).join(' ')) : ''}
+${d.youth.note ? wBullet('특이사항', d.youth.note) : ''}
+
+${wSubTitle('청년부')}
+${wBullet('출석', `${gPresent.length}명`)}
+${gPresent.length ? wBullet('1) 출석자 명단', gPresent.map(m => m.name).join(' ')) : ''}
+${gAbsent.length ? wBullet('2) 결석자 명단', gAbsent.map(m => m.name).join(' ')) : ''}
+${gSchool.length ? wBullet('학교 이슈', gSchool.map(m => m.name).join(' ')) : ''}
+${d.young.note ? wBullet('특이사항', d.young.note) : ''}
+
+${wSubTitle('교구')}
+${wBullet('결석', `총 ${zoneTotal}명 (장기결석·비정기출석·유병자 포함)`)}
+${zoneLines.map(line => wBullet('', line)).join('')}
+${d.parishNote ? wBullet('비고', d.parishNote) : ''}
+
+${wSectionTitle('2', '차주 사역 계획')}
+${wText(d.nextWeekPlan || '미기재')}
+
+${wSectionTitle('3', '기도 제목')}
+${wText(d.prayer || '미기재')}
+
+${wSectionTitle('4', '종합 의견 및 건의사항')}
+${wText(d.generalOpinion || '미기재')}
+
+${wParagraph('', { size: 22, spacing: 200 })}
+
+${wParagraph('위와 같이 주일 사역을 보고합니다.', { size: 22, align: 'center' })}
+
+${wParagraph('', { size: 22, spacing: 120 })}
+
+${wInfoTable([
+  ['작성일', d.date],
+  ['보고자', d.reporter],
+])}
+
+<w:sectPr>
+  <w:pgSz w:w="12240" w:h="15840"/>
+  <w:pgMar w:top="1440" w:right="1080" w:bottom="1440" w:left="1080"
+           w:header="720" w:footer="720" w:gutter="0"/>
+</w:sectPr>
+</w:body>
+</w:document>`;
+}
+
+function contentTypesXml() {
+  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+  <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
+  <Default Extension="xml" ContentType="application/xml"/>
+  <Override PartName="/word/document.xml"
+    ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>
+  <Override PartName="/word/styles.xml"
+    ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/>
+  <Override PartName="/word/settings.xml"
+    ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.settings+xml"/>
+</Types>`;
+}
+function relsXml() {
+  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1"
+    Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument"
+    Target="word/document.xml"/>
+</Relationships>`;
+}
+function documentRelsXml() {
+  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1"
+    Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles"
+    Target="styles.xml"/>
+  <Relationship Id="rId2"
+    Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/settings"
+    Target="settings.xml"/>
+</Relationships>`;
+}
+function stylesXml() {
+  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+  <w:docDefaults>
+    <w:rPrDefault><w:rPr>
+      <w:rFonts w:ascii="맑은 고딕" w:hAnsi="맑은 고딕" w:eastAsia="맑은 고딕" w:cs="맑은 고딕"/>
+      <w:sz w:val="22"/><w:szCs w:val="22"/>
+      <w:lang w:eastAsia="ko-KR" w:val="ko-KR"/>
+    </w:rPr></w:rPrDefault>
+  </w:docDefaults>
+</w:styles>`;
+}
+function settingsXml() {
+  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:settings xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+  <w:defaultTabStop w:val="720"/>
+</w:settings>`;
+}
+
+// ───────────────────────────────
+// TOAST
+// ───────────────────────────────
+let toastTimer;
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 3000);
+}
+
+// ───────────────────────────────
+// AUTO SAVE ON INPUT
+// ───────────────────────────────
+document.addEventListener('input', () => {
+  clearTimeout(window._saveTimer);
+  window._saveTimer = setTimeout(saveDraft, 2000);
+});
+
+// ───────────────────────────────
+// ENTER KEY FOR ADD MEMBER
+// ───────────────────────────────
+document.getElementById('addYouthInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') addMember('youth');
+});
+document.getElementById('addYoungInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') addMember('young');
+});
+
+// ───────────────────────────────
+// SW REGISTRATION
+// ───────────────────────────────
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').catch(e => console.log('SW error:', e));
+  });
+}
+
+// START
+init();
+</script>
+</body>
+</html>
