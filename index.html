@@ -804,18 +804,30 @@ async function loadHistorySeed() {
 
 function saveToHistory() {
   if (!state.date) return;
+  // 장년 구역별 결석자 수집 (빈 구역 제외)
+  const adultZones = (state.zones || [])
+    .map((z, i) => {
+      const names = (z || '').split(/[,，\s]+/).map(n => n.trim()).filter(Boolean);
+      return names.length ? { zone: `${i + 1}구역`, names } : null;
+    })
+    .filter(Boolean);
+  const adultAbsent = adultZones.reduce((acc, z) => acc + z.names.length, 0);
+
   const entry = {
     date: state.date,
     youth: {
-      present: state.youth.members.filter(m => m.status === 'present').length,
-      absent:  state.youth.members.filter(m => m.status === 'absent').length,
-      total:   state.youth.members.length
+      present:      state.youth.members.filter(m => m.status === 'present').length,
+      absent:       state.youth.members.filter(m => m.status === 'absent').length,
+      total:        state.youth.members.length,
+      absentNames:  state.youth.members.filter(m => m.status === 'absent').map(m => m.name)
     },
     young: {
-      present: state.young.members.filter(m => m.status === 'present').length,
-      absent:  state.young.members.filter(m => m.status === 'absent').length,
-      total:   state.young.members.length
-    }
+      present:      state.young.members.filter(m => m.status === 'present').length,
+      absent:       state.young.members.filter(m => m.status === 'absent').length,
+      total:        state.young.members.length,
+      absentNames:  state.young.members.filter(m => m.status === 'absent').map(m => m.name)
+    },
+    adult: { absent: adultAbsent, zones: adultZones }
   };
   reportHistory = reportHistory.filter(h => h.date !== state.date);
   reportHistory.push(entry);
@@ -1482,22 +1494,29 @@ async function shareReport() {
     const blob = await buildDocx();
     const dateStr = state.date.replace(/-/g, '');
     const filename = `주일사역보고서_${dateStr}_${state.reporter}.docx`;
-    // Web Share API (모바일) — DS File, Files 앱 등 선택 가능
-    if (navigator.canShare && navigator.canShare({ files: [new File([blob], filename)] })) {
-      const file = new File([blob], filename, {
-        type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
-      });
-      await navigator.share({ files: [file], title: filename });
-    } else {
-      // 데스크탑 / 공유 미지원: 다운로드로 대체
-      triggerDownload(blob, filename);
-      toast('✅ 다운로드 완료 (공유 미지원 환경)');
+    const file = new File([blob], filename, {
+      type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+    });
+    // Web Share API — canShare 검사 없이 직접 시도 (일부 기기에서 canShare 오탐)
+    if (navigator.share) {
+      try {
+        await navigator.share({ files: [file], title: filename });
+        return;
+      } catch(shareErr) {
+        if (shareErr.name === 'AbortError') return; // 사용자 취소
+        // 파일 공유 실패 시 URL 공유로 재시도
+        try {
+          await navigator.share({ title: filename, text: filename });
+          return;
+        } catch(_) {}
+      }
     }
+    // 공유 미지원 or 전체 실패 → 다운로드
+    triggerDownload(blob, filename);
+    toast('✅ 다운로드 완료');
   } catch(e) {
-    if (e.name !== 'AbortError') {
-      toast('❌ 공유 실패: ' + e.message);
-      console.error(e);
-    }
+    toast('❌ 오류: ' + e.message);
+    console.error(e);
   }
 }
 

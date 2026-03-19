@@ -24,31 +24,45 @@
 body {
   font-family: 'Noto Sans KR', -apple-system, sans-serif;
   background: var(--bg); color: var(--text);
-  font-size: 15px; line-height: 1.6;
-  scrollbar-width: none;
+  font-size: 15px; line-height: 1.6; scrollbar-width: none;
 }
 body::-webkit-scrollbar { display: none; }
+*::-webkit-scrollbar { display: none; }
 
 /* HEADER */
 .header {
   background: linear-gradient(135deg, var(--navy) 0%, var(--navy2) 100%);
-  padding: calc(14px + var(--safe-top)) 20px 16px;
+  padding: calc(14px + var(--safe-top)) 20px 14px;
   color: white; position: sticky; top: 0; z-index: 50;
 }
-.header-top { display: flex; justify-content: space-between; align-items: center; }
+.header-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
 .header h1 { font-size: 18px; font-weight: 700; }
-.header p { font-size: 12px; opacity: 0.7; margin-top: 2px; }
+.header p  { font-size: 12px; opacity: 0.7; margin-top: 2px; }
 .refresh-btn {
   background: rgba(255,255,255,0.15); border: none; color: white;
   border-radius: 10px; padding: 7px 13px; font-size: 13px;
   cursor: pointer; font-family: inherit; font-weight: 500;
 }
 
+/* HEADER TABS */
+.header-tabs {
+  display: flex; gap: 4px; background: rgba(255,255,255,0.1);
+  border-radius: 12px; padding: 4px;
+}
+.h-tab {
+  flex: 1; padding: 7px; border: none; border-radius: 9px;
+  font-size: 13px; font-weight: 600; font-family: inherit; cursor: pointer;
+  background: transparent; color: rgba(255,255,255,0.6); transition: all 0.2s;
+}
+.h-tab.active { background: white; color: var(--navy); }
+
 /* CONTENT */
 .content {
   padding: 16px 16px calc(20px + var(--safe-bottom));
   max-width: 480px; margin: 0 auto;
 }
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
 
 /* CARD */
 .card {
@@ -58,80 +72,94 @@ body::-webkit-scrollbar { display: none; }
 }
 .card-title {
   font-size: 13px; font-weight: 600; color: var(--muted);
-  text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 14px;
+  letter-spacing: 0.3px; margin-bottom: 12px;
   display: flex; align-items: center; gap: 6px;
 }
 
-/* LATEST ROW */
-.latest-date {
-  font-size: 20px; font-weight: 700; color: var(--navy);
-  margin-bottom: 12px;
-}
+/* STAT ROW */
+.latest-date { font-size: 19px; font-weight: 700; color: var(--navy); margin-bottom: 12px; }
 .stat-row { display: flex; gap: 10px; }
 .stat-box {
   flex: 1; text-align: center; background: #f7f9fc;
-  border-radius: 12px; padding: 12px 8px;
+  border-radius: 12px; padding: 11px 8px;
 }
-.stat-label { font-size: 12px; color: var(--muted); margin-bottom: 4px; }
-.stat-val { font-size: 22px; font-weight: 700; color: var(--navy); }
-.stat-sub { font-size: 11px; color: var(--muted); margin-top: 2px; }
+.stat-label { font-size: 12px; color: var(--muted); margin-bottom: 3px; }
+.stat-val   { font-size: 22px; font-weight: 700; color: var(--navy); }
+.stat-sub   { font-size: 11px; color: var(--muted); margin-top: 2px; }
 .badge-rate {
-  display: inline-block; padding: 2px 8px; border-radius: 20px;
-  font-size: 12px; font-weight: 600; margin-top: 8px;
+  display: inline-block; padding: 2px 9px; border-radius: 20px;
+  font-size: 12px; font-weight: 600; margin-top: 10px;
 }
 .rate-good { background: #f0fff4; color: #276749; }
 .rate-mid  { background: #fffbeb; color: #975a16; }
 .rate-low  { background: #fff5f5; color: #c53030; }
 
+/* ABSENT NAMES */
+.absent-block { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); }
+.absent-block-title { font-size: 12px; color: var(--muted); margin-bottom: 8px; font-weight: 500; }
+.name-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.name-chip {
+  background: #fff5f5; color: #c53030; border: 1px solid #fecaca;
+  border-radius: 20px; padding: 3px 10px; font-size: 13px; font-weight: 500;
+}
+.name-chip.none { background: #f0fff4; color: #276749; border-color: #9ae6b4; }
+
+/* ZONE ABSENT (장년) */
+.zone-absent-list { display: flex; flex-direction: column; gap: 10px; }
+.zone-row { background: #f7f9fc; border-radius: 12px; padding: 12px 14px; }
+.zone-row-head {
+  display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;
+}
+.zone-name  { font-size: 14px; font-weight: 600; color: var(--navy); }
+.zone-count { font-size: 12px; color: #c53030; font-weight: 600; background: #fff5f5; padding: 2px 8px; border-radius: 10px; }
+.district-title {
+  font-size: 13px; font-weight: 700; color: var(--blue);
+  margin: 14px 0 8px; padding-left: 4px;
+  border-left: 3px solid var(--blue);
+  padding-left: 8px;
+}
+
 /* CHART */
 .chart-wrap { margin-top: 4px; }
-.chart-row {
-  display: flex; align-items: center; gap: 10px;
-  margin-bottom: 10px;
+.chart-row  { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.chart-label {
+  font-size: 12px; color: var(--muted); width: 46px;
+  flex-shrink: 0; text-align: right;
 }
-.chart-label { font-size: 12px; color: var(--muted); width: 50px; flex-shrink: 0; text-align: right; }
 .chart-bar-bg {
-  flex: 1; height: 22px; background: #eef2f8; border-radius: 6px; overflow: hidden;
-  position: relative;
+  flex: 1; height: 22px; background: #eef2f8;
+  border-radius: 6px; overflow: hidden;
 }
 .chart-bar {
   height: 100%; border-radius: 6px;
   display: flex; align-items: center; justify-content: flex-end;
   padding-right: 8px; font-size: 11px; font-weight: 600; color: white;
-  transition: width 0.6s ease;
-  min-width: 28px;
+  transition: width 0.6s ease; min-width: 28px;
 }
 .bar-youth { background: linear-gradient(90deg, #2c5aa0, #4a7fd4); }
 .bar-young { background: linear-gradient(90deg, #b8922a, #c9a84c); }
+.bar-adult { background: linear-gradient(90deg, #276749, #38a169); }
 
-/* MONTH SUMMARY */
+/* MONTH GRID */
 .month-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-.month-box {
-  background: #f7f9fc; border-radius: 12px; padding: 12px 10px; text-align: center;
-}
+.month-box  { background: #f7f9fc; border-radius: 12px; padding: 12px 10px; text-align: center; }
 .month-box .lbl { font-size: 12px; color: var(--muted); margin-bottom: 6px; }
 .month-box .val { font-size: 18px; font-weight: 700; color: var(--navy); }
 .month-box .sub { font-size: 11px; color: var(--muted); margin-top: 2px; }
 
-/* SECTION TABS */
-.seg {
-  display: flex; background: #eef2f8; border-radius: 12px;
-  padding: 4px; gap: 4px; margin-bottom: 14px;
+/* HISTORY LIST */
+.history-row {
+  display: flex; justify-content: space-between; align-items: flex-start;
+  padding: 10px 0; border-bottom: 1px solid var(--border); gap: 10px;
 }
-.seg-btn {
-  flex: 1; padding: 8px; border: none; border-radius: 9px;
-  font-size: 13px; font-weight: 600; font-family: inherit; cursor: pointer;
-  background: transparent; color: var(--muted); transition: all 0.2s;
-}
-.seg-btn.active { background: white; color: var(--navy); box-shadow: 0 1px 6px rgba(0,0,0,0.1); }
+.history-row:last-child { border-bottom: none; }
+.history-date { font-size: 14px; color: var(--text); flex-shrink: 0; }
+.history-right { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+.absent-names-small { font-size: 12px; color: #c53030; text-align: right; max-width: 200px; }
 
-/* EMPTY */
+/* EMPTY / SPINNER */
 .empty { text-align: center; color: var(--muted); padding: 40px 0; font-size: 14px; }
-
-/* SPINNER */
-.spinner {
-  display: flex; justify-content: center; align-items: center; height: 120px;
-}
+.spinner { display: flex; justify-content: center; align-items: center; height: 120px; }
 .spinner::after {
   content: ''; width: 32px; height: 32px; border-radius: 50%;
   border: 3px solid var(--border); border-top-color: var(--blue);
@@ -139,7 +167,20 @@ body::-webkit-scrollbar { display: none; }
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 
-/* UPDATE TOAST */
+/* CONSECUTIVE ABSENT */
+.consec-list { display: flex; flex-direction: column; gap: 8px; }
+.consec-row {
+  display: flex; align-items: center; justify-content: space-between;
+  background: #fff8f8; border: 1px solid #fecaca; border-radius: 10px;
+  padding: 9px 14px;
+}
+.consec-name { font-size: 14px; font-weight: 600; color: var(--text); }
+.consec-badge {
+  background: #e53e3e; color: white; border-radius: 20px;
+  padding: 2px 10px; font-size: 12px; font-weight: 700;
+}
+
+/* TOAST */
 .toast {
   position: fixed; bottom: calc(20px + var(--safe-bottom)); left: 50%; transform: translateX(-50%);
   background: #1a202c; color: white; padding: 10px 20px; border-radius: 24px;
@@ -159,10 +200,18 @@ body::-webkit-scrollbar { display: none; }
     </div>
     <button class="refresh-btn" onclick="loadData(true)">🔄 새로고침</button>
   </div>
+  <div class="header-tabs">
+    <button class="h-tab active" id="tab-youth" onclick="switchTab('youth')">중고등부</button>
+    <button class="h-tab"        id="tab-young" onclick="switchTab('young')">청년부</button>
+    <button class="h-tab"        id="tab-adult" onclick="switchTab('adult')">장년</button>
+  </div>
 </div>
 
 <div class="content">
-  <div id="mainContent"><div class="spinner"></div></div>
+  <div id="panel-youth" class="tab-panel active"></div>
+  <div id="panel-young" class="tab-panel"></div>
+  <div id="panel-adult" class="tab-panel"></div>
+  <div id="loadingSpinner"><div class="spinner"></div></div>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -170,12 +219,11 @@ body::-webkit-scrollbar { display: none; }
 <script>
 const DATA_URL = './history.json';
 let allData = [];
-let viewMode = 'youth'; // 'youth' | 'young'
+let activeTab = 'youth';
 
 function showToast(msg, dur = 2500) {
   const t = document.getElementById('toast');
-  t.textContent = msg;
-  t.classList.add('show');
+  t.textContent = msg; t.classList.add('show');
   setTimeout(() => t.classList.remove('show'), dur);
 }
 
@@ -191,13 +239,12 @@ function fmtDate(d) {
   return `${y}년 ${parseInt(m)}월 ${parseInt(day)}일`;
 }
 
-function fmtMonth(d) {
+function fmtShort(d) {
   if (!d) return '';
-  const [, m] = d.split('-');
-  return `${parseInt(m)}월`;
+  const [, m, day] = d.split('-');
+  return `${parseInt(m)}/${parseInt(day)}`;
 }
 
-// 월별 집계
 function monthSummary(data, group) {
   const map = {};
   data.forEach(row => {
@@ -213,45 +260,84 @@ function monthSummary(data, group) {
   return Object.entries(map)
     .sort((a, b) => a[0].localeCompare(b[0]))
     .map(([key, v]) => ({
-      month: key,
       label: `${parseInt(key.split('-')[1])}월`,
-      present: v.present,
-      total: v.total,
+      present: v.present, total: v.total,
       rate: v.total ? Math.round(v.present / v.total * 100) : 0,
       weeks: v.weeks
     }));
 }
 
-function render() {
-  const el = document.getElementById('mainContent');
-  if (!allData.length) {
-    el.innerHTML = '<div class="empty">데이터가 없습니다</div>';
-    return;
-  }
+// ── 연속 결석 계산 ─────────────────────────────────
+// group: 'youth' | 'young' → absentNames 배열 기반
+// 반환: [{ name, weeks }] (2주 이상만, 많은 순)
+function calcConsecAbsent(data, group) {
+  const streak = {}; // name → 현재 연속 수
+  const max    = {}; // name → 최대 연속 수
+  data.forEach(row => {
+    const names = new Set((row[group] || {}).absentNames || []);
+    // 이번 주 결석한 사람은 streak++, 출석한 사람은 streak 초기화
+    const allNames = new Set([...Object.keys(streak), ...names]);
+    allNames.forEach(n => {
+      if (names.has(n)) {
+        streak[n] = (streak[n] || 0) + 1;
+        max[n]    = Math.max(max[n] || 0, streak[n]);
+      } else {
+        streak[n] = 0;
+      }
+    });
+  });
+  // 현재 연속 결석 기준 (streak 값) — 2주 이상
+  return Object.entries(streak)
+    .filter(([, v]) => v >= 2)
+    .sort((a, b) => b[1] - a[1])
+    .map(([name, weeks]) => ({ name, weeks }));
+}
 
-  const latest = allData[allData.length - 1];
-  const group  = viewMode; // 'youth' | 'young'
-  const gLabel = viewMode === 'youth' ? '중고등부' : '청년부';
-  const gData  = latest[group] || {};
-  const rate   = gData.total ? Math.round(gData.present / gData.total * 100) : 0;
+// 장년 구역별 연속 결석 (이름 기반)
+function calcAdultConsec(data) {
+  const streak = {};
+  data.forEach(row => {
+    const names = new Set((row.adult?.zones || []).flatMap(z => z.names));
+    const allNames = new Set([...Object.keys(streak), ...names]);
+    allNames.forEach(n => {
+      if (names.has(n)) { streak[n] = (streak[n] || 0) + 1; }
+      else { streak[n] = 0; }
+    });
+  });
+  return Object.entries(streak)
+    .filter(([, v]) => v >= 2)
+    .sort((a, b) => b[1] - a[1])
+    .map(([name, weeks]) => ({ name, weeks }));
+}
 
-  // 최근 8주 차트용 데이터
-  const recent = allData.slice(-8);
-  const maxTotal = Math.max(...recent.map(r => (r[group] || {}).total || 0), 1);
+function renderConsecBlock(list) {
+  if (!list.length) return `<div style="font-size:13px;color:var(--muted);padding:4px 0">연속 결석자 없음</div>`;
+  return `<div class="consec-list">${list.map(({name, weeks}) => `
+    <div class="consec-row">
+      <span class="consec-name">${name}</span>
+      <span class="consec-badge">${weeks}주 연속</span>
+    </div>`).join('')}</div>`;
+}
 
-  // 월별
-  const months = monthSummary(allData, group);
+// ── 중고등부 / 청년부 패널 ──────────────────────────
+function renderGroupPanel(group) {
+  const panelId = `panel-${group}`;
+  const el = document.getElementById(panelId);
+  if (!allData.length) { el.innerHTML = '<div class="empty">데이터가 없습니다</div>'; return; }
+
+  const barClass = group === 'youth' ? 'bar-youth' : 'bar-young';
+  const latest   = allData[allData.length - 1];
+  const gData    = latest[group] || {};
+  const rate     = gData.total ? Math.round(gData.present / gData.total * 100) : 0;
+  const absentNames = gData.absentNames || [];
+  const recent      = allData.slice(-8);
+  const months      = monthSummary(allData, group);
+  const consec      = calcConsecAbsent(allData, group);
 
   el.innerHTML = `
-    <!-- 세그먼트 탭 -->
-    <div class="seg">
-      <button class="seg-btn ${viewMode==='youth'?'active':''}" onclick="setView('youth')">중고등부</button>
-      <button class="seg-btn ${viewMode==='young'?'active':''}" onclick="setView('young')">청년부</button>
-    </div>
-
-    <!-- 최근 보고 -->
+    <!-- 최근 주일 현황 -->
     <div class="card">
-      <div class="card-title">📅 최근 주일 — ${gLabel}</div>
+      <div class="card-title">📅 최근 주일</div>
       <div class="latest-date">${fmtDate(latest.date)}</div>
       <div class="stat-row">
         <div class="stat-box">
@@ -273,6 +359,14 @@ function render() {
       <div style="text-align:center">
         <span class="badge-rate ${rateClass(rate)}">출석률 ${rate}%</span>
       </div>
+      <div class="absent-block">
+        <div class="absent-block-title">결석자</div>
+        <div class="name-chips">
+          ${absentNames.length
+            ? absentNames.map(n => `<span class="name-chip">${n}</span>`).join('')
+            : '<span class="name-chip none">결석자 없음</span>'}
+        </div>
+      </div>
     </div>
 
     <!-- 최근 8주 추이 -->
@@ -282,10 +376,8 @@ function render() {
         ${recent.map(row => {
           const g = row[group] || {};
           const w = g.total ? Math.round(g.present / g.total * 100) : 0;
-          const barClass = viewMode === 'youth' ? 'bar-youth' : 'bar-young';
-          return `
-          <div class="chart-row">
-            <div class="chart-label">${fmtMonth(row.date)}.${parseInt(row.date.split('-')[2])}일</div>
+          return `<div class="chart-row">
+            <div class="chart-label">${fmtShort(row.date)}</div>
             <div class="chart-bar-bg">
               <div class="chart-bar ${barClass}" style="width:${w}%">${w}%</div>
             </div>
@@ -294,7 +386,7 @@ function render() {
       </div>
     </div>
 
-    <!-- 월별 요약 -->
+    <!-- 월별 출석률 -->
     <div class="card">
       <div class="card-title">📅 월별 출석률</div>
       <div class="month-grid">
@@ -303,9 +395,14 @@ function render() {
             <div class="lbl">${m.label}</div>
             <div class="val">${m.rate}%</div>
             <div class="sub">${m.present}/${m.total}명 · ${m.weeks}주</div>
-          </div>
-        `).join('')}
+          </div>`).join('')}
       </div>
+    </div>
+
+    <!-- 연속 결석 -->
+    <div class="card">
+      <div class="card-title">🔴 연속 결석</div>
+      ${renderConsecBlock(consec)}
     </div>
 
     <!-- 전체 기록 -->
@@ -314,12 +411,15 @@ function render() {
       ${allData.slice().reverse().map(row => {
         const g = row[group] || {};
         const r = g.total ? Math.round(g.present / g.total * 100) : 0;
-        return `
-        <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)">
-          <div style="font-size:14px">${fmtDate(row.date)}</div>
-          <div style="display:flex;gap:10px;align-items:center">
-            <span style="font-size:13px;color:var(--muted)">${g.present ?? '-'}/${g.total ?? '-'}명</span>
-            <span class="badge-rate ${rateClass(r)}" style="font-size:11px">${r}%</span>
+        const names = (g.absentNames || []).join(', ');
+        return `<div class="history-row">
+          <div class="history-date">${fmtDate(row.date)}</div>
+          <div class="history-right">
+            <div style="display:flex;gap:8px;align-items:center">
+              <span style="font-size:13px;color:var(--muted)">${g.present ?? '-'}/${g.total ?? '-'}명</span>
+              <span class="badge-rate ${rateClass(r)}" style="font-size:11px">${r}%</span>
+            </div>
+            ${names ? `<div class="absent-names-small">결석: ${names}</div>` : ''}
           </div>
         </div>`;
       }).join('')}
@@ -327,29 +427,150 @@ function render() {
   `;
 }
 
-function setView(mode) {
-  viewMode = mode;
-  render();
+// ── 장년 패널 ──────────────────────────────────────
+function renderAdultPanel() {
+  const el = document.getElementById('panel-adult');
+  if (!allData.length) { el.innerHTML = '<div class="empty">데이터가 없습니다</div>'; return; }
+
+  const latest = allData[allData.length - 1];
+  const adult  = latest.adult || {};
+  const zones  = adult.zones || [];
+
+  // 1교구(1~6구역) / 2교구(7~12구역) 분리
+  const d1 = zones.filter(z => parseInt(z.zone) <= 6);
+  const d2 = zones.filter(z => parseInt(z.zone) >= 7);
+
+  const buildZoneRows = list =>
+    list.length
+      ? list.map(z => `
+          <div class="zone-row">
+            <div class="zone-row-head">
+              <span class="zone-name">${z.zone}</span>
+              <span class="zone-count">${z.names.length}명</span>
+            </div>
+            <div class="name-chips">
+              ${z.names.map(n => `<span class="name-chip">${n}</span>`).join('')}
+            </div>
+          </div>`).join('')
+      : '<div style="font-size:13px;color:var(--muted);padding:4px 0">결석자 없음</div>';
+
+  // 장년 주별 결석수 차트
+  const recent = allData.slice(-8);
+  const maxAbsent = Math.max(...recent.map(r => (r.adult || {}).absent || 0), 1);
+
+  el.innerHTML = `
+    <!-- 최근 주일 장년 결석 -->
+    <div class="card">
+      <div class="card-title">📅 최근 주일 — ${fmtDate(latest.date)}</div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px">
+        <span style="font-size:15px;color:var(--muted)">장년 결석</span>
+        <span style="font-size:22px;font-weight:700;color:#e53e3e">${adult.absent ?? '-'}명</span>
+      </div>
+
+      ${d1.length || d2.length ? '' : '<div class="empty" style="padding:16px 0">결석자 없음</div>'}
+
+      ${d1.length ? `<div class="district-title">1교구 (1~6구역) · 교구장 이명숙</div>
+      <div class="zone-absent-list">${buildZoneRows(d1)}</div>` : ''}
+
+      ${d2.length ? `<div class="district-title" style="margin-top:${d1.length?'14px':'0'}">2교구 (7~12구역) · 교구장 이정순</div>
+      <div class="zone-absent-list">${buildZoneRows(d2)}</div>` : ''}
+    </div>
+
+    <!-- 장년 연속 결석 -->
+    <div class="card">
+      <div class="card-title">🔴 연속 결석</div>
+      ${renderConsecBlock(calcAdultConsec(allData))}
+    </div>
+
+    <!-- 최근 8주 결석자 수 추이 -->
+    <div class="card">
+      <div class="card-title">📊 최근 8주 장년 결석 추이</div>
+      <div class="chart-wrap">
+        ${recent.map(row => {
+          const a = row.adult || {};
+          const cnt = a.absent || 0;
+          const w = Math.round(cnt / maxAbsent * 100);
+          return `<div class="chart-row">
+            <div class="chart-label">${fmtShort(row.date)}</div>
+            <div class="chart-bar-bg">
+              <div class="chart-bar bar-adult" style="width:${Math.max(w,8)}%">${cnt}명</div>
+            </div>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>
+
+    <!-- 전체 기록 -->
+    <div class="card">
+      <div class="card-title">📋 전체 주일 기록</div>
+      ${allData.slice().reverse().map(row => {
+        const a = row.adult || {};
+        const zNames = (a.zones || []).map(z => `${z.zone}: ${z.names.join('·')}`).join('  ');
+        return `<div class="history-row">
+          <div class="history-date">${fmtDate(row.date)}</div>
+          <div class="history-right">
+            <span style="font-size:14px;font-weight:600;color:#e53e3e">${a.absent ?? '-'}명 결석</span>
+            ${zNames ? `<div class="absent-names-small">${zNames}</div>` : ''}
+          </div>
+        </div>`;
+      }).join('')}
+    </div>
+  `;
+}
+
+function switchTab(tab) {
+  activeTab = tab;
+  ['youth','young','adult'].forEach(t => {
+    document.getElementById(`tab-${t}`).classList.toggle('active', t === tab);
+    document.getElementById(`panel-${t}`).classList.toggle('active', t === tab);
+  });
+}
+
+function render() {
+  renderGroupPanel('youth');
+  renderGroupPanel('young');
+  renderAdultPanel();
 }
 
 async function loadData(showMsg = false) {
+  document.getElementById('loadingSpinner').style.display = 'block';
   try {
     const res = await fetch(DATA_URL + '?t=' + Date.now());
     if (!res.ok) throw new Error('서버 오류 ' + res.status);
     allData = await res.json();
-    // 날짜순 정렬
     allData.sort((a, b) => a.date.localeCompare(b.date));
     render();
     if (showMsg) showToast('✅ 최신 데이터로 업데이트');
   } catch(e) {
-    document.getElementById('mainContent').innerHTML =
-      `<div class="empty">데이터를 불러오지 못했습니다<br><small>${e.message}</small></div>`;
+    ['youth','young','adult'].forEach(t => {
+      document.getElementById(`panel-${t}`).innerHTML =
+        `<div class="empty">데이터를 불러오지 못했습니다<br><small>${e.message}</small></div>`;
+    });
+  } finally {
+    document.getElementById('loadingSpinner').style.display = 'none';
   }
 }
 
 loadData();
 
-// Service Worker 등록 (오프라인 지원)
+// ── 스와이프 탭 이동 ────────────────────────────────
+const TABS = ['youth', 'young', 'adult'];
+let _tx = 0, _ty = 0;
+
+document.addEventListener('touchstart', e => {
+  _tx = e.touches[0].clientX;
+  _ty = e.touches[0].clientY;
+}, { passive: true });
+
+document.addEventListener('touchend', e => {
+  const dx = e.changedTouches[0].clientX - _tx;
+  const dy = e.changedTouches[0].clientY - _ty;
+  if (Math.abs(dx) < 40 || Math.abs(dx) < Math.abs(dy)) return;
+  const idx = TABS.indexOf(activeTab);
+  if (dx < 0 && idx < TABS.length - 1) switchTab(TABS[idx + 1]); // 왼쪽 → 다음
+  if (dx > 0 && idx > 0)              switchTab(TABS[idx - 1]); // 오른쪽 → 이전
+}, { passive: true });
+
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('./sw-viewer.js').catch(() => {});
 }
