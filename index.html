@@ -2261,7 +2261,9 @@ function pemToArrayBuffer(pem) {
 }
 
 /* ── FCM: 서비스 계정 JWT → OAuth2 액세스 토큰 ── */
+let _fcmAccessToken = null, _fcmTokenExpiry = 0;
 async function getFCMAccessToken() {
+  if(_fcmAccessToken && Date.now() < _fcmTokenExpiry) return _fcmAccessToken;
   const now = Math.floor(Date.now()/1000);
   function b64u(str){ return btoa(str).replace(/\+/g,'-').replace(/\//g,'_').replace(/=/g,''); }
   const hdr = b64u(JSON.stringify({alg:'RS256',typ:'JWT'}));
@@ -2284,7 +2286,10 @@ async function getFCMAccessToken() {
     headers:{'Content-Type':'application/x-www-form-urlencoded'},
     body:`grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer&assertion=${jwt}`
   });
-  return (await res.json()).access_token;
+  const data = await res.json();
+  _fcmAccessToken = data.access_token;
+  _fcmTokenExpiry = Date.now() + 55 * 60 * 1000; // 55분 캐시
+  return _fcmAccessToken;
 }
 
 /* ── FCM: 알림 발송 ── */
