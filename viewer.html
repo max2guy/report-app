@@ -192,6 +192,40 @@ body::-webkit-scrollbar{display:none}
 }
 @keyframes spin{to{transform:rotate(360deg)}}
 
+/* INSTRUCTION MODAL */
+.instr-overlay{
+  position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;
+  display:flex;align-items:flex-end;justify-content:center;
+  opacity:0;pointer-events:none;transition:opacity .25s;
+}
+.instr-overlay.open{opacity:1;pointer-events:all}
+.instr-sheet{
+  background:#fff;border-radius:20px 20px 0 0;
+  padding:20px 16px calc(20px + env(safe-area-inset-bottom));
+  width:100%;max-width:520px;
+  transform:translateY(100%);transition:transform .3s;
+}
+.instr-overlay.open .instr-sheet{transform:translateY(0)}
+.instr-handle{width:36px;height:4px;background:#e2e8f0;border-radius:2px;margin:0 auto 14px}
+.instr-title{font-size:15px;font-weight:700;margin-bottom:12px;color:#0f2044}
+.instr-textarea{
+  width:100%;min-height:100px;padding:10px 12px;
+  border:1px solid #e2e8f0;border-radius:10px;
+  font-size:14px;font-family:inherit;resize:vertical;line-height:1.6;
+}
+.instr-send-btn{
+  width:100%;margin-top:10px;padding:13px;
+  background:linear-gradient(135deg,#0f2044,#1a3a7a);
+  color:#fff;border:none;border-radius:12px;
+  font-size:15px;font-weight:600;font-family:inherit;cursor:pointer;
+}
+.instr-history{margin-top:14px;border-top:1px solid #e2e8f0;padding-top:12px}
+.instr-item{
+  background:#f7f9fc;border-radius:10px;padding:10px 12px;margin-bottom:8px;
+}
+.instr-item-date{font-size:11px;color:#718096;margin-bottom:4px}
+.instr-item-text{font-size:13px;color:#1a202c;line-height:1.5}
+
 /* TOAST */
 .toast{
   position:fixed;bottom:calc(16px + var(--safe-bottom));left:50%;transform:translateX(-50%);
@@ -212,6 +246,7 @@ body::-webkit-scrollbar{display:none}
     </div>
     <div class="header-actions">
       <button class="hdr-btn" onclick="toggleAdmin()">⚙️</button>
+      <button class="hdr-btn" onclick="openInstructionModal()">📝</button>
       <button class="hdr-btn" onclick="loadData(true)">🔄</button>
     </div>
   </div>
@@ -237,6 +272,90 @@ body::-webkit-scrollbar{display:none}
 </div>
 
 <div class="toast" id="toast"></div>
+
+<!-- INSTRUCTION MODAL -->
+<div class="instr-overlay" id="instrOverlay" onclick="closeInstrModal(event)">
+  <div class="instr-sheet">
+    <div class="instr-handle"></div>
+    <div class="instr-title">📝 지시사항 작성</div>
+    <textarea class="instr-textarea" id="instrText" placeholder="부교역자에게 전달할 지시사항을 입력하세요"></textarea>
+    <button class="instr-send-btn" onclick="sendInstruction()">전송</button>
+    <div class="instr-history" id="instrHistory"></div>
+  </div>
+</div>
+
+<script>
+// ── 지시사항 관련 ──────────────────────────
+const INSTR_URL = './instructions.json';
+
+function openInstructionModal() {
+  document.getElementById('instrOverlay').classList.add('open');
+  loadInstructions();
+}
+function closeInstrModal(e) {
+  if (e.target === e.currentTarget) document.getElementById('instrOverlay').classList.remove('open');
+}
+
+async function loadInstructions() {
+  try {
+    const res = await fetch(INSTR_URL + '?t=' + Date.now());
+    if (!res.ok) return;
+    const list = await res.json();
+    const el = document.getElementById('instrHistory');
+    if (!list.length) { el.innerHTML = '<div style="font-size:12px;color:#718096">아직 지시사항 없음</div>'; return; }
+    el.innerHTML = list.slice().reverse().map(i => `
+      <div class="instr-item">
+        <div class="instr-item-date">${i.date}</div>
+        <div class="instr-item-text">${i.text.replace(/\n/g,'<br>')}</div>
+      </div>`).join('');
+  } catch(e) {}
+}
+
+async function sendInstruction() {
+  const text = document.getElementById('instrText').value.trim();
+  if (!text) { toast('내용을 입력하세요'); return; }
+  const token = (localStorage.getItem('githubToken') || '').trim();
+  const repo  = (localStorage.getItem('githubRepo')  || 'max2guy/report-app').trim();
+  if (!token) { toast('⚙️ GitHub Token을 설정에 입력하세요'); return; }
+
+  const apiBase = `https://api.github.com/repos/${repo}/contents/instructions.json`;
+  const authVal = token.startsWith('github_pat_') ? `Bearer ${token}` : `token ${token}`;
+  const headers = {
+    'Authorization': authVal, 'Accept': 'application/vnd.github+json',
+    'Content-Type': 'application/json', 'X-GitHub-Api-Version': '2022-11-28'
+  };
+
+  try {
+    toast('⏳ 전송 중...');
+    // 기존 목록 가져오기
+    const infoRes = await fetch(apiBase, { headers });
+    let sha = null; let list = [];
+    if (infoRes.ok) {
+      const info = await infoRes.json();
+      sha = info.sha;
+      try { list = JSON.parse(atob(info.content.replace(/\n/g,''))); } catch(_) {}
+    }
+    // 새 지시사항 추가
+    const now = new Date();
+    list.push({
+      id:   now.toISOString(),
+      date: now.toLocaleDateString('ko-KR', { year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit' }),
+      text,
+      read: false
+    });
+    const content = btoa(unescape(encodeURIComponent(JSON.stringify(list, null, 2))));
+    const body = { message: `instruction: add ${now.toISOString().slice(0,10)}`, content };
+    if (sha) body.sha = sha;
+    const putRes = await fetch(apiBase, { method:'PUT', headers, body:JSON.stringify(body) });
+    if (!putRes.ok) { const e = await putRes.json(); throw new Error(e.message); }
+    document.getElementById('instrText').value = '';
+    toast('✅ 지시사항 전송 완료');
+    loadInstructions();
+  } catch(e) {
+    toast('❌ 전송 실패: ' + e.message);
+  }
+}
+</script>
 
 <script>
 const DATA_URL = './history.json';

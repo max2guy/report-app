@@ -685,6 +685,17 @@ textarea { resize: vertical; min-height: 60px; }
 
 </main>
 
+<!-- 지시사항 카드 (담임목사 → 부교역자) -->
+<div class="card" id="instructionCard" style="display:none">
+  <div class="card-header">
+    <span class="card-header-icon">📋</span>
+    <h2>담임목사 지시사항</h2>
+    <span class="badge" id="instrBadge" style="background:#e53e3e;display:none">NEW</span>
+  </div>
+  <div class="card-body" id="instructionBody">
+  </div>
+</div>
+
 <!-- ACTION BAR -->
 <div class="action-bar">
   <button class="btn btn-secondary" onclick="saveDraft()" style="flex:0.5">
@@ -2087,6 +2098,72 @@ if ('serviceWorker' in navigator) {
     }
   });
 }
+
+// ───────────────────────────────
+// 지시사항 수신
+// ───────────────────────────────
+let lastInstrId = localStorage.getItem('lastInstrId') || '';
+
+async function fetchInstructions() {
+  try {
+    const res = await fetch('./instructions.json?t=' + Date.now());
+    if (!res.ok) return;
+    const list = await res.json();
+    if (!list.length) return;
+
+    // 최신 항목
+    const latest = list[list.length - 1];
+
+    // 카드 표시
+    const card = document.getElementById('instructionCard');
+    const body = document.getElementById('instructionBody');
+    if (card && body) {
+      card.style.display = '';
+      body.innerHTML = list.slice().reverse().map(i => `
+        <div style="padding:8px 0;border-bottom:1px solid var(--border);last-child:border-none">
+          <div style="font-size:11px;color:var(--text-muted);margin-bottom:3px">${i.date}</div>
+          <div style="font-size:14px;line-height:1.6">${i.text.replace(/\n/g,'<br>')}</div>
+        </div>`).join('');
+    }
+
+    // 새 지시사항 알림
+    if (latest.id !== lastInstrId) {
+      lastInstrId = latest.id;
+      localStorage.setItem('lastInstrId', latest.id);
+
+      // 뱃지
+      const badge = document.getElementById('instrBadge');
+      if (badge) badge.style.display = '';
+
+      // 인앱 토스트
+      toast('📋 새 지시사항이 있습니다');
+
+      // Web Notification
+      if (Notification.permission === 'granted') {
+        new Notification('📋 새 지시사항', {
+          body: latest.text.slice(0, 80),
+          icon: './icon-192.png'
+        });
+      }
+    }
+  } catch(e) {
+    console.log('지시사항 로드 실패:', e.message);
+  }
+}
+
+// 알림 권한 요청
+async function requestNotificationPermission() {
+  if ('Notification' in window && Notification.permission === 'default') {
+    await Notification.requestPermission();
+  }
+}
+
+// 초기 로드 및 5분 폴링
+window.addEventListener('load', () => {
+  requestNotificationPermission();
+  fetchInstructions();
+  setInterval(fetchInstructions, 5 * 60 * 1000);
+});
 
 // START
 init();
