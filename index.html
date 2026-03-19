@@ -2153,7 +2153,7 @@ function renderStaffInstrList() {
 
 async function fetchInstructions() {
   try {
-    const res = await fetch('./instructions.json?t=' + Date.now());
+    const res = await fetch('https://raw.githubusercontent.com/max2guy/report-app/main/instructions.json?t=' + Date.now(), { cache: 'no-store' });
     if (!res.ok) return;
     const list = await res.json();
     if (!list.length) return;

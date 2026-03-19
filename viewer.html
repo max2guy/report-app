@@ -327,8 +327,9 @@ body::-webkit-scrollbar{display:none}
 </div>
 
 <script>
-const INSTR_URL  = './instructions.json';
-const NOTIF_URL  = './notifications.json';
+const RAW_BASE   = 'https://raw.githubusercontent.com/max2guy/report-app/main';
+const INSTR_URL  = RAW_BASE + '/instructions.json';
+const NOTIF_URL  = RAW_BASE + '/notifications.json';
 let viewerLastNotifId = localStorage.getItem('viewerLastNotifId') || '';
 let viewerUnread = 0;
 
@@ -369,24 +370,23 @@ async function loadInboxData() {
 
   // 지시사항 목록 로드
   try {
-    const res = await fetch(INSTR_URL + '?t=' + Date.now());
-    if (res.ok) {
-      const list = await res.json();
-      const el = document.getElementById('instrList');
-      if (!list.length) { el.innerHTML = '<div class="inbox-empty">없음</div>'; }
-      else {
-        el.innerHTML = list.slice().reverse().map(i => `
-          <div class="inbox-item">
-            <div class="inbox-item-meta">
-              <span>${i.date}</span>
-              <button onclick="deleteInstruction('${i.id}')"
-                style="background:none;border:none;color:#fc8181;font-size:13px;cursor:pointer;padding:0 2px;line-height:1">🗑️</button>
-            </div>
-            <div class="inbox-item-text">${i.text.replace(/\n/g,'<br>')}</div>
-          </div>`).join('');
-      }
-    }
+    const res = await fetch(INSTR_URL + '?t=' + Date.now(), { cache: 'no-store' });
+    if (res.ok) renderInstrList(await res.json());
   } catch(e) {}
+}
+
+function renderInstrList(list) {
+  const el = document.getElementById('instrList');
+  if (!list.length) { el.innerHTML = '<div class="inbox-empty">없음</div>'; return; }
+  el.innerHTML = list.slice().reverse().map(i => `
+    <div class="inbox-item">
+      <div class="inbox-item-meta">
+        <span>${i.date}</span>
+        <button onclick="deleteInstruction('${i.id}')"
+          style="background:none;border:none;color:#fc8181;font-size:13px;cursor:pointer;padding:0 2px;line-height:1">🗑️</button>
+      </div>
+      <div class="inbox-item-text">${i.text.replace(/\n/g,'<br>')}</div>
+    </div>`).join('');
 }
 
 async function deleteInstruction(id) {
@@ -406,7 +406,7 @@ async function deleteInstruction(id) {
     const putRes = await fetch(apiBase, { method:'PUT', headers, body:JSON.stringify({ message:'delete instruction', content, sha }) });
     if (!putRes.ok) throw new Error('삭제 실패');
     toast('🗑️ 삭제 완료');
-    loadInboxData();
+    renderInstrList(list); // 로컬 데이터로 즉시 반영
   } catch(e) { toast('❌ ' + e.message); }
 }
 
@@ -482,7 +482,7 @@ async function sendInstruction() {
     if (!putRes.ok) { const err = await putRes.json(); throw new Error(err.message); }
     document.getElementById('instrText').value = '';
     toast('✅ 지시사항 전송 완료');
-    loadInboxData();
+    renderInstrList(list); // 로컬 데이터로 즉시 반영
   } catch(e) { toast('❌ 전송 실패: ' + e.message); }
 }
 
