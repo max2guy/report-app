@@ -329,6 +329,21 @@ textarea { resize: vertical; min-height: 80px; }
 }
 /* DIVIDER */
 .divider { height: 1px; background: var(--border); margin: 16px 0; }
+/* ACCORDION */
+.accordion-btn {
+  width: 100%; display: flex; align-items: center; justify-content: space-between;
+  background: none; border: none; cursor: pointer; padding: 0;
+  font-size: 15px; font-weight: 600; color: var(--navy);
+  font-family: inherit;
+}
+.accordion-btn .acc-arrow {
+  font-size: 11px; color: var(--text-muted); transition: transform 0.2s;
+}
+.accordion-btn.open .acc-arrow { transform: rotate(90deg); }
+.accordion-content {
+  display: none; margin-top: 12px;
+}
+.accordion-content.open { display: block; }
 /* RESPONSIVE */
 @media (min-width: 480px) {
   .member-grid { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); }
@@ -649,33 +664,51 @@ textarea { resize: vertical; min-height: 80px; }
       </div>
     </div>
 
-    <!-- 멤버 관리 -->
+    <!-- 중고등부 멤버 관리 (아코디언) -->
     <div class="setting-group">
-      <h3>🎓 중고등부 멤버 관리</h3>
-      <div class="member-manage-list" id="youthMemberList"></div>
-      <div class="add-member-row" style="margin-top:8px">
-        <input type="text" id="addYouthManage" placeholder="이름 추가">
-        <button class="btn-add-submit" onclick="addMemberFromManage('youth')">+</button>
-      </div>
-    </div>
-    <div class="setting-group">
-      <h3>🙏 청년부 멤버 관리</h3>
-      <div class="member-manage-list" id="youngMemberList"></div>
-      <div class="add-member-row" style="margin-top:8px">
-        <input type="text" id="addYoungManage" placeholder="이름 추가">
-        <button class="btn-add-submit" onclick="addMemberFromManage('young')">+</button>
+      <button class="accordion-btn" id="accYouth" onclick="toggleAccordion('accYouth','accYouthContent')">
+        <span>🎓 중고등부 멤버 관리</span>
+        <span class="acc-arrow">▶</span>
+      </button>
+      <div class="accordion-content" id="accYouthContent">
+        <div class="member-manage-list" id="youthMemberList"></div>
+        <div class="add-member-row" style="margin-top:8px">
+          <input type="text" id="addYouthManage" placeholder="이름 추가">
+          <button class="btn-add-submit" onclick="addMemberFromManage('youth')">+</button>
+        </div>
       </div>
     </div>
 
-    <!-- 구역장 전화번호 -->
+    <!-- 청년부 멤버 관리 (아코디언) -->
     <div class="setting-group">
-      <h3>📱 구역장 전화번호</h3>
-      <p style="font-size:12px;color:var(--text-muted);margin-bottom:10px">결석자 SMS 발송에 사용됩니다</p>
-      <div id="zonePhoneList"></div>
+      <button class="accordion-btn" id="accYoung" onclick="toggleAccordion('accYoung','accYoungContent')">
+        <span>🙏 청년부 멤버 관리</span>
+        <span class="acc-arrow">▶</span>
+      </button>
+      <div class="accordion-content" id="accYoungContent">
+        <div class="member-manage-list" id="youngMemberList"></div>
+        <div class="add-member-row" style="margin-top:8px">
+          <input type="text" id="addYoungManage" placeholder="이름 추가">
+          <button class="btn-add-submit" onclick="addMemberFromManage('young')">+</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 구역장 전화번호 (아코디언) -->
+    <div class="setting-group">
+      <button class="accordion-btn" id="accPhone" onclick="toggleAccordion('accPhone','accPhoneContent')">
+        <span>📱 구역장 전화번호</span>
+        <span class="acc-arrow">▶</span>
+      </button>
+      <div class="accordion-content" id="accPhoneContent">
+        <p style="font-size:12px;color:var(--text-muted);margin-bottom:10px">결석자 SMS 발송에 사용됩니다</p>
+        <div id="zonePhoneList"></div>
+      </div>
     </div>
 
     <div class="setting-group">
-      <h3>⚠️ 데이터</h3>
+      <h3>🔄 앱 관리</h3>
+      <button class="btn-wide btn-blue" onclick="forceRefresh()" style="margin-bottom:8px">🔄 강제 새로고침 (캐시 초기화)</button>
       <button class="btn-wide btn-outline" onclick="resetApp()" style="border-color:#e53e3e;color:#e53e3e">🗑️ 모든 데이터 초기화</button>
     </div>
   </div>
@@ -811,6 +844,60 @@ function switchTab(idx) {
   document.querySelectorAll('.tab').forEach((t, i) => t.classList.toggle('active', i === idx));
   document.querySelectorAll('.section').forEach((s, i) => s.classList.toggle('active', i === idx));
   currentTab = idx;
+}
+
+// ───────────────────────────────
+// 스와이프 탭 이동
+// ───────────────────────────────
+(function() {
+  let startX = 0, startY = 0;
+  const TAB_COUNT = 5;
+  const main = document.querySelector('.main') || document.getElementById('mainContent');
+  const el = document.querySelector('main') || document.body;
+  el.addEventListener('touchstart', e => {
+    startX = e.touches[0].clientX;
+    startY = e.touches[0].clientY;
+  }, { passive: true });
+  el.addEventListener('touchend', e => {
+    const dx = e.changedTouches[0].clientX - startX;
+    const dy = e.changedTouches[0].clientY - startY;
+    if (Math.abs(dx) < 50 || Math.abs(dx) < Math.abs(dy)) return;
+    if (dx < 0 && currentTab < TAB_COUNT - 1) switchTab(currentTab + 1);
+    else if (dx > 0 && currentTab > 0) switchTab(currentTab - 1);
+  }, { passive: true });
+})();
+
+// ───────────────────────────────
+// 아코디언
+// ───────────────────────────────
+function toggleAccordion(btnId, contentId) {
+  const btn = document.getElementById(btnId);
+  const content = document.getElementById(contentId);
+  const isOpen = content.classList.contains('open');
+  btn.classList.toggle('open', !isOpen);
+  content.classList.toggle('open', !isOpen);
+  // 멤버 목록 렌더 (열릴 때)
+  if (!isOpen) {
+    if (contentId === 'accYouthContent') renderMemberManageList('youth');
+    if (contentId === 'accYoungContent') renderMemberManageList('young');
+    if (contentId === 'accPhoneContent') renderZonePhoneList();
+  }
+}
+
+// ───────────────────────────────
+// 강제 새로고침
+// ───────────────────────────────
+async function forceRefresh() {
+  if (!confirm('캐시를 초기화하고 최신 버전으로 새로고침할까요?')) return;
+  if ('caches' in window) {
+    const keys = await caches.keys();
+    await Promise.all(keys.map(k => caches.delete(k)));
+  }
+  if ('serviceWorker' in navigator) {
+    const regs = await navigator.serviceWorker.getRegistrations();
+    await Promise.all(regs.map(r => r.unregister()));
+  }
+  location.reload(true);
 }
 
 // ───────────────────────────────
@@ -1099,7 +1186,13 @@ async function pickContact(i) {
 // SETTINGS
 // ───────────────────────────────
 function openSettings() {
-  renderZonePhoneList();
+  // 아코디언 초기화 (모두 닫힌 상태)
+  ['accYouth','accYoung','accPhone'].forEach(id => {
+    const btn = document.getElementById(id);
+    const content = document.getElementById(id + 'Content');
+    if (btn) btn.classList.remove('open');
+    if (content) content.classList.remove('open');
+  });
   document.getElementById('settingsModal').classList.add('open');
   applySettings();
 }
