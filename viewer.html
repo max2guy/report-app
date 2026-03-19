@@ -276,7 +276,12 @@ body::-webkit-scrollbar{display:none}
 <div class="inbox-overlay" id="inboxOverlay" onclick="closeInbox(event)">
   <div class="inbox-sheet">
     <div class="inbox-handle"></div>
-    <div class="inbox-title">💬 메시지함</div>
+    <!-- 타이틀 + 닫기 버튼 -->
+    <div class="inbox-title">
+      💬 메시지함
+      <button onclick="document.getElementById('inboxOverlay').classList.remove('open')"
+        style="margin-left:auto;background:none;border:none;font-size:18px;color:#a0aec0;cursor:pointer;line-height:1;padding:0 2px">✕</button>
+    </div>
 
     <!-- GitHub 토큰 설정 -->
     <div id="tokenSection" style="margin-bottom:12px">
@@ -285,12 +290,6 @@ body::-webkit-scrollbar{display:none}
         <input id="viewerTokenInput" type="password" placeholder="github_pat_…" style="flex:1;padding:8px 10px;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;font-family:inherit;outline:none">
         <button onclick="saveViewerToken()" style="padding:8px 14px;background:#0f2044;color:#fff;border:none;border-radius:8px;font-size:13px;font-family:inherit;cursor:pointer">저장</button>
       </div>
-    </div>
-
-    <!-- 토큰 재설정 링크 (토큰 저장 후 표시) -->
-    <div id="tokenResetWrap" style="display:none;margin-bottom:12px">
-      <span onclick="document.getElementById('tokenSection').style.display='block';document.getElementById('tokenResetWrap').style.display='none';"
-        style="font-size:11px;color:#a0aec0;cursor:pointer;text-decoration:underline">🔑 토큰 재설정</span>
     </div>
 
     <hr class="inbox-divider">
@@ -313,6 +312,12 @@ body::-webkit-scrollbar{display:none}
     <!-- 발신 지시사항 목록 -->
     <div class="inbox-section-title">📋 발신 지시사항</div>
     <div id="instrList"><div class="inbox-empty">없음</div></div>
+
+    <!-- 토큰 재설정 (맨 아래, 작게) -->
+    <div id="tokenResetWrap" style="display:none;text-align:center;margin-top:20px;padding-top:12px;border-top:1px solid #f0f4f8">
+      <span id="tokenResetBtn" onclick="requestTokenReset()"
+        style="font-size:10px;color:#cbd5e0;cursor:pointer;user-select:none">토큰 재설정</span>
+    </div>
   </div>
 </div>
 
@@ -333,7 +338,10 @@ function openInbox() {
   loadInboxData();
 }
 function closeInbox(e) {
-  if (e.target === e.currentTarget) document.getElementById('inboxOverlay').classList.remove('open');
+  if (e.target === e.currentTarget) {
+    document.getElementById('inboxOverlay').classList.remove('open');
+    initTokenStatus(); // 재설정 버튼 상태 초기화
+  }
 }
 
 async function loadInboxData() {
@@ -364,12 +372,37 @@ async function loadInboxData() {
       else {
         el.innerHTML = list.slice().reverse().map(i => `
           <div class="inbox-item">
-            <div class="inbox-item-meta">${i.date}</div>
+            <div class="inbox-item-meta">
+              <span>${i.date}</span>
+              <button onclick="deleteInstruction('${i.id}')"
+                style="background:none;border:none;color:#fc8181;font-size:13px;cursor:pointer;padding:0 2px;line-height:1">🗑️</button>
+            </div>
             <div class="inbox-item-text">${i.text.replace(/\n/g,'<br>')}</div>
           </div>`).join('');
       }
     }
   } catch(e) {}
+}
+
+async function deleteInstruction(id) {
+  const token = (localStorage.getItem('viewerGithubToken') || '').trim();
+  if (!token) { toast('🔑 토큰이 필요합니다'); return; }
+  const repo = 'max2guy/report-app';
+  const apiBase = `https://api.github.com/repos/${repo}/contents/instructions.json`;
+  const authVal = token.startsWith('github_pat_') ? `Bearer ${token}` : `token ${token}`;
+  const headers = { 'Authorization':authVal,'Accept':'application/vnd.github+json','Content-Type':'application/json','X-GitHub-Api-Version':'2022-11-28' };
+  try {
+    const infoRes = await fetch(apiBase, { headers });
+    if (!infoRes.ok) throw new Error('조회 실패');
+    const info = await infoRes.json(); const sha = info.sha;
+    let list = JSON.parse(atob(info.content.replace(/\n/g,'')));
+    list = list.filter(i => i.id !== id);
+    const content = btoa(unescape(encodeURIComponent(JSON.stringify(list, null, 2))));
+    const putRes = await fetch(apiBase, { method:'PUT', headers, body:JSON.stringify({ message:'delete instruction', content, sha }) });
+    if (!putRes.ok) throw new Error('삭제 실패');
+    toast('🗑️ 삭제 완료');
+    loadInboxData();
+  } catch(e) { toast('❌ ' + e.message); }
 }
 
 function saveViewerToken() {
@@ -383,8 +416,35 @@ function saveViewerToken() {
 
 function initTokenStatus() {
   const saved = localStorage.getItem('viewerGithubToken');
-  document.getElementById('tokenSection').style.display    = saved ? 'none'  : 'block';
-  document.getElementById('tokenResetWrap').style.display  = saved ? 'block' : 'none';
+  document.getElementById('tokenSection').style.display   = saved ? 'none'  : 'block';
+  document.getElementById('tokenResetWrap').style.display = saved ? 'block' : 'none';
+  // 재설정 버튼 초기화
+  tokenResetStep = 0;
+  const btn = document.getElementById('tokenResetBtn');
+  if (btn) { btn.textContent = '토큰 재설정'; btn.style.color = '#cbd5e0'; }
+}
+
+let tokenResetStep = 0;
+function requestTokenReset() {
+  const btn = document.getElementById('tokenResetBtn');
+  tokenResetStep++;
+  if (tokenResetStep === 1) {
+    btn.textContent = '정말 삭제할까요? 한 번 더 누르면 삭제됩니다';
+    btn.style.color = '#e53e3e';
+    // 3초 후 자동 취소
+    setTimeout(() => {
+      if (tokenResetStep === 1) {
+        tokenResetStep = 0;
+        btn.textContent = '토큰 재설정';
+        btn.style.color = '#cbd5e0';
+      }
+    }, 3000);
+    return;
+  }
+  // 2번째 탭: 실제 삭제
+  localStorage.removeItem('viewerGithubToken');
+  toast('🔑 토큰이 삭제됐습니다');
+  initTokenStatus();
 }
 
 async function sendInstruction() {
