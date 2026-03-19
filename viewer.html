@@ -357,9 +357,8 @@ async function loadInboxData() {
 async function sendInstruction() {
   const text = document.getElementById('instrText').value.trim();
   if (!text) { toast('내용을 입력하세요'); return; }
-  const token = (localStorage.getItem('githubToken') || '').trim();
-  const repo  = (localStorage.getItem('githubRepo')  || 'max2guy/report-app').trim();
-  if (!token) { toast('⚙️ GitHub Token을 설정에 입력하세요'); return; }
+  const token = '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';
+  const repo  = 'max2guy/report-app';
 
   const apiBase = `https://api.github.com/repos/${repo}/contents/instructions.json`;
   const authVal = token.startsWith('github_pat_') ? `Bearer ${token}` : `token ${token}`;
