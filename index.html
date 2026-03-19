@@ -245,6 +245,8 @@ textarea { resize: vertical; min-height: 60px; }
 .btn-primary:active { transform: scale(0.97); }
 .btn-gold { background: linear-gradient(135deg, var(--gold), #b8922a); color: white; }
 .btn-gold:active { transform: scale(0.97); }
+.btn-share { background: linear-gradient(135deg, #2c7be5, #1a5bbf); color: white; }
+.btn-share:active { transform: scale(0.97); }
 .btn-secondary { background: var(--bg); color: var(--text-muted); border: 1.5px solid var(--border); }
 /* MODAL */
 .modal-overlay {
@@ -685,6 +687,9 @@ textarea { resize: vertical; min-height: 60px; }
   </button>
   <button class="btn btn-gold" onclick="generateReport()">
     📄 보고서 생성
+  </button>
+  <button class="btn btn-share" onclick="shareReport()" style="flex:0.5" title="DS File로 공유">
+    📤 공유
   </button>
 </div>
 
@@ -1466,6 +1471,34 @@ async function generateReport() {
 async function downloadAndSave(blob, filename) {
   triggerDownload(blob, filename);
   toast('✅ 다운로드 완료');
+}
+
+async function shareReport() {
+  collectState();
+  if (!state.date) { toast('날짜를 입력하세요'); switchTab(0); return; }
+  saveDraft();
+  toast('⏳ 보고서 준비 중...');
+  try {
+    const blob = await buildDocx();
+    const dateStr = state.date.replace(/-/g, '');
+    const filename = `주일사역보고서_${dateStr}_${state.reporter}.docx`;
+    // Web Share API (모바일) — DS File, Files 앱 등 선택 가능
+    if (navigator.canShare && navigator.canShare({ files: [new File([blob], filename)] })) {
+      const file = new File([blob], filename, {
+        type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+      });
+      await navigator.share({ files: [file], title: filename });
+    } else {
+      // 데스크탑 / 공유 미지원: 다운로드로 대체
+      triggerDownload(blob, filename);
+      toast('✅ 다운로드 완료 (공유 미지원 환경)');
+    }
+  } catch(e) {
+    if (e.name !== 'AbortError') {
+      toast('❌ 공유 실패: ' + e.message);
+      console.error(e);
+    }
+  }
 }
 
 function triggerDownload(blob, filename) {

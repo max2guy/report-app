@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="사역현황">
+<meta name="theme-color" content="#0f2044">
+<link rel="manifest" href="./viewer-manifest.json">
+<link rel="apple-touch-icon" href="./icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<title>사역 현황 — 연천장로교회</title>
+<style>
+:root {
+  --navy: #0f2044; --navy2: #1a3a7a; --blue: #2c5aa0;
+  --gold: #c9a84c; --bg: #f0f4f8; --card: #ffffff;
+  --text: #1a202c; --muted: #718096; --border: #e2e8f0;
+  --safe-top: env(safe-area-inset-top);
+  --safe-bottom: env(safe-area-inset-bottom);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+body {
+  font-family: 'Noto Sans KR', -apple-system, sans-serif;
+  background: var(--bg); color: var(--text);
+  font-size: 15px; line-height: 1.6;
+  scrollbar-width: none;
+}
+body::-webkit-scrollbar { display: none; }
+
+/* HEADER */
+.header {
+  background: linear-gradient(135deg, var(--navy) 0%, var(--navy2) 100%);
+  padding: calc(14px + var(--safe-top)) 20px 16px;
+  color: white; position: sticky; top: 0; z-index: 50;
+}
+.header-top { display: flex; justify-content: space-between; align-items: center; }
+.header h1 { font-size: 18px; font-weight: 700; }
+.header p { font-size: 12px; opacity: 0.7; margin-top: 2px; }
+.refresh-btn {
+  background: rgba(255,255,255,0.15); border: none; color: white;
+  border-radius: 10px; padding: 7px 13px; font-size: 13px;
+  cursor: pointer; font-family: inherit; font-weight: 500;
+}
+
+/* CONTENT */
+.content {
+  padding: 16px 16px calc(20px + var(--safe-bottom));
+  max-width: 480px; margin: 0 auto;
+}
+
+/* CARD */
+.card {
+  background: var(--card); border-radius: 16px;
+  padding: 16px; margin-bottom: 14px;
+  box-shadow: 0 2px 12px rgba(15,32,68,0.08);
+}
+.card-title {
+  font-size: 13px; font-weight: 600; color: var(--muted);
+  text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 14px;
+  display: flex; align-items: center; gap: 6px;
+}
+
+/* LATEST ROW */
+.latest-date {
+  font-size: 20px; font-weight: 700; color: var(--navy);
+  margin-bottom: 12px;
+}
+.stat-row { display: flex; gap: 10px; }
+.stat-box {
+  flex: 1; text-align: center; background: #f7f9fc;
+  border-radius: 12px; padding: 12px 8px;
+}
+.stat-label { font-size: 12px; color: var(--muted); margin-bottom: 4px; }
+.stat-val { font-size: 22px; font-weight: 700; color: var(--navy); }
+.stat-sub { font-size: 11px; color: var(--muted); margin-top: 2px; }
+.badge-rate {
+  display: inline-block; padding: 2px 8px; border-radius: 20px;
+  font-size: 12px; font-weight: 600; margin-top: 8px;
+}
+.rate-good { background: #f0fff4; color: #276749; }
+.rate-mid  { background: #fffbeb; color: #975a16; }
+.rate-low  { background: #fff5f5; color: #c53030; }
+
+/* CHART */
+.chart-wrap { margin-top: 4px; }
+.chart-row {
+  display: flex; align-items: center; gap: 10px;
+  margin-bottom: 10px;
+}
+.chart-label { font-size: 12px; color: var(--muted); width: 50px; flex-shrink: 0; text-align: right; }
+.chart-bar-bg {
+  flex: 1; height: 22px; background: #eef2f8; border-radius: 6px; overflow: hidden;
+  position: relative;
+}
+.chart-bar {
+  height: 100%; border-radius: 6px;
+  display: flex; align-items: center; justify-content: flex-end;
+  padding-right: 8px; font-size: 11px; font-weight: 600; color: white;
+  transition: width 0.6s ease;
+  min-width: 28px;
+}
+.bar-youth { background: linear-gradient(90deg, #2c5aa0, #4a7fd4); }
+.bar-young { background: linear-gradient(90deg, #b8922a, #c9a84c); }
+
+/* MONTH SUMMARY */
+.month-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.month-box {
+  background: #f7f9fc; border-radius: 12px; padding: 12px 10px; text-align: center;
+}
+.month-box .lbl { font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+.month-box .val { font-size: 18px; font-weight: 700; color: var(--navy); }
+.month-box .sub { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+/* SECTION TABS */
+.seg {
+  display: flex; background: #eef2f8; border-radius: 12px;
+  padding: 4px; gap: 4px; margin-bottom: 14px;
+}
+.seg-btn {
+  flex: 1; padding: 8px; border: none; border-radius: 9px;
+  font-size: 13px; font-weight: 600; font-family: inherit; cursor: pointer;
+  background: transparent; color: var(--muted); transition: all 0.2s;
+}
+.seg-btn.active { background: white; color: var(--navy); box-shadow: 0 1px 6px rgba(0,0,0,0.1); }
+
+/* EMPTY */
+.empty { text-align: center; color: var(--muted); padding: 40px 0; font-size: 14px; }
+
+/* SPINNER */
+.spinner {
+  display: flex; justify-content: center; align-items: center; height: 120px;
+}
+.spinner::after {
+  content: ''; width: 32px; height: 32px; border-radius: 50%;
+  border: 3px solid var(--border); border-top-color: var(--blue);
+  animation: spin 0.7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* UPDATE TOAST */
+.toast {
+  position: fixed; bottom: calc(20px + var(--safe-bottom)); left: 50%; transform: translateX(-50%);
+  background: #1a202c; color: white; padding: 10px 20px; border-radius: 24px;
+  font-size: 14px; font-weight: 500; z-index: 999;
+  opacity: 0; transition: opacity 0.3s; pointer-events: none; white-space: nowrap;
+}
+.toast.show { opacity: 1; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-top">
+    <div>
+      <h1>⛪ 사역 현황</h1>
+      <p>연천장로교회 교역자 주일 보고</p>
+    </div>
+    <button class="refresh-btn" onclick="loadData(true)">🔄 새로고침</button>
+  </div>
+</div>
+
+<div class="content">
+  <div id="mainContent"><div class="spinner"></div></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const DATA_URL = './history.json';
+let allData = [];
+let viewMode = 'youth'; // 'youth' | 'young'
+
+function showToast(msg, dur = 2500) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), dur);
+}
+
+function rateClass(r) {
+  if (r >= 70) return 'rate-good';
+  if (r >= 50) return 'rate-mid';
+  return 'rate-low';
+}
+
+function fmtDate(d) {
+  if (!d) return '';
+  const [y, m, day] = d.split('-');
+  return `${y}년 ${parseInt(m)}월 ${parseInt(day)}일`;
+}
+
+function fmtMonth(d) {
+  if (!d) return '';
+  const [, m] = d.split('-');
+  return `${parseInt(m)}월`;
+}
+
+// 월별 집계
+function monthSummary(data, group) {
+  const map = {};
+  data.forEach(row => {
+    const [y, m] = row.date.split('-');
+    const key = `${y}-${m}`;
+    const g = row[group];
+    if (!g) return;
+    if (!map[key]) map[key] = { present: 0, total: 0, weeks: 0 };
+    map[key].present += g.present || 0;
+    map[key].total   += g.total   || 0;
+    map[key].weeks++;
+  });
+  return Object.entries(map)
+    .sort((a, b) => a[0].localeCompare(b[0]))
+    .map(([key, v]) => ({
+      month: key,
+      label: `${parseInt(key.split('-')[1])}월`,
+      present: v.present,
+      total: v.total,
+      rate: v.total ? Math.round(v.present / v.total * 100) : 0,
+      weeks: v.weeks
+    }));
+}
+
+function render() {
+  const el = document.getElementById('mainContent');
+  if (!allData.length) {
+    el.innerHTML = '<div class="empty">데이터가 없습니다</div>';
+    return;
+  }
+
+  const latest = allData[allData.length - 1];
+  const group  = viewMode; // 'youth' | 'young'
+  const gLabel = viewMode === 'youth' ? '중고등부' : '청년부';
+  const gData  = latest[group] || {};
+  const rate   = gData.total ? Math.round(gData.present / gData.total * 100) : 0;
+
+  // 최근 8주 차트용 데이터
+  const recent = allData.slice(-8);
+  const maxTotal = Math.max(...recent.map(r => (r[group] || {}).total || 0), 1);
+
+  // 월별
+  const months = monthSummary(allData, group);
+
+  el.innerHTML = `
+    <!-- 세그먼트 탭 -->
+    <div class="seg">
+      <button class="seg-btn ${viewMode==='youth'?'active':''}" onclick="setView('youth')">중고등부</button>
+      <button class="seg-btn ${viewMode==='young'?'active':''}" onclick="setView('young')">청년부</button>
+    </div>
+
+    <!-- 최근 보고 -->
+    <div class="card">
+      <div class="card-title">📅 최근 주일 — ${gLabel}</div>
+      <div class="latest-date">${fmtDate(latest.date)}</div>
+      <div class="stat-row">
+        <div class="stat-box">
+          <div class="stat-label">출석</div>
+          <div class="stat-val" style="color:#2c7be5">${gData.present ?? '-'}</div>
+          <div class="stat-sub">명</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">결석</div>
+          <div class="stat-val" style="color:#e53e3e">${gData.absent ?? '-'}</div>
+          <div class="stat-sub">명</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">전체</div>
+          <div class="stat-val">${gData.total ?? '-'}</div>
+          <div class="stat-sub">명</div>
+        </div>
+      </div>
+      <div style="text-align:center">
+        <span class="badge-rate ${rateClass(rate)}">출석률 ${rate}%</span>
+      </div>
+    </div>
+
+    <!-- 최근 8주 추이 -->
+    <div class="card">
+      <div class="card-title">📊 최근 8주 출석 추이</div>
+      <div class="chart-wrap">
+        ${recent.map(row => {
+          const g = row[group] || {};
+          const w = g.total ? Math.round(g.present / g.total * 100) : 0;
+          const barClass = viewMode === 'youth' ? 'bar-youth' : 'bar-young';
+          return `
+          <div class="chart-row">
+            <div class="chart-label">${fmtMonth(row.date)}.${parseInt(row.date.split('-')[2])}일</div>
+            <div class="chart-bar-bg">
+              <div class="chart-bar ${barClass}" style="width:${w}%">${w}%</div>
+            </div>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>
+
+    <!-- 월별 요약 -->
+    <div class="card">
+      <div class="card-title">📅 월별 출석률</div>
+      <div class="month-grid">
+        ${months.slice(-4).map(m => `
+          <div class="month-box">
+            <div class="lbl">${m.label}</div>
+            <div class="val">${m.rate}%</div>
+            <div class="sub">${m.present}/${m.total}명 · ${m.weeks}주</div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+
+    <!-- 전체 기록 -->
+    <div class="card">
+      <div class="card-title">📋 전체 주일 기록</div>
+      ${allData.slice().reverse().map(row => {
+        const g = row[group] || {};
+        const r = g.total ? Math.round(g.present / g.total * 100) : 0;
+        return `
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)">
+          <div style="font-size:14px">${fmtDate(row.date)}</div>
+          <div style="display:flex;gap:10px;align-items:center">
+            <span style="font-size:13px;color:var(--muted)">${g.present ?? '-'}/${g.total ?? '-'}명</span>
+            <span class="badge-rate ${rateClass(r)}" style="font-size:11px">${r}%</span>
+          </div>
+        </div>`;
+      }).join('')}
+    </div>
+  `;
+}
+
+function setView(mode) {
+  viewMode = mode;
+  render();
+}
+
+async function loadData(showMsg = false) {
+  try {
+    const res = await fetch(DATA_URL + '?t=' + Date.now());
+    if (!res.ok) throw new Error('서버 오류 ' + res.status);
+    allData = await res.json();
+    // 날짜순 정렬
+    allData.sort((a, b) => a.date.localeCompare(b.date));
+    render();
+    if (showMsg) showToast('✅ 최신 데이터로 업데이트');
+  } catch(e) {
+    document.getElementById('mainContent').innerHTML =
+      `<div class="empty">데이터를 불러오지 못했습니다<br><small>${e.message}</small></div>`;
+  }
+}
+
+loadData();
+
+// Service Worker 등록 (오프라인 지원)
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./sw-viewer.js').catch(() => {});
+}
+</script>
+</body>
+</html>
