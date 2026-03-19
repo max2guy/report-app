@@ -2332,9 +2332,14 @@ async function saveFCMTokenToGitHub(role, fcmToken) {
 /* ── FCM: 상대방 토큰 조회 ── */
 async function getTargetFCMToken(role) {
   try {
-    const res = await fetch(`https://raw.githubusercontent.com/max2guy/report-app/main/fcm-tokens.json?t=${Date.now()}`,{cache:'no-store'});
+    // GitHub Contents API: 캐시 없이 항상 최신 토큰 즉시 반환
+    const res = await fetch('https://api.github.com/repos/max2guy/report-app/contents/fcm-tokens.json',{
+      headers:{'Accept':'application/vnd.github+json'},cache:'no-store'
+    });
     if(!res.ok) return null;
-    return (await res.json())[role] || null;
+    const info = await res.json();
+    const tokens = JSON.parse(decodeURIComponent(escape(atob(info.content.replace(/\n/g,'')))));
+    return tokens[role] || null;
   } catch(e){ return null; }
 }
 
