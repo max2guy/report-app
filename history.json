@@ -168,7 +168,7 @@
       ]
     },
     "adult": {
-      "absent": 5,
+      "absent": 10,
       "zones": [
         {
           "zone": "1구역",
@@ -198,6 +198,36 @@
           "zone": "5구역",
           "names": [
             "5"
+          ]
+        },
+        {
+          "zone": "8구역",
+          "names": [
+            "Siong"
+          ]
+        },
+        {
+          "zone": "9구역",
+          "names": [
+            "Song"
+          ]
+        },
+        {
+          "zone": "10구역",
+          "names": [
+            "Doing"
+          ]
+        },
+        {
+          "zone": "11구역",
+          "names": [
+            "Well"
+          ]
+        },
+        {
+          "zone": "12구역",
+          "names": [
+            "Com3"
           ]
         }
       ]
