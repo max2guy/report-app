@@ -333,6 +333,54 @@ textarea { resize: vertical; min-height: 60px; }
 }
 /* DIVIDER */
 .divider { height: 1px; background: var(--border); margin: 16px 0; }
+/* STATS */
+.stats-controls {
+  display: flex; justify-content: space-between; gap: 8px; margin-bottom: 14px;
+}
+.stats-seg {
+  display: flex; background: #f0f4f8; border-radius: 8px; padding: 2px; gap: 2px;
+}
+.stats-seg-btn {
+  flex: 1; padding: 5px 10px; border: none; border-radius: 6px;
+  font-size: 12px; font-weight: 500; cursor: pointer;
+  background: transparent; color: var(--text-muted); font-family: inherit;
+  transition: all 0.15s; white-space: nowrap;
+}
+.stats-seg-btn.active {
+  background: white; color: var(--navy); font-weight: 700;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.12);
+}
+.stats-row {
+  display: flex; align-items: center; gap: 8px; margin-bottom: 8px;
+}
+.stats-label {
+  width: 32px; font-size: 11px; font-weight: 600; color: var(--text-muted); flex-shrink: 0; text-align: right;
+}
+.stats-bar-wrap {
+  flex: 1; height: 18px; background: #f0f4f8; border-radius: 6px; overflow: hidden;
+}
+.stats-bar {
+  height: 100%; border-radius: 6px;
+  background: linear-gradient(90deg, var(--blue), var(--blue-light));
+  transition: width 0.5s ease; min-width: 2px;
+}
+.stats-bar.bar-low { background: linear-gradient(90deg, #e53e3e, #fc8181); }
+.stats-bar.bar-mid { background: linear-gradient(90deg, #d69e2e, #f6c94e); }
+.stats-pct {
+  width: 36px; font-size: 12px; font-weight: 700; color: var(--navy); text-align: right; flex-shrink: 0;
+}
+.stats-detail {
+  width: 42px; font-size: 10px; color: var(--text-muted); flex-shrink: 0; text-align: right;
+}
+.stats-empty {
+  text-align: center; padding: 20px 0; font-size: 13px; color: var(--text-muted);
+}
+.stats-divider {
+  height: 1px; background: var(--border); margin: 10px 0 10px;
+}
+.stats-section-title {
+  font-size: 11px; font-weight: 600; color: var(--text-muted); margin-bottom: 8px;
+}
 /* ACCORDION */
 .accordion-btn {
   width: 100%; display: flex; align-items: center; justify-content: space-between;
@@ -467,6 +515,27 @@ textarea { resize: vertical; min-height: 60px; }
           <label>담당 부서</label>
           <input type="text" id="department" placeholder="중고등부 / 청년부" value="중고등부 / 청년부">
         </div>
+      </div>
+    </div>
+
+    <!-- 통계 카드 -->
+    <div class="card" id="statsCard">
+      <div class="card-header">
+        <span class="card-header-icon">📊</span>
+        <h2>출결 통계</h2>
+      </div>
+      <div class="card-body">
+        <div class="stats-controls">
+          <div class="stats-seg" id="statsGroupSeg">
+            <button class="stats-seg-btn active" onclick="setStatsGroup('youth')">중고등부</button>
+            <button class="stats-seg-btn" onclick="setStatsGroup('young')">청년부</button>
+          </div>
+          <div class="stats-seg" id="statsPeriodSeg">
+            <button class="stats-seg-btn active" onclick="setStatsPeriod('monthly')">월별</button>
+            <button class="stats-seg-btn" onclick="setStatsPeriod('yearly')">연간</button>
+          </div>
+        </div>
+        <div id="statsChart"></div>
       </div>
     </div>
   </section>
@@ -744,6 +813,147 @@ textarea { resize: vertical; min-height: 60px; }
 // ───────────────────────────────
 const APP_VERSION = '0.1.3';
 
+// ───────────────────────────────
+// 출결 통계
+// ───────────────────────────────
+let reportHistory = JSON.parse(localStorage.getItem('reportHistory') || '[]');
+let statsGroup = 'youth';   // 'youth' | 'young'
+let statsPeriod = 'monthly'; // 'monthly' | 'yearly'
+
+function saveToHistory() {
+  if (!state.date) return;
+  const entry = {
+    date: state.date,
+    youth: {
+      present: state.youth.members.filter(m => m.status === 'present').length,
+      absent:  state.youth.members.filter(m => m.status === 'absent').length,
+      total:   state.youth.members.length
+    },
+    young: {
+      present: state.young.members.filter(m => m.status === 'present').length,
+      absent:  state.young.members.filter(m => m.status === 'absent').length,
+      total:   state.young.members.length
+    }
+  };
+  reportHistory = reportHistory.filter(h => h.date !== state.date);
+  reportHistory.push(entry);
+  reportHistory.sort((a, b) => a.date.localeCompare(b.date));
+  localStorage.setItem('reportHistory', JSON.stringify(reportHistory));
+}
+
+function setStatsGroup(g) {
+  statsGroup = g;
+  document.querySelectorAll('#statsGroupSeg .stats-seg-btn').forEach((b, i) => {
+    b.classList.toggle('active', (i === 0 && g === 'youth') || (i === 1 && g === 'young'));
+  });
+  renderStats();
+}
+
+function setStatsPeriod(p) {
+  statsPeriod = p;
+  document.querySelectorAll('#statsPeriodSeg .stats-seg-btn').forEach((b, i) => {
+    b.classList.toggle('active', (i === 0 && p === 'monthly') || (i === 1 && p === 'yearly'));
+  });
+  renderStats();
+}
+
+function renderStats() {
+  const chart = document.getElementById('statsChart');
+  if (!chart) return;
+
+  if (!reportHistory.length) {
+    chart.innerHTML = '<div class="stats-empty">📭 저장된 데이터가 없습니다<br><small>보고서 저장 시 자동 기록됩니다</small></div>';
+    return;
+  }
+
+  if (statsPeriod === 'monthly') {
+    renderMonthlyStats(chart);
+  } else {
+    renderYearlyStats(chart);
+  }
+}
+
+function renderMonthlyStats(chart) {
+  // 월별 집계
+  const monthly = {};
+  reportHistory.forEach(h => {
+    const ym = h.date.slice(0, 7); // YYYY-MM
+    if (!monthly[ym]) monthly[ym] = { present: 0, total: 0, count: 0 };
+    monthly[ym].present += h[statsGroup].present;
+    monthly[ym].total   += h[statsGroup].total;
+    monthly[ym].count++;
+  });
+
+  const keys = Object.keys(monthly).sort();
+  // 올해 + 최근 12개월 필터
+  const recent = keys.slice(-12);
+
+  // 현재 연도 그룹핑
+  const byYear = {};
+  recent.forEach(ym => {
+    const yr = ym.slice(0, 4);
+    if (!byYear[yr]) byYear[yr] = [];
+    byYear[yr].push(ym);
+  });
+
+  let html = '';
+  Object.keys(byYear).sort().forEach(yr => {
+    html += `<div class="stats-section-title">${yr}년</div>`;
+    byYear[yr].forEach(ym => {
+      const d = monthly[ym];
+      const m = parseInt(ym.slice(5));
+      const pct = d.total > 0 ? Math.round(d.present / d.total * 100) : 0;
+      const barClass = pct < 60 ? 'bar-low' : pct < 80 ? 'bar-mid' : '';
+      const avgPresent = Math.round(d.present / d.count);
+      const avgTotal   = Math.round(d.total / d.count);
+      html += `
+        <div class="stats-row">
+          <div class="stats-label">${m}월</div>
+          <div class="stats-bar-wrap">
+            <div class="stats-bar ${barClass}" style="width:${pct}%"></div>
+          </div>
+          <div class="stats-pct">${pct}%</div>
+          <div class="stats-detail">평균 ${avgPresent}/${avgTotal}명</div>
+        </div>`;
+    });
+    html += '<div class="stats-divider"></div>';
+  });
+
+  chart.innerHTML = html;
+}
+
+function renderYearlyStats(chart) {
+  const yearly = {};
+  reportHistory.forEach(h => {
+    const yr = h.date.slice(0, 4);
+    if (!yearly[yr]) yearly[yr] = { present: 0, total: 0, count: 0 };
+    yearly[yr].present += h[statsGroup].present;
+    yearly[yr].total   += h[statsGroup].total;
+    yearly[yr].count++;
+  });
+
+  const keys = Object.keys(yearly).sort();
+  let html = '<div class="stats-section-title">연도별 평균 출결률</div>';
+  keys.forEach(yr => {
+    const d = yearly[yr];
+    const pct = d.total > 0 ? Math.round(d.present / d.total * 100) : 0;
+    const barClass = pct < 60 ? 'bar-low' : pct < 80 ? 'bar-mid' : '';
+    const avgPresent = Math.round(d.present / d.count);
+    const avgTotal   = Math.round(d.total / d.count);
+    html += `
+      <div class="stats-row">
+        <div class="stats-label">${yr.slice(2)}년</div>
+        <div class="stats-bar-wrap">
+          <div class="stats-bar ${barClass}" style="width:${pct}%"></div>
+        </div>
+        <div class="stats-pct">${pct}%</div>
+        <div class="stats-detail">평균 ${avgPresent}/${avgTotal}명</div>
+      </div>`;
+  });
+
+  chart.innerHTML = html;
+}
+
 // DEFAULT DATA
 // ───────────────────────────────
 const DEFAULT_YOUTH = [
@@ -850,6 +1060,7 @@ function init() {
   renderYoungGrid();
   renderZoneGrid();
   updateNasStatus();
+  renderStats();
 }
 
 // ───────────────────────────────
@@ -1358,6 +1569,8 @@ function collectState() {
 function saveDraft() {
   collectState();
   localStorage.setItem('reportDraft', JSON.stringify(state));
+  saveToHistory();
+  renderStats();
   toast('💾 임시저장 완료');
 }
 function resetApp() {
