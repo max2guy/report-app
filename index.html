@@ -174,9 +174,13 @@ textarea { resize: vertical; min-height: 60px; }
 .num-absent { color: #c53030; }
 .num-total { color: var(--navy); }
 /* ZONE GRID */
-.zone-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-.zone-item label { margin-bottom: 4px; font-size: 11px; }
-.zone-item input { font-size: 13px; padding: 8px 10px; }
+.zone-grid { display: grid; grid-template-columns: 1fr; gap: 6px; }
+.zone-item { display: flex; align-items: center; gap: 8px; }
+.zone-item label { margin-bottom: 0; font-size: 11px; flex-shrink: 0; white-space: nowrap; }
+.zone-item input {
+  flex: 1; font-size: 13px; padding: 5px 10px;
+  background: #eef4ff; border-color: #c3d9ff;
+}
 .btn-sms {
   flex-shrink: 0; width: 36px; height: 36px; border-radius: 8px;
   background: var(--success); color: white; border: none;
@@ -1279,17 +1283,6 @@ function renderZoneGrid() {
     `;
     grid.appendChild(div);
   }
-  // Total row
-  const totalDiv = document.createElement('div');
-  totalDiv.className = 'zone-total';
-  totalDiv.innerHTML = `
-    <div>
-      <div style="font-size:12px;opacity:0.7">교구 총 결석</div>
-      <div style="font-size:13px;opacity:0.6;margin-top:2px">(장기결석·비정기·유병자 포함)</div>
-    </div>
-    <div class="total-num" id="zoneTotalNum">0명</div>
-  `;
-  grid.appendChild(totalDiv);
   updateZoneTotal();
 }
 
@@ -1829,7 +1822,7 @@ function wBullet(label, value) {
   </w:pPr>
   <w:r>
     <w:rPr><w:b/><w:sz w:val="22"/><w:szCs w:val="22"/></w:rPr>
-    <w:t xml:space="preserve">${esc(label)}: </w:t>
+    <w:t xml:space="preserve">${esc(label)}${label ? ': ' : ''}</w:t>
   </w:r>
   <w:r>
     <w:rPr><w:sz w:val="22"/><w:szCs w:val="22"/></w:rPr>
@@ -1879,9 +1872,7 @@ function buildDocumentXml() {
             xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
 <w:body>
 
-${wParagraph('교역자 주일사역 보고서', { bold: true, color: '2C5AA0', size: 36, align: 'center', spacing: 360 })}
-
-${wParagraph('', { size: 22, spacing: 120 })}
+${wParagraph('교역자 주일사역 보고서', { bold: true, color: '2C5AA0', size: 30, align: 'center', spacing: 320 })}
 
 ${wInfoTable([
   ['보고 주일', d.date],
@@ -1889,21 +1880,21 @@ ${wInfoTable([
   ['담당부서', d.department],
 ])}
 
-${wParagraph('', { size: 22, spacing: 160 })}
+${wParagraph('', { size: 20, spacing: 120 })}
 
 ${wSectionTitle('1', '부서별 주일 사역')}
 
 ${wSubTitle('중고등부')}
 ${wBullet('출석', `${yPresent.length}명`)}
-${yPresent.length ? wBullet('1) 출석자 명단', yPresent.map(m => m.name).join(' ')) : ''}
-${yAbsent.length ? wBullet('2) 결석자 명단', yAbsent.map(m => m.name).join(' ')) : ''}
-${d.youth.note ? wBullet('특이사항', d.youth.note) : ''}
+${yPresent.length ? wBullet('출석자', yPresent.map(m => m.name).join('  ')) : ''}
+${yAbsent.length  ? wBullet('결석자', yAbsent.map(m => m.name).join('  ')) : ''}
+${d.youth.note    ? wBullet('특이사항', d.youth.note) : ''}
 
 ${wSubTitle('청년부')}
 ${wBullet('출석', `${gPresent.length}명`)}
-${gPresent.length ? wBullet('1) 출석자 명단', gPresent.map(m => m.name).join(' ')) : ''}
-${gAbsent.length ? wBullet('2) 결석자 명단', gAbsent.map(m => m.name).join(' ')) : ''}
-${d.young.note ? wBullet('특이사항', d.young.note) : ''}
+${gPresent.length ? wBullet('출석자', gPresent.map(m => m.name).join('  ')) : ''}
+${gAbsent.length  ? wBullet('결석자', gAbsent.map(m => m.name).join('  ')) : ''}
+${d.young.note    ? wBullet('특이사항', d.young.note) : ''}
 
 ${wSubTitle('교구')}
 ${wBullet('결석', `총 ${zoneTotal}명 (장기결석·비정기출석·유병자 포함)`)}
@@ -1911,28 +1902,20 @@ ${zoneLines.map(line => wBullet('', line)).join('')}
 ${d.parishNote ? wBullet('비고', d.parishNote) : ''}
 
 ${wSectionTitle('2', '차주 사역 계획')}
-${wText(d.nextWeekPlan || '미기재')}
+${wText(d.nextWeekPlan || '-')}
 
 ${wSectionTitle('3', '기도 제목')}
-${wText(d.prayer || '미기재')}
+${wText(d.prayer || '-')}
 
 ${wSectionTitle('4', '종합 의견 및 건의사항')}
-${wText(d.generalOpinion || '미기재')}
+${wText(d.generalOpinion || '-')}
 
-${wParagraph('', { size: 22, spacing: 200 })}
-
-${wParagraph('위와 같이 주일 사역을 보고합니다.', { size: 22, align: 'center' })}
-
-${wParagraph('', { size: 22, spacing: 120 })}
-
-${wInfoTable([
-  ['작성일', d.date],
-  ['보고자', d.reporter],
-])}
+${wParagraph('', { size: 20, spacing: 180 })}
+${wParagraph(`작성일: ${d.date}    보고자: ${d.reporter}`, { size: 20, align: 'right', color: '888888' })}
 
 <w:sectPr>
   <w:pgSz w:w="12240" w:h="15840"/>
-  <w:pgMar w:top="1440" w:right="1080" w:bottom="1440" w:left="1080"
+  <w:pgMar w:top="1200" w:right="1080" w:bottom="1200" w:left="1080"
            w:header="720" w:footer="720" w:gutter="0"/>
 </w:sectPr>
 </w:body>
