@@ -173,6 +173,20 @@ textarea { resize: vertical; min-height: 80px; }
 .zone-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .zone-item label { margin-bottom: 4px; font-size: 11px; }
 .zone-item input { font-size: 13px; padding: 8px 10px; }
+.zone-input-row { display: flex; gap: 6px; align-items: center; }
+.zone-input-row input { flex: 1; min-width: 0; }
+.btn-sms {
+  flex-shrink: 0; width: 36px; height: 36px; border-radius: 8px;
+  background: var(--success); color: white; border: none;
+  font-size: 16px; cursor: pointer; display: flex; align-items: center;
+  justify-content: center; transition: opacity 0.15s; touch-action: manipulation;
+}
+.btn-sms:disabled { opacity: 0.25; cursor: not-allowed; }
+.zone-phone-row { display: flex; gap: 6px; align-items: center; margin-bottom: 4px; }
+.zone-phone-row input {
+  flex: 1; font-size: 12px; padding: 5px 8px; border-radius: 6px;
+  border: 1px solid var(--border); background: var(--bg); color: var(--text-muted);
+}
 .zone-total {
   grid-column: 1 / -1; background: linear-gradient(135deg, var(--navy), var(--navy2));
   border-radius: 10px; padding: 12px 16px; color: white;
@@ -557,6 +571,13 @@ textarea { resize: vertical; min-height: 80px; }
       </div>
     </div>
 
+    <!-- 구역장 전화번호 -->
+    <div class="setting-group">
+      <h3>📱 구역장 전화번호</h3>
+      <p style="font-size:12px;color:var(--text-muted);margin-bottom:10px">결석자 SMS 발송에 사용됩니다</p>
+      <div id="zonePhoneList"></div>
+    </div>
+
     <div class="setting-group">
       <h3>⚠️ 데이터</h3>
       <button class="btn-wide btn-outline" onclick="resetApp()" style="border-color:#e53e3e;color:#e53e3e">🗑️ 모든 데이터 초기화</button>
@@ -624,6 +645,9 @@ let settings = {
   nasPass: '',
   nasPath: '/사역보고서',
 };
+
+// 구역장 전화번호 (localStorage)
+let zonePhones = JSON.parse(localStorage.getItem('zonePhones') || 'null') || Array(12).fill('');
 
 let dirHandle = null;
 
@@ -786,6 +810,7 @@ function renderZoneGrid() {
   grid.innerHTML = '';
   for (let i = 0; i < 12; i++) {
     const [leader, inspector] = ZONE_LEADERS[i];
+    const hasAbsent = (state.zones[i] || '').trim().length > 0;
     const div = document.createElement('div');
     div.className = 'zone-item form-row';
     div.innerHTML = `
@@ -795,10 +820,14 @@ function renderZoneGrid() {
           구역장 ${leader} · 권찰 ${inspector}
         </span>
       </label>
-      <input type="text" placeholder="이름 입력..."
-        value="${state.zones[i] || ''}"
-        oninput="state.zones[${i}]=this.value;updateZoneTotal()"
-        style="font-size:13px;padding:8px 10px">
+      <div class="zone-input-row">
+        <input type="text" placeholder="이름 입력..."
+          value="${state.zones[i] || ''}"
+          oninput="state.zones[${i}]=this.value;updateZoneTotal();updateSmsBtnState(${i})"
+          style="font-size:13px;padding:8px 10px">
+        <button class="btn-sms" id="smsBtn${i}" onclick="sendZoneSMS(${i})"
+          ${hasAbsent ? '' : 'disabled'} title="${leader} 구역장에게 SMS">💬</button>
+      </div>
     `;
     grid.appendChild(div);
   }
@@ -829,9 +858,69 @@ function updateZoneTotal() {
 }
 
 // ───────────────────────────────
+// SMS
+// ───────────────────────────────
+function updateSmsBtnState(i) {
+  const btn = document.getElementById(`smsBtn${i}`);
+  if (!btn) return;
+  btn.disabled = !(state.zones[i] || '').trim();
+}
+
+function sendZoneSMS(i) {
+  const phone = zonePhones[i];
+  if (!phone) {
+    showToast('⚙️ 설정에서 구역장 번호를 먼저 입력해주세요');
+    return;
+  }
+  const names = (state.zones[i] || '').trim();
+  if (!names) return;
+  const count = names.split(/[,，\s]+/).filter(n => n.trim()).length;
+  const date = state.date || new Date().toISOString().slice(0, 10);
+  const leader = ZONE_LEADERS[i][0];
+  const msg = `[${date} 주일 결석 현황]\n${i + 1}구역 결석자 ${count}명\n${names}\n\n구역장 ${leader} 집사님께`;
+  window.location.href = `sms:${phone}?body=${encodeURIComponent(msg)}`;
+}
+
+// 구역장 번호 관리
+function renderZonePhoneList() {
+  const container = document.getElementById('zonePhoneList');
+  if (!container) return;
+  const canPickContact = 'contacts' in navigator && 'ContactsManager' in window;
+  container.innerHTML = ZONE_LEADERS.map(([leader], i) => `
+    <div class="zone-phone-row">
+      <span style="font-size:12px;font-weight:500;min-width:80px;flex-shrink:0">${i + 1}구역 ${leader}</span>
+      <input type="tel" placeholder="010-0000-0000"
+        value="${zonePhones[i] || ''}"
+        oninput="zonePhones[${i}]=this.value.replace(/[^0-9-]/g,'');saveZonePhones()">
+      ${canPickContact ? `<button class="btn-sms" style="background:var(--blue)" onclick="pickContact(${i})" title="주소록에서 선택">👤</button>` : ''}
+    </div>
+  `).join('');
+}
+
+function saveZonePhones() {
+  localStorage.setItem('zonePhones', JSON.stringify(zonePhones));
+}
+
+async function pickContact(i) {
+  try {
+    const contacts = await navigator.contacts.select(['name', 'tel'], { multiple: false });
+    if (!contacts.length || !contacts[0].tel?.length) return;
+    const phone = contacts[0].tel[0].replace(/[^0-9]/g, '');
+    const formatted = phone.replace(/^(\d{3})(\d{3,4})(\d{4})$/, '$1-$2-$3');
+    zonePhones[i] = formatted;
+    saveZonePhones();
+    renderZonePhoneList();
+    showToast(`${ZONE_LEADERS[i][0]} 번호 저장됨`);
+  } catch (e) {
+    showToast('주소록 접근 실패');
+  }
+}
+
+// ───────────────────────────────
 // SETTINGS
 // ───────────────────────────────
 function openSettings() {
+  renderZonePhoneList();
   document.getElementById('settingsModal').classList.add('open');
   applySettings();
 }
