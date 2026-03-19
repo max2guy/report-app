@@ -1,4 +1,4 @@
-const CACHE_NAME = 'report-app-v10';
+const CACHE_NAME = 'report-app-v11';
 const APP_SHELL = [
   './',
   './index.html',
@@ -6,7 +6,8 @@ const APP_SHELL = [
   './icon.svg',
   './icon-192.png',
   './icon-512.png',
-  './history.json'
+  './history.json',
+  './notifications.json'
 ];
 
 // 설치: 앱 셸 캐시

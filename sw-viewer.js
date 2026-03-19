@@ -1,5 +1,5 @@
-const CACHE = 'viewer-v5';
-const SHELL = ['./viewer.html', './viewer-manifest.json', './icon-192.png', './icon-512.png'];
+const CACHE = 'viewer-v6';
+const SHELL = ['./viewer.html', './viewer-manifest.json', './icon-192.png', './icon-512.png', './notifications.json'];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL)));
