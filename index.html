@@ -162,14 +162,14 @@ textarea { resize: vertical; min-height: 60px; }
 .btn-add { border-color: var(--blue); color: var(--blue); background: #ebf8ff; }
 /* SUMMARY BAR */
 .summary-bar {
-  display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap;
+  display: flex; gap: 6px; margin-bottom: 10px;
 }
 .summary-item {
-  flex: 1; min-width: 80px; background: #f8fafc; border-radius: 10px;
-  padding: 10px 12px; text-align: center; border: 1.5px solid var(--border);
+  flex: 1; background: #f8fafc; border-radius: 8px;
+  padding: 7px 6px; text-align: center; border: 1.5px solid var(--border);
 }
-.summary-item .num { font-size: 22px; font-weight: 700; }
-.summary-item .lbl { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+.summary-item .num { font-size: 18px; font-weight: 700; line-height: 1.2; }
+.summary-item .lbl { font-size: 10px; color: var(--text-muted); margin-top: 1px; }
 .num-present { color: #2b6cb0; }
 .num-absent { color: #c53030; }
 .num-total { color: var(--navy); }
@@ -511,7 +511,7 @@ textarea { resize: vertical; min-height: 60px; }
         <h2>중고등부 특이사항</h2>
       </div>
       <div class="card-body">
-        <textarea id="youthNote" placeholder="예) 수련회 준비 중, 시험 기간 등" rows="3"></textarea>
+        <textarea id="youthNote" placeholder="" rows="3"></textarea>
       </div>
     </div>
   </section>
@@ -534,12 +534,15 @@ textarea { resize: vertical; min-height: 60px; }
             <div class="num num-absent" id="youngAbsentCount">0</div>
             <div class="lbl">결석</div>
           </div>
+          <div class="summary-item">
+            <div class="num num-total" id="youngTotalCount">0</div>
+            <div class="lbl">전체</div>
+          </div>
         </div>
         <div class="member-actions" style="margin-bottom:8px">
           <button class="btn-sm btn-present" onclick="setAllYoung('present')">전원 출석</button>
           <button class="btn-sm btn-absent" onclick="setAllYoung('absent')">전원 결석</button>
         </div>
-        <p style="font-size:12px;color:var(--text-muted);margin-bottom:10px">탭: 출석 → 결석 → 출석 (순환)</p>
         <div class="member-grid" id="youngGrid"></div>
         <div class="add-member-row">
           <input type="text" id="addYoungInput" placeholder="이름 추가..." style="font-size:14px">
@@ -553,7 +556,7 @@ textarea { resize: vertical; min-height: 60px; }
         <h2>청년부 특이사항</h2>
       </div>
       <div class="card-body">
-        <textarea id="youngNote" placeholder="예) 장기결석 청년 방문 예정 등" rows="3"></textarea>
+        <textarea id="youngNote" placeholder="" rows="3"></textarea>
       </div>
     </div>
   </section>
@@ -573,7 +576,7 @@ textarea { resize: vertical; min-height: 60px; }
         <div class="divider"></div>
         <div class="form-row">
           <label>교구 특이사항</label>
-          <textarea id="parishNote" placeholder="예) 권찰들에게 결석자 자료 전달 완료" rows="2"></textarea>
+          <textarea id="parishNote" placeholder="" rows="2"></textarea>
         </div>
       </div>
     </div>
@@ -587,7 +590,7 @@ textarea { resize: vertical; min-height: 60px; }
         <h2>차주 사역 계획</h2>
       </div>
       <div class="card-body">
-        <textarea id="nextWeekPlan" placeholder="예) 각 부서 예배, 청년부 MT 준비" rows="4"></textarea>
+        <textarea id="nextWeekPlan" placeholder="" rows="4"></textarea>
       </div>
     </div>
     <div class="card">
@@ -596,7 +599,7 @@ textarea { resize: vertical; min-height: 60px; }
         <h2>기도 제목</h2>
       </div>
       <div class="card-body">
-        <textarea id="prayer" placeholder="예) 오늘 나오지 않은 학생 및 청년들이 예배 자리로 나아올 수 있도록..." rows="4"></textarea>
+        <textarea id="prayer" placeholder="" rows="4"></textarea>
       </div>
     </div>
     <div class="card">
@@ -605,7 +608,7 @@ textarea { resize: vertical; min-height: 60px; }
         <h2>종합 의견 및 건의사항</h2>
       </div>
       <div class="card-body">
-        <textarea id="generalOpinion" placeholder="예) 오늘은 청년들 결석이 많았습니다..." rows="5"></textarea>
+        <textarea id="generalOpinion" placeholder="" rows="5"></textarea>
       </div>
     </div>
   </section>
@@ -993,8 +996,10 @@ function updateYouthStats() {
 function updateYoungStats() {
   const present = state.young.members.filter(m => m.status === 'present').length;
   const absent = state.young.members.filter(m => m.status === 'absent').length;
+  const total = state.young.members.length;
   document.getElementById('youngPresentCount').textContent = present;
   document.getElementById('youngAbsentCount').textContent = absent;
+  document.getElementById('youngTotalCount').textContent = total;
   document.getElementById('youngBadge').textContent = `출석 ${present}명`;
 }
 
