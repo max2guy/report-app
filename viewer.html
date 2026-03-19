@@ -255,7 +255,7 @@ body::-webkit-scrollbar{display:none}
         <button class="hdr-btn" onclick="openInbox()">💬</button>
         <span class="hdr-badge" id="viewerInboxBadge" style="display:none">0</span>
       </div>
-      <button class="hdr-btn" onclick="forceRefresh()">🔄</button>
+      <button class="hdr-btn" onclick="loadData(true)">🔄</button>
     </div>
   </div>
   <!-- 컴팩트 시 숨겨지는 부제목 -->
@@ -1001,15 +1001,29 @@ document.addEventListener('touchend', e => {
   if (dx > 0 && idx > 0)              switchTab(TABS[idx - 1]);
 }, { passive: true });
 
-if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw-viewer.js').catch(() => {});
+/* ── SW 자동 업데이트 감지 ── */
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./sw-viewer.js').then(reg => {
+    // 새 SW 설치 감지
+    reg.addEventListener('updatefound', () => {
+      const newSW = reg.installing;
+      newSW.addEventListener('statechange', () => {
+        if (newSW.state === 'installed' && navigator.serviceWorker.controller) {
+          // 새 버전 대기 중 → skipWaiting 요청
+          newSW.postMessage('SKIP_WAITING');
+        }
+      });
+    });
+  }).catch(() => {});
 
-/* ── 강제 새로고침 ── */
-async function forceRefresh() {
-  try {
-    const keys = await caches.keys();
-    await Promise.all(keys.map(k => caches.delete(k)));
-  } catch(e) {}
-  location.reload();
+  // SW 교체 완료 → 자동 리로드
+  let refreshing = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (refreshing) return;
+    refreshing = true;
+    toast('🆕 새 버전으로 업데이트 중...', 1500);
+    setTimeout(() => location.reload(), 1500);
+  });
 }
 
 /* ── HEADER COMPACT ON SCROLL ── */
