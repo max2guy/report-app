@@ -36,8 +36,15 @@ body::-webkit-scrollbar{display:none}
   background:linear-gradient(135deg,var(--navy) 0%,var(--navy2) 100%);
   padding:calc(10px + var(--safe-top)) var(--sp) 10px;
   color:#fff;position:sticky;top:0;z-index:50;
+  transition:padding .25s;
 }
-.header-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.header.compact{padding-top:calc(6px + var(--safe-top));padding-bottom:6px}
+.header-top{
+  display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;
+  overflow:hidden;max-height:60px;opacity:1;
+  transition:max-height .25s ease,opacity .2s ease,margin .25s ease;
+}
+.header.compact .header-top{max-height:0;opacity:0;margin-bottom:0;pointer-events:none}
 .header h1{font-size:clamp(15px,4vw,18px);font-weight:700}
 .header p{font-size:11px;opacity:.7;margin-top:1px}
 .header-actions{display:flex;gap:6px}
@@ -80,9 +87,10 @@ body::-webkit-scrollbar{display:none}
   flex:1;text-align:center;background:#f7f9fc;
   border-radius:8px;padding:clamp(5px,1.8vw,7px) 4px;
 }
-.stat-label{font-size:10px;color:var(--muted);margin-bottom:1px}
+.stat-label{font-size:10px;color:var(--muted);margin-bottom:2px}
+.stat-valrow{display:flex;align-items:baseline;justify-content:center;gap:2px}
 .stat-val{font-size:clamp(15px,4vw,18px);font-weight:700;color:var(--navy)}
-.stat-sub{font-size:10px;color:var(--muted);margin-top:0}
+.stat-sub{font-size:11px;color:var(--muted)}
 .badge-rate{
   display:inline-block;padding:2px 7px;border-radius:20px;
   font-size:11px;font-weight:600;
@@ -552,9 +560,9 @@ function renderGroupPanel(group) {
         <span class="badge-rate ${rateClass(rate)}">출석률 ${rate}%</span>
       </div>
       <div class="stat-row">
-        <div class="stat-box"><div class="stat-label">출석</div><div class="stat-val" style="color:#2c7be5">${gData.present ?? '-'}</div><div class="stat-sub">명</div></div>
-        <div class="stat-box"><div class="stat-label">결석</div><div class="stat-val" style="color:#e53e3e">${gData.absent ?? '-'}</div><div class="stat-sub">명</div></div>
-        <div class="stat-box"><div class="stat-label">전체</div><div class="stat-val">${gData.total ?? '-'}</div><div class="stat-sub">명</div></div>
+        <div class="stat-box"><div class="stat-label">출석</div><div class="stat-valrow"><span class="stat-val" style="color:#2c7be5">${gData.present ?? '-'}</span><span class="stat-sub">명</span></div></div>
+        <div class="stat-box"><div class="stat-label">결석</div><div class="stat-valrow"><span class="stat-val" style="color:#e53e3e">${gData.absent ?? '-'}</span><span class="stat-sub">명</span></div></div>
+        <div class="stat-box"><div class="stat-label">전체</div><div class="stat-valrow"><span class="stat-val">${gData.total ?? '-'}</span><span class="stat-sub">명</span></div></div>
       </div>
       <div class="absent-block">
         <div class="absent-block-title">결석자</div>
@@ -727,6 +735,21 @@ document.addEventListener('touchend', e => {
 }, { passive: true });
 
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw-viewer.js').catch(() => {});
+
+/* ── HEADER COMPACT ON SCROLL ── */
+(function(){
+  const hdr = document.querySelector('.header');
+  let last = 0;
+  window.addEventListener('scroll', () => {
+    const cur = window.scrollY;
+    if (cur > 50 && cur > last) {
+      hdr.classList.add('compact');    // 아래로 스크롤 → 컴팩트
+    } else if (cur < last - 5 || cur < 20) {
+      hdr.classList.remove('compact'); // 위로 스크롤 → 원복
+    }
+    last = cur;
+  }, { passive: true });
+})();
 </script>
 </body>
 </html>
