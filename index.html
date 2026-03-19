@@ -100,20 +100,20 @@ body {
 }
 .card-body { padding: 16px 20px; }
 /* FORM ELEMENTS */
-.form-row { margin-bottom: 14px; }
+.form-row { margin-bottom: 10px; }
 .form-row:last-child { margin-bottom: 0; }
-label { display: block; font-size: 12px; font-weight: 600; color: var(--text-muted); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
+label { display: block; font-size: 11px; font-weight: 600; color: var(--text-muted); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
 input[type="text"], input[type="date"], input[type="password"], input[type="url"], textarea, select {
-  width: 100%; font-size: 15px; font-family: inherit;
-  border: 1.5px solid var(--border); border-radius: 10px;
-  padding: 10px 14px; background: #f8fafc; color: var(--text);
+  width: 100%; font-size: 14px; font-family: inherit;
+  border: 1.5px solid var(--border); border-radius: 8px;
+  padding: 7px 11px; background: #f8fafc; color: var(--text);
   transition: border-color 0.2s, box-shadow 0.2s; outline: none;
 }
 input:focus, textarea:focus, select:focus {
-  border-color: var(--blue); box-shadow: 0 0 0 3px rgba(44,90,160,0.12);
+  border-color: var(--blue); box-shadow: 0 0 0 2px rgba(44,90,160,0.12);
   background: white;
 }
-textarea { resize: vertical; min-height: 80px; }
+textarea { resize: vertical; min-height: 60px; }
 .form-row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 /* MEMBER CHECKLIST */
 .member-grid {
@@ -852,16 +852,18 @@ function switchTab(idx) {
 (function() {
   let startX = 0, startY = 0;
   const TAB_COUNT = 5;
-  const main = document.querySelector('.main') || document.getElementById('mainContent');
-  const el = document.querySelector('main') || document.body;
-  el.addEventListener('touchstart', e => {
+  // 화면 전체에서 스와이프 감지
+  document.addEventListener('touchstart', e => {
     startX = e.touches[0].clientX;
     startY = e.touches[0].clientY;
   }, { passive: true });
-  el.addEventListener('touchend', e => {
+  document.addEventListener('touchend', e => {
     const dx = e.changedTouches[0].clientX - startX;
     const dy = e.changedTouches[0].clientY - startY;
+    // 수평 이동이 50px 이상, 수직보다 커야 탭 전환
     if (Math.abs(dx) < 50 || Math.abs(dx) < Math.abs(dy)) return;
+    // 모달 열려있으면 무시
+    if (document.querySelector('.modal-overlay.open')) return;
     if (dx < 0 && currentTab < TAB_COUNT - 1) switchTab(currentTab + 1);
     else if (dx > 0 && currentTab > 0) switchTab(currentTab - 1);
   }, { passive: true });
@@ -1597,7 +1599,7 @@ function buildDocumentXml() {
   // Zone absent list
   const zoneLines = d.zones.map((z, i) => {
     const names = (z || '').trim();
-    return names ? `(${i+1}구역) ${names}` : null;
+    return names ? `(${i+1}구역): ${names}` : null;
   }).filter(Boolean);
 
   // Total zone absent count
