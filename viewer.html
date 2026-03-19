@@ -280,11 +280,17 @@ body::-webkit-scrollbar{display:none}
 
     <!-- GitHub 토큰 설정 -->
     <div id="tokenSection" style="margin-bottom:12px">
-      <div class="inbox-section-title">🔑 토큰 설정 <span id="tokenStatus" style="font-weight:500;color:#38a169;text-transform:none;letter-spacing:0"></span></div>
+      <div class="inbox-section-title">🔑 토큰 설정</div>
       <div style="display:flex;gap:6px">
         <input id="viewerTokenInput" type="password" placeholder="github_pat_…" style="flex:1;padding:8px 10px;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;font-family:inherit;outline:none">
         <button onclick="saveViewerToken()" style="padding:8px 14px;background:#0f2044;color:#fff;border:none;border-radius:8px;font-size:13px;font-family:inherit;cursor:pointer">저장</button>
       </div>
+    </div>
+
+    <!-- 토큰 재설정 링크 (토큰 저장 후 표시) -->
+    <div id="tokenResetWrap" style="display:none;margin-bottom:12px">
+      <span onclick="document.getElementById('tokenSection').style.display='block';document.getElementById('tokenResetWrap').style.display='none';"
+        style="font-size:11px;color:#a0aec0;cursor:pointer;text-decoration:underline">🔑 토큰 재설정</span>
     </div>
 
     <hr class="inbox-divider">
@@ -371,13 +377,14 @@ function saveViewerToken() {
   if (!val) { toast('토큰을 입력하세요'); return; }
   localStorage.setItem('viewerGithubToken', val);
   document.getElementById('viewerTokenInput').value = '';
-  document.getElementById('tokenStatus').textContent = '✅ 저장됨';
   toast('✅ 토큰 저장 완료');
+  initTokenStatus();
 }
 
 function initTokenStatus() {
   const saved = localStorage.getItem('viewerGithubToken');
-  document.getElementById('tokenStatus').textContent = saved ? '✅ 저장됨' : '';
+  document.getElementById('tokenSection').style.display    = saved ? 'none'  : 'block';
+  document.getElementById('tokenResetWrap').style.display  = saved ? 'block' : 'none';
 }
 
 async function sendInstruction() {
