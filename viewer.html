@@ -162,12 +162,6 @@ body::-webkit-scrollbar{display:none}
 .history-row:last-child{border-bottom:none}
 .history-date{font-size:13px;color:var(--text);flex-shrink:0}
 .history-right{display:flex;align-items:center;gap:8px}
-.del-btn{
-  background:none;border:none;color:#ccc;cursor:pointer;
-  font-size:14px;padding:2px 4px;border-radius:4px;
-  transition:color .15s;
-}
-.del-btn:hover,.del-btn:active{color:#e53e3e}
 
 /* ADMIN PANEL */
 .admin-panel{
@@ -550,32 +544,6 @@ function renderConsecBlock(list) {
   ).join('')}</div>`;
 }
 
-/* ── 삭제 ── */
-async function deleteRow(date) {
-  if (!confirm(`${fmtDate(date)} 데이터를 삭제할까요?`)) return;
-  allData = allData.filter(r => r.date !== date);
-  render();
-  // GitHub 동기화
-  const token = (localStorage.getItem('githubToken') || '').trim();
-  const repo  = (localStorage.getItem('githubRepo')  || 'max2guy/report-app').trim();
-  if (!token) { toast('🗑️ 로컬 삭제 완료 (GitHub 미동기화)'); return; }
-  try {
-    const apiBase = `https://api.github.com/repos/${repo}/contents/history.json`;
-    const authVal = token.startsWith('github_pat_') ? `Bearer ${token}` : `token ${token}`;
-    const headers = { 'Authorization': authVal, 'Accept': 'application/vnd.github+json',
-                      'Content-Type': 'application/json', 'X-GitHub-Api-Version': '2022-11-28' };
-    const infoRes = await fetch(apiBase, { headers });
-    if (!infoRes.ok) throw new Error(infoRes.status);
-    const { sha } = await infoRes.json();
-    const content = btoa(unescape(encodeURIComponent(JSON.stringify(allData, null, 2))));
-    const putRes  = await fetch(apiBase, { method: 'PUT', headers,
-      body: JSON.stringify({ message: `delete: remove ${date}`, content, sha }) });
-    if (!putRes.ok) throw new Error(putRes.status);
-    toast('✅ 삭제 및 GitHub 동기화 완료');
-  } catch(e) {
-    toast('⚠️ 로컬 삭제됨, GitHub 실패: ' + e.message);
-  }
-}
 
 /* ── 월별 분석 렌더 ── */
 function renderMonthBar(months, barClass, metaFn) {

@@ -995,7 +995,7 @@ function deleteHistoryRow(date) {
   reportHistory = reportHistory.filter(h => h.date !== date);
   localStorage.setItem('reportHistory', JSON.stringify(reportHistory));
   renderStats();
-  syncHistoryToGitHub(false); // 백그라운드 GitHub 동기화
+  syncHistoryToGitHub(false, true); // overwrite=true: 병합 없이 로컬로 덮어쓰기
   toast('🗑️ 삭제 완료');
 }
 
@@ -1184,7 +1184,7 @@ function updateGitSyncStatus(msg) {
   el.textContent = last ? `마지막 동기화: ${last}` : '아직 동기화 안 됨';
 }
 
-async function syncHistoryToGitHub(manual = false) {
+async function syncHistoryToGitHub(manual = false, overwrite = false) {
   const token = (localStorage.getItem('githubToken') || '').trim();
   const repo  = (localStorage.getItem('githubRepo')  || 'max2guy/report-app').trim();
   if (!token) {
@@ -1220,11 +1220,17 @@ async function syncHistoryToGitHub(manual = false) {
     let remoteData = [];
     try { remoteData = JSON.parse(atob(info.content.replace(/\n/g, ''))); } catch(_) {}
 
-    // 로컬 데이터 우선 병합 (이름 포함)
-    const mergeMap = {};
-    remoteData.forEach(r => { mergeMap[r.date] = r; });
-    reportHistory.forEach(r => { mergeMap[r.date] = r; });
-    const merged = Object.values(mergeMap).sort((a, b) => a.date.localeCompare(b.date));
+    // overwrite=true(삭제 후): 로컬 데이터로 그대로 덮어씀 (병합 없음)
+    // overwrite=false(일반 동기화): 원격+로컬 병합, 로컬 우선
+    let merged;
+    if (overwrite) {
+      merged = reportHistory.slice().sort((a, b) => a.date.localeCompare(b.date));
+    } else {
+      const mergeMap = {};
+      remoteData.forEach(r => { mergeMap[r.date] = r; });
+      reportHistory.forEach(r => { mergeMap[r.date] = r; });
+      merged = Object.values(mergeMap).sort((a, b) => a.date.localeCompare(b.date));
+    }
 
     // 한글 포함 Base64 인코딩
     const jsonStr = JSON.stringify(merged, null, 2);
