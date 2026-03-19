@@ -894,6 +894,12 @@ function updateZoneTotal() {
 // ───────────────────────────────
 // SMS
 // ───────────────────────────────
+// 교구장 정의: [이름, 담당 구역 인덱스 범위, zonePhones 인덱스]
+const DISTRICT_LEADERS = [
+  { name: '이명숙', label: '1교구', zones: [0,1,2,3,4,5], phoneIdx: 0 },
+  { name: '이정순', label: '2교구', zones: [6,7,8,9,10,11], phoneIdx: 6 },
+];
+
 function buildSMSMessage(i) {
   const names = (state.zones[i] || '').trim();
   if (!names) return '';
@@ -903,10 +909,40 @@ function buildSMSMessage(i) {
   return `[${date} 주일 결석 현황]\n${i + 1}구역 결석자 ${count}명\n${names}\n\n구역장 ${leader} 집사님께`;
 }
 
+function buildDistrictSMSMessage(d) {
+  const date = state.date || new Date().toISOString().slice(0, 10);
+  const lines = d.zones
+    .filter(i => (state.zones[i] || '').trim())
+    .map(i => `${i + 1}구역: ${state.zones[i].trim()}`);
+  if (!lines.length) return '';
+  const total = d.zones.reduce((acc, i) => {
+    return acc + (state.zones[i] || '').split(/[,，\s]+/).filter(n => n.trim()).length;
+  }, 0);
+  return `[${date} 주일 결석 현황]\n${d.label} 총 결석 ${total}명\n\n${lines.join('\n')}\n\n${d.label}장 ${d.name} 집사님께`;
+}
+
 const smsSentState = {};
 
+function renderSMSItem(id, zoneLabel, leaderName, phone, msg, sent) {
+  return `
+    <div class="sms-queue-item${sent ? ' sent' : phone ? '' : ' no-phone'}" id="smsItem_${id}">
+      <div class="sms-queue-header">
+        <span class="sms-queue-zone">${zoneLabel}</span>
+        <span class="sms-queue-leader">${leaderName} · ${phone || '번호 미등록'}</span>
+      </div>
+      <div class="sms-queue-msg">${msg}</div>
+      <div class="sms-queue-footer">
+        ${sent
+          ? `<span class="sms-sent-badge">✓ 전송완료</span>`
+          : phone
+            ? `<button class="btn btn-gold" style="padding:7px 18px;font-size:13px" onclick="sendQueueSMSById('${id}','${phone}',\`${msg.replace(/`/g,"'")}\`)">💬 전송</button>`
+            : `<span style="font-size:12px;color:#975a16">⚙️ 설정에서 번호 입력 필요</span>`
+        }
+      </div>
+    </div>`;
+}
+
 function openSMSModal() {
-  // 결석자 있는 구역만 추출
   const targets = [];
   for (let i = 0; i < 12; i++) {
     if ((state.zones[i] || '').trim()) targets.push(i);
@@ -916,44 +952,39 @@ function openSMSModal() {
     return;
   }
 
-  const sentCount = targets.filter(i => smsSentState[i]).length;
+  // 구역장 항목
+  const zoneItems = targets.map(i => {
+    const [leader] = ZONE_LEADERS[i];
+    return renderSMSItem(`z${i}`, `${i+1}구역`, `구역장 ${leader}`, zonePhones[i], buildSMSMessage(i), smsSentState[`z${i}`]);
+  }).join('');
+
+  // 교구장 항목 (해당 교구에 결석자 있는 경우만)
+  const districtItems = DISTRICT_LEADERS.map(d => {
+    const msg = buildDistrictSMSMessage(d);
+    if (!msg) return '';
+    const phone = zonePhones[d.phoneIdx];
+    return renderSMSItem(`d${d.phoneIdx}`, d.label, `교구장 ${d.name}`, phone, msg, smsSentState[`d${d.phoneIdx}`]);
+  }).join('');
+
+  const totalCount = targets.length + DISTRICT_LEADERS.filter(d => buildDistrictSMSMessage(d)).length;
+  const sentCount = Object.values(smsSentState).filter(Boolean).length;
+
   const body = document.getElementById('smsModalBody');
   body.innerHTML = `
-    <p class="sms-summary">총 ${targets.length}개 구역 · 전송완료 <span id="smsSentCount">${sentCount}</span>/${targets.length}</p>
-    ${targets.map(i => {
-      const [leader] = ZONE_LEADERS[i];
-      const phone = zonePhones[i];
-      const msg = buildSMSMessage(i);
-      const sent = smsSentState[i];
-      return `
-        <div class="sms-queue-item${sent ? ' sent' : phone ? '' : ' no-phone'}" id="smsItem${i}">
-          <div class="sms-queue-header">
-            <span class="sms-queue-zone">${i + 1}구역</span>
-            <span class="sms-queue-leader">구역장 ${leader} · ${phone || '번호 미등록'}</span>
-          </div>
-          <div class="sms-queue-msg">${msg}</div>
-          <div class="sms-queue-footer">
-            ${sent
-              ? `<span class="sms-sent-badge">✓ 전송완료</span>`
-              : phone
-                ? `<button class="btn btn-gold" style="padding:7px 18px;font-size:13px" onclick="sendQueueSMS(${i})">💬 전송</button>`
-                : `<span style="font-size:12px;color:#975a16">⚙️ 설정에서 번호 입력 필요</span>`
-            }
-          </div>
-        </div>`;
-    }).join('')}
+    <p class="sms-summary">전송완료 <span id="smsSentCount">${sentCount}</span>/${totalCount}</p>
+    <p style="font-size:12px;font-weight:600;color:var(--navy);margin-bottom:8px">── 구역장 개별 전송 ──</p>
+    ${zoneItems}
+    <p style="font-size:12px;font-weight:600;color:var(--navy);margin:14px 0 8px">── 교구장 전체 결석자 전송 ──</p>
+    ${districtItems}
   `;
   document.getElementById('smsModal').classList.add('open');
 }
 
-function sendQueueSMS(i) {
-  const phone = zonePhones[i];
-  const msg = buildSMSMessage(i);
+function sendQueueSMSById(id, phone, msg) {
   window.location.href = `sms:${phone}?body=${encodeURIComponent(msg)}`;
-  // 전송 후 복귀 시 완료 표시
-  smsSentState[i] = true;
+  smsSentState[id] = true;
   setTimeout(() => {
-    const item = document.getElementById(`smsItem${i}`);
+    const item = document.getElementById(`smsItem_${id}`);
     if (item) {
       item.classList.add('sent');
       item.querySelector('.sms-queue-footer').innerHTML = `<span class="sms-sent-badge">✓ 전송완료</span>`;
