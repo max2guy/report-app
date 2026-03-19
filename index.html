@@ -1814,11 +1814,39 @@ if (isIOS && !isInStandaloneMode && !localStorage.getItem('iosHintDismissed')) {
 }
 
 // ───────────────────────────────
-// SW REGISTRATION
+// SW REGISTRATION & 자동 업데이트
 // ───────────────────────────────
 if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js').catch(e => console.log('SW error:', e));
+  window.addEventListener('load', async () => {
+    try {
+      const reg = await navigator.serviceWorker.register('./sw.js');
+
+      // 새 SW 감지 → 설치 완료 즉시 교체 명령
+      reg.addEventListener('updatefound', () => {
+        const newSW = reg.installing;
+        newSW.addEventListener('statechange', () => {
+          if (newSW.state === 'installed' && navigator.serviceWorker.controller) {
+            // 새 버전 설치 완료 → SW에 즉시 활성화 명령
+            newSW.postMessage('SKIP_WAITING');
+          }
+        });
+      });
+
+      // SW 교체 완료 → 페이지 자동 reload
+      let refreshing = false;
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (refreshing) return;
+        refreshing = true;
+        showToast('🔄 최신 버전으로 업데이트 중...');
+        setTimeout(() => location.reload(), 800);
+      });
+
+      // 앱 실행 시마다 SW 업데이트 확인 (깃허브 변경 감지)
+      reg.update();
+
+    } catch (e) {
+      console.log('SW 등록 실패:', e);
+    }
   });
 }
 
