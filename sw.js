@@ -1,4 +1,22 @@
-const CACHE_NAME = 'report-app-v13';
+importScripts('https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js');
+importScripts('https://www.gstatic.com/firebasejs/10.14.1/firebase-messaging-compat.js');
+
+firebase.initializeApp({
+  apiKey: "AIzaSyAd5yylQZH0CoJbBM2_a_WfIexIoOli1wo",
+  projectId: "yeoncheon-church",
+  messagingSenderId: "43861878423",
+  appId: "1:43861878423:web:777c02383009f9121cebd2"
+});
+const messaging = firebase.messaging();
+messaging.onBackgroundMessage(payload => {
+  const title = payload.notification?.title || '알림';
+  const body  = payload.notification?.body  || '';
+  self.registration.showNotification(title, {
+    body, icon: './icon-192.png', badge: './icon-192.png', tag: 'church-report'
+  });
+});
+
+const CACHE_NAME = 'report-app-v14';
 const APP_SHELL = [
   './',
   './index.html',
@@ -7,7 +25,8 @@ const APP_SHELL = [
   './icon-192.png',
   './icon-512.png',
   './history.json',
-  './notifications.json'
+  './notifications.json',
+  './fcm-tokens.json'
 ];
 
 // 설치: 앱 셸 캐시
