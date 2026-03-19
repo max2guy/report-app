@@ -310,7 +310,7 @@ textarea { resize: vertical; min-height: 80px; }
 <!-- TABS -->
 <nav class="tabs">
   <button class="tab active" onclick="switchTab(0)">📋 기본</button>
-  <button class="tab" onclick="switchTab(1)">🎓 중고등</button>
+  <button class="tab" onclick="switchTab(1)">🎓 중고등부</button>
   <button class="tab" onclick="switchTab(2)">🙏 청년부</button>
   <button class="tab" onclick="switchTab(3)">⛪ 교구</button>
   <button class="tab" onclick="switchTab(4)">📝 내용</button>
@@ -408,16 +408,12 @@ textarea { resize: vertical; min-height: 80px; }
             <div class="num num-absent" id="youngAbsentCount">0</div>
             <div class="lbl">결석</div>
           </div>
-          <div class="summary-item">
-            <div class="num" style="color:#975a16" id="youngSchoolCount">0</div>
-            <div class="lbl">학교이슈</div>
-          </div>
         </div>
         <div class="member-actions" style="margin-bottom:8px">
           <button class="btn-sm btn-present" onclick="setAllYoung('present')">전원 출석</button>
           <button class="btn-sm btn-absent" onclick="setAllYoung('absent')">전원 결석</button>
         </div>
-        <p style="font-size:12px;color:var(--text-muted);margin-bottom:10px">탭: 출석 → 결석 → 학교이슈 → 출석 (순환)</p>
+        <p style="font-size:12px;color:var(--text-muted);margin-bottom:10px">탭: 출석 → 결석 → 출석 (순환)</p>
         <div class="member-grid" id="youngGrid"></div>
         <div class="add-member-row">
           <input type="text" id="addYoungInput" placeholder="이름 추가..." style="font-size:14px">
@@ -588,6 +584,24 @@ const DEFAULT_YOUNG = [
 ];
 
 // ───────────────────────────────
+// ZONE LEADERS (구역장, 권찰)
+// ───────────────────────────────
+const ZONE_LEADERS = [
+  ['이명숙', '김영순'],  // 1구역
+  ['민옥화', '박진숙'],  // 2구역
+  ['임미자', '김성숙'],  // 3구역
+  ['임혜진', '조성주'],  // 4구역
+  ['오민자', '이미자'],  // 5구역
+  ['김순이', '김미경'],  // 6구역
+  ['이정순', '현명숙'],  // 7구역
+  ['김영숙', '유미선'],  // 8구역
+  ['양경순', '전미영'],  // 9구역
+  ['조옥희', '성복임'],  // 10구역
+  ['최숙녀', '최옥연'],  // 11구역
+  ['유은희', '조명숙'],  // 12구역
+];
+
+// ───────────────────────────────
 // STATE
 // ───────────────────────────────
 let state = {
@@ -723,10 +737,7 @@ function toggleYouth(i) {
 
 function toggleYoung(i) {
   const m = state.young.members[i];
-  // cycle: present → absent → school-issue → present
-  const cycle = ['present', 'absent', 'school-issue'];
-  const idx = cycle.indexOf(m.status);
-  m.status = cycle[(idx + 1) % cycle.length];
+  m.status = m.status === 'present' ? 'absent' : 'present';
   renderYoungGrid();
 }
 
@@ -751,10 +762,8 @@ function updateYouthStats() {
 function updateYoungStats() {
   const present = state.young.members.filter(m => m.status === 'present').length;
   const absent = state.young.members.filter(m => m.status === 'absent').length;
-  const school = state.young.members.filter(m => m.status === 'school-issue').length;
   document.getElementById('youngPresentCount').textContent = present;
   document.getElementById('youngAbsentCount').textContent = absent;
-  document.getElementById('youngSchoolCount').textContent = school;
   document.getElementById('youngBadge').textContent = `출석 ${present}명`;
 }
 
@@ -776,10 +785,16 @@ function renderZoneGrid() {
   const grid = document.getElementById('zoneGrid');
   grid.innerHTML = '';
   for (let i = 0; i < 12; i++) {
+    const [leader, inspector] = ZONE_LEADERS[i];
     const div = document.createElement('div');
     div.className = 'zone-item form-row';
     div.innerHTML = `
-      <label>${i + 1}구역 결석자</label>
+      <label>
+        ${i + 1}구역 결석자
+        <span style="display:block;font-size:11px;font-weight:400;color:var(--text-muted);margin-top:2px">
+          구역장 ${leader} · 권찰 ${inspector}
+        </span>
+      </label>
       <input type="text" placeholder="이름 입력..."
         value="${state.zones[i] || ''}"
         oninput="state.zones[${i}]=this.value;updateZoneTotal()"
@@ -1217,7 +1232,6 @@ function buildDocumentXml() {
   const yAbsent  = d.youth.members.filter(m => m.status === 'absent');
   const gPresent = d.young.members.filter(m => m.status === 'present');
   const gAbsent  = d.young.members.filter(m => m.status === 'absent');
-  const gSchool  = d.young.members.filter(m => m.status === 'school-issue');
 
   // Zone absent list
   const zoneLines = d.zones.map((z, i) => {
@@ -1262,7 +1276,6 @@ ${wSubTitle('청년부')}
 ${wBullet('출석', `${gPresent.length}명`)}
 ${gPresent.length ? wBullet('1) 출석자 명단', gPresent.map(m => m.name).join(' ')) : ''}
 ${gAbsent.length ? wBullet('2) 결석자 명단', gAbsent.map(m => m.name).join(' ')) : ''}
-${gSchool.length ? wBullet('학교 이슈', gSchool.map(m => m.name).join(' ')) : ''}
 ${d.young.note ? wBullet('특이사항', d.young.note) : ''}
 
 ${wSubTitle('교구')}
