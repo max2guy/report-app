@@ -1,4 +1,4 @@
-const CACHE = 'viewer-v12';
+const CACHE = 'viewer-v13';
 const SHELL = ['./viewer.html', './viewer-manifest.json', './icon-192.png', './icon-512.png', './notifications.json'];
 
 self.addEventListener('install', e => {
