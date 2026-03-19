@@ -149,12 +149,58 @@
     "youth": {
       "present": 9,
       "absent": 4,
-      "total": 13
+      "total": 13,
+      "absentNames": [
+        "김주영",
+        "변아영",
+        "변현섭",
+        "최우진"
+      ]
     },
     "young": {
       "present": 15,
       "absent": 3,
-      "total": 18
+      "total": 18,
+      "absentNames": [
+        "김보은",
+        "김정인",
+        "김주은"
+      ]
+    },
+    "adult": {
+      "absent": 5,
+      "zones": [
+        {
+          "zone": "1구역",
+          "names": [
+            "1"
+          ]
+        },
+        {
+          "zone": "2구역",
+          "names": [
+            "2"
+          ]
+        },
+        {
+          "zone": "3구역",
+          "names": [
+            "3"
+          ]
+        },
+        {
+          "zone": "4구역",
+          "names": [
+            "4"
+          ]
+        },
+        {
+          "zone": "5구역",
+          "names": [
+            "5"
+          ]
+        }
+      ]
     }
   }
 ]
