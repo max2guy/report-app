@@ -173,8 +173,6 @@ textarea { resize: vertical; min-height: 80px; }
 .zone-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .zone-item label { margin-bottom: 4px; font-size: 11px; }
 .zone-item input { font-size: 13px; padding: 8px 10px; }
-.zone-input-row { display: flex; gap: 6px; align-items: center; }
-.zone-input-row input { flex: 1; min-width: 0; }
 .btn-sms {
   flex-shrink: 0; width: 36px; height: 36px; border-radius: 8px;
   background: var(--success); color: white; border: none;
@@ -186,6 +184,35 @@ textarea { resize: vertical; min-height: 80px; }
 .zone-phone-row input {
   flex: 1; font-size: 12px; padding: 5px 8px; border-radius: 6px;
   border: 1px solid var(--border); background: var(--bg); color: var(--text-muted);
+}
+/* SMS Queue */
+.sms-queue-item {
+  border: 1.5px solid var(--border); border-radius: 12px;
+  padding: 12px 14px; margin-bottom: 10px; transition: all 0.2s;
+}
+.sms-queue-item.sent {
+  border-color: var(--success); background: #f0fff4; opacity: 0.7;
+}
+.sms-queue-item.no-phone {
+  border-color: var(--gold); background: #fffbeb;
+}
+.sms-queue-header {
+  display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;
+}
+.sms-queue-zone { font-weight: 600; font-size: 14px; }
+.sms-queue-leader { font-size: 12px; color: var(--text-muted); }
+.sms-queue-msg {
+  font-size: 12px; color: var(--text-muted); background: var(--bg);
+  border-radius: 8px; padding: 8px 10px; white-space: pre-line; margin-bottom: 8px;
+  line-height: 1.6;
+}
+.sms-queue-footer { display: flex; justify-content: flex-end; gap: 8px; align-items: center; }
+.sms-sent-badge {
+  font-size: 12px; color: var(--success); font-weight: 600;
+}
+.sms-summary {
+  text-align: center; padding: 8px 0 4px;
+  font-size: 13px; color: var(--text-muted); margin-bottom: 12px;
 }
 .zone-total {
   grid-column: 1 / -1; background: linear-gradient(135deg, var(--navy), var(--navy2));
@@ -455,6 +482,9 @@ textarea { resize: vertical; min-height: 80px; }
       </div>
       <div class="card-body">
         <div class="zone-grid" id="zoneGrid"></div>
+        <button class="btn btn-gold" style="width:100%;margin-top:12px" onclick="openSMSModal()">
+          📨 구역장 SMS 전송하기
+        </button>
         <div class="divider"></div>
         <div class="form-row">
           <label>교구 특이사항</label>
@@ -582,6 +612,15 @@ textarea { resize: vertical; min-height: 80px; }
       <h3>⚠️ 데이터</h3>
       <button class="btn-wide btn-outline" onclick="resetApp()" style="border-color:#e53e3e;color:#e53e3e">🗑️ 모든 데이터 초기화</button>
     </div>
+  </div>
+</div>
+
+<!-- SMS MODAL -->
+<div class="modal-overlay" id="smsModal" onclick="closeModal(event,'smsModal')">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">📨 구역장 SMS 전송</div>
+    <div id="smsModalBody"></div>
   </div>
 </div>
 
@@ -810,7 +849,6 @@ function renderZoneGrid() {
   grid.innerHTML = '';
   for (let i = 0; i < 12; i++) {
     const [leader, inspector] = ZONE_LEADERS[i];
-    const hasAbsent = (state.zones[i] || '').trim().length > 0;
     const div = document.createElement('div');
     div.className = 'zone-item form-row';
     div.innerHTML = `
@@ -820,14 +858,10 @@ function renderZoneGrid() {
           구역장 ${leader} · 권찰 ${inspector}
         </span>
       </label>
-      <div class="zone-input-row">
-        <input type="text" placeholder="이름 입력..."
-          value="${state.zones[i] || ''}"
-          oninput="state.zones[${i}]=this.value;updateZoneTotal();updateSmsBtnState(${i})"
-          style="font-size:13px;padding:8px 10px">
-        <button class="btn-sms" id="smsBtn${i}" onclick="sendZoneSMS(${i})"
-          ${hasAbsent ? '' : 'disabled'} title="${leader} 구역장에게 SMS">💬</button>
-      </div>
+      <input type="text" placeholder="이름 입력..."
+        value="${state.zones[i] || ''}"
+        oninput="state.zones[${i}]=this.value;updateZoneTotal()"
+        style="font-size:13px;padding:8px 10px">
     `;
     grid.appendChild(div);
   }
@@ -860,25 +894,73 @@ function updateZoneTotal() {
 // ───────────────────────────────
 // SMS
 // ───────────────────────────────
-function updateSmsBtnState(i) {
-  const btn = document.getElementById(`smsBtn${i}`);
-  if (!btn) return;
-  btn.disabled = !(state.zones[i] || '').trim();
-}
-
-function sendZoneSMS(i) {
-  const phone = zonePhones[i];
-  if (!phone) {
-    showToast('⚙️ 설정에서 구역장 번호를 먼저 입력해주세요');
-    return;
-  }
+function buildSMSMessage(i) {
   const names = (state.zones[i] || '').trim();
-  if (!names) return;
+  if (!names) return '';
   const count = names.split(/[,，\s]+/).filter(n => n.trim()).length;
   const date = state.date || new Date().toISOString().slice(0, 10);
   const leader = ZONE_LEADERS[i][0];
-  const msg = `[${date} 주일 결석 현황]\n${i + 1}구역 결석자 ${count}명\n${names}\n\n구역장 ${leader} 집사님께`;
+  return `[${date} 주일 결석 현황]\n${i + 1}구역 결석자 ${count}명\n${names}\n\n구역장 ${leader} 집사님께`;
+}
+
+const smsSentState = {};
+
+function openSMSModal() {
+  // 결석자 있는 구역만 추출
+  const targets = [];
+  for (let i = 0; i < 12; i++) {
+    if ((state.zones[i] || '').trim()) targets.push(i);
+  }
+  if (!targets.length) {
+    showToast('결석자를 먼저 입력해주세요');
+    return;
+  }
+
+  const sentCount = targets.filter(i => smsSentState[i]).length;
+  const body = document.getElementById('smsModalBody');
+  body.innerHTML = `
+    <p class="sms-summary">총 ${targets.length}개 구역 · 전송완료 <span id="smsSentCount">${sentCount}</span>/${targets.length}</p>
+    ${targets.map(i => {
+      const [leader] = ZONE_LEADERS[i];
+      const phone = zonePhones[i];
+      const msg = buildSMSMessage(i);
+      const sent = smsSentState[i];
+      return `
+        <div class="sms-queue-item${sent ? ' sent' : phone ? '' : ' no-phone'}" id="smsItem${i}">
+          <div class="sms-queue-header">
+            <span class="sms-queue-zone">${i + 1}구역</span>
+            <span class="sms-queue-leader">구역장 ${leader} · ${phone || '번호 미등록'}</span>
+          </div>
+          <div class="sms-queue-msg">${msg}</div>
+          <div class="sms-queue-footer">
+            ${sent
+              ? `<span class="sms-sent-badge">✓ 전송완료</span>`
+              : phone
+                ? `<button class="btn btn-gold" style="padding:7px 18px;font-size:13px" onclick="sendQueueSMS(${i})">💬 전송</button>`
+                : `<span style="font-size:12px;color:#975a16">⚙️ 설정에서 번호 입력 필요</span>`
+            }
+          </div>
+        </div>`;
+    }).join('')}
+  `;
+  document.getElementById('smsModal').classList.add('open');
+}
+
+function sendQueueSMS(i) {
+  const phone = zonePhones[i];
+  const msg = buildSMSMessage(i);
   window.location.href = `sms:${phone}?body=${encodeURIComponent(msg)}`;
+  // 전송 후 복귀 시 완료 표시
+  smsSentState[i] = true;
+  setTimeout(() => {
+    const item = document.getElementById(`smsItem${i}`);
+    if (item) {
+      item.classList.add('sent');
+      item.querySelector('.sms-queue-footer').innerHTML = `<span class="sms-sent-badge">✓ 전송완료</span>`;
+    }
+    const cnt = document.getElementById('smsSentCount');
+    if (cnt) cnt.textContent = Object.values(smsSentState).filter(Boolean).length;
+  }, 1000);
 }
 
 // 구역장 번호 관리
