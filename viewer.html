@@ -255,7 +255,7 @@ body::-webkit-scrollbar{display:none}
         <button class="hdr-btn" onclick="openInbox()">💬</button>
         <span class="hdr-badge" id="viewerInboxBadge" style="display:none">0</span>
       </div>
-      <button class="hdr-btn" onclick="loadData(true)">🔄</button>
+      <button class="hdr-btn" onclick="forceRefresh()">🔄</button>
     </div>
   </div>
   <!-- 컴팩트 시 숨겨지는 부제목 -->
@@ -1002,6 +1002,15 @@ document.addEventListener('touchend', e => {
 }, { passive: true });
 
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw-viewer.js').catch(() => {});
+
+/* ── 강제 새로고침 ── */
+async function forceRefresh() {
+  try {
+    const keys = await caches.keys();
+    await Promise.all(keys.map(k => caches.delete(k)));
+  } catch(e) {}
+  location.reload();
+}
 
 /* ── HEADER COMPACT ON SCROLL ── */
 const TAB_NAMES = { youth: '중고등부', young: '청년부', adult: '장년' };
