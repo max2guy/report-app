@@ -185,16 +185,21 @@ body::-webkit-scrollbar{display:none}
 
 /* MESSAGE INBOX */
 .inbox-overlay{
-  position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;
+  position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;
   display:flex;align-items:flex-end;justify-content:center;
-  opacity:0;pointer-events:none;transition:opacity .25s;
+  opacity:0;pointer-events:none;
+  transition:opacity .2s ease;
+  -webkit-backdrop-filter:blur(0);
 }
 .inbox-overlay.open{opacity:1;pointer-events:all}
 .inbox-sheet{
   background:#fff;border-radius:20px 20px 0 0;
   padding:16px 16px calc(16px + env(safe-area-inset-bottom));
   width:100%;max-width:520px;max-height:80vh;overflow-y:auto;
-  transform:translateY(100%);transition:transform .3s;
+  transform:translateY(100%);
+  transition:transform .25s cubic-bezier(.32,.72,0,1);
+  will-change:transform;
+  -webkit-overflow-scrolling:touch;
 }
 .inbox-overlay.open .inbox-sheet{transform:translateY(0)}
 .inbox-handle{width:36px;height:4px;background:#e2e8f0;border-radius:2px;margin:0 auto 14px}
@@ -395,7 +400,7 @@ async function deleteInstruction(id) {
     const infoRes = await fetch(apiBase, { headers });
     if (!infoRes.ok) throw new Error('조회 실패');
     const info = await infoRes.json(); const sha = info.sha;
-    let list = JSON.parse(atob(info.content.replace(/\n/g,'')));
+    let list = JSON.parse(decodeURIComponent(escape(atob(info.content.replace(/\n/g,'')))));
     list = list.filter(i => i.id !== id);
     const content = btoa(unescape(encodeURIComponent(JSON.stringify(list, null, 2))));
     const putRes = await fetch(apiBase, { method:'PUT', headers, body:JSON.stringify({ message:'delete instruction', content, sha }) });
@@ -425,23 +430,25 @@ function initTokenStatus() {
 }
 
 let tokenResetStep = 0;
+let tokenResetTimer = null;
 function requestTokenReset() {
   const btn = document.getElementById('tokenResetBtn');
   tokenResetStep++;
-  if (tokenResetStep === 1) {
-    btn.textContent = '정말 삭제할까요? 한 번 더 누르면 삭제됩니다';
-    btn.style.color = '#e53e3e';
-    // 3초 후 자동 취소
-    setTimeout(() => {
-      if (tokenResetStep === 1) {
-        tokenResetStep = 0;
-        btn.textContent = '토큰 재설정';
-        btn.style.color = '#cbd5e0';
-      }
-    }, 3000);
+  // 4초 후 자동 취소
+  clearTimeout(tokenResetTimer);
+  tokenResetTimer = setTimeout(() => {
+    tokenResetStep = 0;
+    btn.textContent = '토큰 재설정';
+    btn.style.color = '#cbd5e0';
+  }, 4000);
+  if (tokenResetStep < 5) {
+    const left = 5 - tokenResetStep;
+    btn.textContent = `삭제하려면 ${left}번 더 누르세요`;
+    btn.style.color = tokenResetStep >= 3 ? '#e53e3e' : '#a0aec0';
     return;
   }
-  // 2번째 탭: 실제 삭제
+  // 5번째: 실제 삭제
+  clearTimeout(tokenResetTimer);
   localStorage.removeItem('viewerGithubToken');
   toast('🔑 토큰이 삭제됐습니다');
   initTokenStatus();
@@ -464,7 +471,7 @@ async function sendInstruction() {
     let sha = null; let list = [];
     if (infoRes.ok) {
       const info = await infoRes.json(); sha = info.sha;
-      try { list = JSON.parse(atob(info.content.replace(/\n/g,''))); } catch(_) {}
+      try { list = JSON.parse(decodeURIComponent(escape(atob(info.content.replace(/\n/g,''))))); } catch(_) {}
     }
     const now = new Date();
     list.push({ id: now.toISOString(), date: now.toLocaleString('ko-KR',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}), text });
