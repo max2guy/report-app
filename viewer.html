@@ -278,6 +278,17 @@ body::-webkit-scrollbar{display:none}
     <div class="inbox-handle"></div>
     <div class="inbox-title">💬 메시지함</div>
 
+    <!-- GitHub 토큰 설정 -->
+    <div id="tokenSection" style="margin-bottom:12px">
+      <div class="inbox-section-title">🔑 토큰 설정 <span id="tokenStatus" style="font-weight:500;color:#38a169;text-transform:none;letter-spacing:0"></span></div>
+      <div style="display:flex;gap:6px">
+        <input id="viewerTokenInput" type="password" placeholder="github_pat_…" style="flex:1;padding:8px 10px;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;font-family:inherit;outline:none">
+        <button onclick="saveViewerToken()" style="padding:8px 14px;background:#0f2044;color:#fff;border:none;border-radius:8px;font-size:13px;font-family:inherit;cursor:pointer">저장</button>
+      </div>
+    </div>
+
+    <hr class="inbox-divider">
+
     <!-- 지시사항 작성 -->
     <div class="inbox-compose">
       <div class="inbox-section-title">📝 지시사항 작성 (부교역자에게 전달)</div>
@@ -307,6 +318,7 @@ let viewerUnread = 0;
 
 function openInbox() {
   document.getElementById('inboxOverlay').classList.add('open');
+  initTokenStatus();
   // 뱃지 초기화
   viewerUnread = 0;
   const badge = document.getElementById('viewerInboxBadge');
@@ -354,11 +366,26 @@ async function loadInboxData() {
   } catch(e) {}
 }
 
+function saveViewerToken() {
+  const val = document.getElementById('viewerTokenInput').value.trim();
+  if (!val) { toast('토큰을 입력하세요'); return; }
+  localStorage.setItem('viewerGithubToken', val);
+  document.getElementById('viewerTokenInput').value = '';
+  document.getElementById('tokenStatus').textContent = '✅ 저장됨';
+  toast('✅ 토큰 저장 완료');
+}
+
+function initTokenStatus() {
+  const saved = localStorage.getItem('viewerGithubToken');
+  document.getElementById('tokenStatus').textContent = saved ? '✅ 저장됨' : '';
+}
+
 async function sendInstruction() {
   const text = document.getElementById('instrText').value.trim();
   if (!text) { toast('내용을 입력하세요'); return; }
-  const token = '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';
+  const token = (localStorage.getItem('viewerGithubToken') || '').trim();
   const repo  = 'max2guy/report-app';
+  if (!token) { toast('🔑 먼저 토큰을 설정해 주세요'); return; }
 
   const apiBase = `https://api.github.com/repos/${repo}/contents/instructions.json`;
   const authVal = token.startsWith('github_pat_') ? `Bearer ${token}` : `token ${token}`;
