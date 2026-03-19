@@ -311,17 +311,6 @@ textarea { resize: vertical; min-height: 60px; }
   height: 100%; background: var(--gold);
   transition: width 0.3s; border-radius: 2px;
 }
-/* NAS STATUS */
-.nas-status {
-  display: flex; align-items: center; gap: 8px;
-  padding: 10px 14px; border-radius: 10px; font-size: 13px;
-  margin-bottom: 12px;
-}
-.nas-status.connected { background: #f0fff4; border: 1px solid #9ae6b4; color: #276749; }
-.nas-status.disconnected { background: #fff5f5; border: 1px solid #feb2b2; color: #c53030; }
-.nas-status-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
-.connected .nas-status-dot { background: #38a169; }
-.disconnected .nas-status-dot { background: #e53e3e; }
 /* MEMBER MANAGE */
 .member-manage-list { display: flex; flex-direction: column; gap: 6px; }
 .member-manage-item {
@@ -694,9 +683,8 @@ textarea { resize: vertical; min-height: 60px; }
   <button class="btn btn-secondary" onclick="saveDraft()" style="flex:0.5">
     💾 저장
   </button>
-  <button class="btn btn-gold" onclick="generateReport()" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:1px;padding:10px 8px">
-    <span style="font-size:14px;font-weight:700">📤 보고서 생성 및 공유</span>
-    <span style="font-size:10px;opacity:0.8;font-weight:400">DS File · 카카오톡 등</span>
+  <button class="btn btn-gold" onclick="generateReport()">
+    📄 보고서 생성
   </button>
 </div>
 
@@ -705,46 +693,6 @@ textarea { resize: vertical; min-height: 60px; }
   <div class="modal">
     <div class="modal-handle"></div>
     <div class="modal-title">⚙️ 설정</div>
-
-    <!-- NAS 설정 (보류) -->
-    <div class="setting-group" style="opacity:0.5;pointer-events:none">
-      <h3>🖥️ NAS 저장 설정 <span style="font-size:11px;color:#c53030;font-weight:400">(준비중)</span></h3>
-      <div id="nasStatusBar" class="nas-status disconnected">
-        <div class="nas-status-dot"></div>
-        <span id="nasStatusText">NAS 미설정</span>
-      </div>
-      <div class="form-row">
-        <label>저장 방식</label>
-        <select id="nasMode" onchange="onNasModeChange()">
-          <option value="download">다운로드만 (NAS 없음)</option>
-          <option value="filesystem">폴더 선택 (Mac 네트워크 드라이브)</option>
-          <option value="webdav">WebDAV (NAS 직접 연결)</option>
-        </select>
-      </div>
-      <div id="filesystemSection" style="display:none">
-        <button class="btn-wide btn-blue" onclick="pickFolder()">📁 NAS 폴더 선택</button>
-        <p style="font-size:12px;color:var(--text-muted)">Finder에서 NAS를 마운트한 후 폴더를 선택하세요</p>
-      </div>
-      <div id="webdavSection" style="display:none">
-        <div class="form-row">
-          <label>WebDAV URL</label>
-          <input type="url" id="nasUrl" placeholder="http://192.168.1.x:5005/dav">
-        </div>
-        <div class="form-row">
-          <label>사용자명</label>
-          <input type="text" id="nasUser" placeholder="admin" autocomplete="username">
-        </div>
-        <div class="form-row">
-          <label>비밀번호</label>
-          <input type="password" id="nasPass" placeholder="••••••••" autocomplete="current-password">
-        </div>
-        <div class="form-row">
-          <label>저장 경로</label>
-          <input type="text" id="nasPath" placeholder="/사역보고서">
-        </div>
-        <button class="btn-wide btn-outline" onclick="testNAS()">🔗 연결 테스트</button>
-      </div>
-    </div>
 
     <!-- 중고등부 멤버 관리 (아코디언) -->
     <div class="setting-group">
@@ -1031,18 +979,10 @@ let state = {
   generalOpinion: ''
 };
 
-let settings = {
-  nasMode: 'download',
-  nasUrl: '',
-  nasUser: '',
-  nasPass: '',
-  nasPath: '/사역보고서',
-};
+let settings = {};
 
 // 구역장 전화번호 (localStorage)
 let zonePhones = JSON.parse(localStorage.getItem('zonePhones') || 'null') || Array(12).fill('');
-
-let dirHandle = null;
 
 // ───────────────────────────────
 // INIT
@@ -1052,18 +992,6 @@ function init() {
   document.getElementById('reportDate').value = today;
   state.date = today;
   updateHeaderDate();
-
-  // Load settings (nasMode 기본값은 항상 'download')
-  const savedSettings = localStorage.getItem('reportSettings');
-  if (savedSettings) {
-    const parsed = JSON.parse(savedSettings);
-    settings = { ...settings, ...parsed };
-    // filesystem 모드는 dirHandle이 없으면 download로 폴백
-    if (settings.nasMode === 'filesystem' && !dirHandle) {
-      settings.nasMode = 'download';
-    }
-    applySettings();
-  }
 
   // Load or initialize members
   const savedState = localStorage.getItem('reportDraft');
@@ -1088,7 +1016,6 @@ function init() {
   renderYouthGrid();
   renderYoungGrid();
   renderZoneGrid();
-  updateNasStatus();
   renderStats();
   loadHistorySeed(); // history.json 시드 데이터 병합
 }
@@ -1453,97 +1380,9 @@ function openSettings() {
     if (content) content.classList.remove('open');
   });
   document.getElementById('settingsModal').classList.add('open');
-  applySettings();
 }
 function closeModal(e, id) {
   if (e.target === e.currentTarget) document.getElementById(id).classList.remove('open');
-}
-function applySettings() {
-  document.getElementById('nasMode').value = settings.nasMode;
-  document.getElementById('nasUrl').value = settings.nasUrl;
-  document.getElementById('nasUser').value = settings.nasUser;
-  document.getElementById('nasPass').value = settings.nasPass;
-  document.getElementById('nasPath').value = settings.nasPath;
-  onNasModeChange();
-  updateNasStatus();
-}
-function saveSettings() {
-  settings.nasMode = document.getElementById('nasMode').value;
-  settings.nasUrl = document.getElementById('nasUrl').value;
-  settings.nasUser = document.getElementById('nasUser').value;
-  settings.nasPass = document.getElementById('nasPass').value;
-  settings.nasPath = document.getElementById('nasPath').value;
-  localStorage.setItem('reportSettings', JSON.stringify(settings));
-  updateNasStatus();
-}
-function onNasModeChange() {
-  const mode = document.getElementById('nasMode').value;
-  document.getElementById('filesystemSection').style.display = mode === 'filesystem' ? 'block' : 'none';
-  document.getElementById('webdavSection').style.display = mode === 'webdav' ? 'block' : 'none';
-  saveSettings();
-}
-function updateNasStatus() {
-  const bar = document.getElementById('nasStatusBar');
-  const text = document.getElementById('nasStatusText');
-  if (settings.nasMode === 'download') {
-    bar.className = 'nas-status disconnected';
-    text.textContent = '다운로드 모드 (NAS 미연결)';
-  } else if (settings.nasMode === 'filesystem') {
-    if (dirHandle) {
-      bar.className = 'nas-status connected';
-      text.textContent = `📁 ${dirHandle.name} 폴더 연결됨`;
-    } else {
-      bar.className = 'nas-status disconnected';
-      text.textContent = '폴더를 선택하세요';
-    }
-  } else if (settings.nasMode === 'webdav') {
-    if (settings.nasUrl) {
-      bar.className = 'nas-status connected';
-      text.textContent = `🌐 ${settings.nasUrl}`;
-    } else {
-      bar.className = 'nas-status disconnected';
-      text.textContent = 'WebDAV URL을 입력하세요';
-    }
-  }
-}
-
-async function pickFolder() {
-  if (!window.showDirectoryPicker) {
-    toast('이 브라우저에서는 지원되지 않습니다 (Chrome 권장)');
-    return;
-  }
-  try {
-    dirHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
-    settings.nasMode = 'filesystem';
-    saveSettings();
-    updateNasStatus();
-    toast(`✅ ${dirHandle.name} 폴더 선택됨`);
-  } catch (e) {
-    if (e.name !== 'AbortError') toast('폴더 선택 실패: ' + e.message);
-  }
-}
-
-async function testNAS() {
-  saveSettings();
-  if (!settings.nasUrl) { toast('URL을 입력하세요'); return; }
-  try {
-    toast('연결 테스트 중...');
-    const res = await fetch(settings.nasUrl + '/', {
-      method: 'PROPFIND',
-      headers: {
-        'Authorization': 'Basic ' + btoa(settings.nasUser + ':' + settings.nasPass),
-        'Depth': '0'
-      }
-    });
-    if (res.ok || res.status === 207) {
-      toast('✅ NAS 연결 성공!');
-      updateNasStatus();
-    } else {
-      toast('❌ 연결 실패: ' + res.status);
-    }
-  } catch (e) {
-    toast('❌ 연결 실패 (CORS 또는 네트워크 오류)');
-  }
 }
 
 // ───────────────────────────────
@@ -1625,27 +1464,8 @@ async function generateReport() {
 }
 
 async function downloadAndSave(blob, filename) {
-  const file = new File([blob], filename, { type: blob.type });
-
-  // 📱 스마트폰: Web Share API → DS File 앱으로 전달
-  if (navigator.canShare && navigator.canShare({ files: [file] })) {
-    try {
-      await navigator.share({
-        files: [file],
-        title: filename,
-        text: '주일 사역 보고서',
-      });
-      // 사용자가 DS File 등으로 공유 완료
-      return;
-    } catch (e) {
-      if (e.name === 'AbortError') return; // 취소
-      // 공유 실패 시 다운로드로 폴백
-    }
-  }
-
-  // 💻 PC / 공유 미지원 기기: 다운로드
   triggerDownload(blob, filename);
-  toast('✅ 다운로드 완료 — DS File 앱 또는 웹에서 NAS에 업로드하세요');
+  toast('✅ 다운로드 완료');
 }
 
 function triggerDownload(blob, filename) {
@@ -1655,40 +1475,6 @@ function triggerDownload(blob, filename) {
   a.download = filename;
   a.click();
   setTimeout(() => URL.revokeObjectURL(url), 3000);
-}
-
-async function saveToFileSystem(blob, filename) {
-  try {
-    const fileHandle = await dirHandle.getFileHandle(filename, { create: true });
-    const writable = await fileHandle.createWritable();
-    await writable.write(blob);
-    await writable.close();
-    toast(`✅ NAS 저장 완료: ${filename}`);
-  } catch (e) {
-    toast('❌ NAS 저장 실패: ' + e.message);
-  }
-}
-
-async function saveToWebDAV(blob, filename) {
-  const path = (settings.nasPath || '') + '/' + filename;
-  const url = settings.nasUrl.replace(/\/$/, '') + path;
-  try {
-    const res = await fetch(url, {
-      method: 'PUT',
-      headers: {
-        'Authorization': 'Basic ' + btoa(settings.nasUser + ':' + settings.nasPass),
-        'Content-Type': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
-      },
-      body: blob
-    });
-    if (res.ok || res.status === 201) {
-      toast(`✅ NAS 저장 완료`);
-    } else {
-      toast('❌ NAS 저장 실패: ' + res.status);
-    }
-  } catch (e) {
-    toast('❌ NAS 저장 실패 (CORS 오류 가능)');
-  }
 }
 
 // ───────────────────────────────
