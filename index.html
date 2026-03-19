@@ -531,6 +531,11 @@ textarea { resize: vertical; min-height: 60px; }
           </div>
         </div>
         <div id="statsChart"></div>
+        <!-- 기록 관리 -->
+        <div style="margin-top:16px;border-top:1px solid var(--border);padding-top:12px">
+          <div style="font-size:12px;font-weight:600;color:var(--text-muted);margin-bottom:8px">📂 기록 관리 (날짜별 삭제)</div>
+          <div id="historyDeleteList"></div>
+        </div>
       </div>
     </div>
   </section>
@@ -886,6 +891,7 @@ function renderStats() {
   } else {
     renderYearlyStats(chart);
   }
+  renderHistoryDeleteList();
 }
 
 function renderMonthlyStats(chart) {
@@ -935,6 +941,32 @@ function renderMonthlyStats(chart) {
   });
 
   chart.innerHTML = html;
+}
+
+function renderHistoryDeleteList() {
+  const el = document.getElementById('historyDeleteList');
+  if (!el) return;
+  if (!reportHistory.length) {
+    el.innerHTML = '<div style="font-size:12px;color:var(--text-muted)">저장된 기록 없음</div>';
+    return;
+  }
+  el.innerHTML = reportHistory.slice().reverse().map(h => `
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border)">
+      <span style="font-size:13px">${h.date}</span>
+      <button onclick="deleteHistoryRow('${h.date}')"
+        style="background:#fff5f5;border:1px solid #fecaca;color:#c53030;border-radius:8px;padding:3px 10px;font-size:12px;cursor:pointer;font-family:inherit">
+        🗑 삭제
+      </button>
+    </div>`).join('');
+}
+
+function deleteHistoryRow(date) {
+  if (!confirm(`${date} 기록을 삭제할까요?`)) return;
+  reportHistory = reportHistory.filter(h => h.date !== date);
+  localStorage.setItem('reportHistory', JSON.stringify(reportHistory));
+  renderStats();
+  syncHistoryToGitHub(false); // 백그라운드 GitHub 동기화
+  toast('🗑️ 삭제 완료');
 }
 
 function renderYearlyStats(chart) {
