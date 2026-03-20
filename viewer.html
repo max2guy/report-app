@@ -238,9 +238,9 @@ body::-webkit-scrollbar{display:none}
 
 /* TOAST */
 .toast{
-  position:fixed;bottom:calc(16px + var(--safe-bottom));left:50%;transform:translateX(-50%);
+  position:fixed;top:calc(16px + env(safe-area-inset-top, 0px));left:50%;transform:translateX(-50%);
   background:#1a202c;color:#fff;padding:9px 18px;border-radius:22px;
-  font-size:13px;font-weight:500;z-index:999;
+  font-size:13px;font-weight:500;z-index:9999;
   opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap;
 }
 .toast.show{opacity:1}
@@ -261,7 +261,7 @@ body::-webkit-scrollbar{display:none}
     </div>
   </div>
   <!-- 컴팩트 시 숨겨지는 부제목 -->
-  <div class="header-sub">연천장로교회 교역자 주일 보고</div>
+  <div class="header-sub">연천장로교회 교역자 주일 보고 <span id="viewerVerLabel" style="font-size:10px;opacity:0.5"></span></div>
   <!-- 탭: 항상 표시 -->
   <div class="header-tabs">
     <button class="h-tab active" id="tab-youth" onclick="switchTab('youth')">중고등부</button>
@@ -380,7 +380,7 @@ async function loadInboxData() {
   // 지시사항 목록 로드
   try {
     const res = await fetch('https://api.github.com/repos/max2guy/report-app/contents/instructions.json', {
-      headers: { 'Accept': 'application/vnd.github+json' }, cache: 'no-store'
+      headers: ghHeaders(), cache: 'no-store'
     });
     if (res.ok) {
       const info = await res.json();
@@ -664,7 +664,7 @@ async function getTargetFCMToken(role) {
   try {
     // GitHub Contents API: 캐시 없이 항상 최신 토큰 즉시 반환
     const res = await fetch('https://api.github.com/repos/max2guy/report-app/contents/fcm-tokens.json',{
-      headers:{'Accept':'application/vnd.github+json'},cache:'no-store'
+      headers:ghHeaders(),cache:'no-store'
     });
     if(!res.ok) return null;
     const info = await res.json();
@@ -705,8 +705,17 @@ window.addEventListener('load', () => {
 
 <script>
 const DATA_URL = 'https://api.github.com/repos/max2guy/report-app/contents/history.json';
+const VIEWER_VERSION = '0.2.2';
 let allData = [];
 let activeTab = 'youth';
+
+// GitHub API 인증 헤더 (403 방지, 5000회/시간)
+function ghHeaders() {
+  const token = (localStorage.getItem('githubToken') || '').trim();
+  const h = { 'Accept': 'application/vnd.github+json' };
+  if (token) h['Authorization'] = token.startsWith('github_pat_') ? `Bearer ${token}` : `token ${token}`;
+  return h;
+}
 
 /* ── TOAST ── */
 function toast(msg, dur = 2500) {
@@ -995,10 +1004,11 @@ function render() {
 async function loadData(showMsg = false) {
   document.getElementById('loadingSpinner').style.display = 'block';
   try {
-    const res = await fetch(DATA_URL, {headers:{'Accept':'application/vnd.github+json'},cache:'no-store'});
+    const res = await fetch(DATA_URL, {headers:ghHeaders(),cache:'no-store'});
     if (!res.ok) throw new Error('서버 오류 ' + res.status);
     const info = await res.json();
-    allData = JSON.parse(decodeURIComponent(escape(atob(info.content.replace(/\n/g,'')))));
+    const raw = Uint8Array.from(atob(info.content.replace(/\n/g,'')), c => c.charCodeAt(0));
+    allData = JSON.parse(new TextDecoder('utf-8').decode(raw));
     allData.sort((a, b) => a.date.localeCompare(b.date));
     render();
     if (showMsg) toast('✅ 최신 데이터로 업데이트');
@@ -1013,6 +1023,10 @@ async function loadData(showMsg = false) {
 }
 
 loadData();
+
+// 버전 표시
+const vEl = document.getElementById('viewerVerLabel');
+if (vEl) vEl.textContent = `v${VIEWER_VERSION}`;
 
 /* ── SWIPE ── */
 const TABS = ['youth','young','adult'];

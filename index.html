@@ -288,11 +288,11 @@ textarea { resize: vertical; min-height: 60px; }
 .btn-outline { background: white; border: 1.5px solid var(--blue); color: var(--blue); }
 /* TOAST */
 .toast {
-  position: fixed; bottom: calc(90px + var(--safe-bottom)); left: 50%;
-  transform: translateX(-50%) translateY(20px);
+  position: fixed; top: calc(16px + env(safe-area-inset-top, 0px)); left: 50%;
+  transform: translateX(-50%) translateY(-20px);
   background: var(--navy); color: white; padding: 10px 20px;
   border-radius: 24px; font-size: 14px; font-weight: 500;
-  white-space: nowrap; z-index: 300; opacity: 0;
+  white-space: nowrap; z-index: 9999; opacity: 0;
   transition: all 0.3s; pointer-events: none; box-shadow: var(--shadow-lg);
 }
 .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
@@ -705,14 +705,11 @@ textarea { resize: vertical; min-height: 60px; }
 
 <!-- ACTION BAR -->
 <div class="action-bar">
-  <button class="btn btn-secondary" onclick="saveDraft()" style="flex:0.5">
+  <button class="btn btn-secondary" onclick="saveDraft()">
     💾 저장
   </button>
-  <button class="btn btn-gold" onclick="generateReport()">
-    📄 보고서 생성
-  </button>
-  <button class="btn btn-share" onclick="shareReport()" style="flex:0.5" title="DS File로 공유">
-    📤 공유
+  <button class="btn btn-share" onclick="shareReport()">
+    📤 보고서 생성 · 공유
   </button>
 </div>
 
@@ -1480,21 +1477,25 @@ function toggleYouth(i) {
   const m = state.youth.members[i];
   m.status = m.status === 'present' ? 'absent' : 'present';
   renderYouthGrid();
+  scheduleSilentSave();
 }
 
 function toggleYoung(i) {
   const m = state.young.members[i];
   m.status = m.status === 'present' ? 'absent' : 'present';
   renderYoungGrid();
+  scheduleSilentSave();
 }
 
 function setAllYouth(status) {
   state.youth.members.forEach(m => m.status = status);
   renderYouthGrid();
+  scheduleSilentSave();
 }
 function setAllYoung(status) {
   state.young.members.forEach(m => m.status = status);
   renderYoungGrid();
+  scheduleSilentSave();
 }
 
 function updateYouthStats() {
@@ -1892,7 +1893,13 @@ async function shareReport() {
         total:   state.young.members.length,
         absentNames: state.young.members.filter(m => m.status === 'absent').map(m => m.name)
       },
-      adult: { absent: state.adultAbsent, zones: state.adultZones || [] },
+      adult: (() => {
+        const zones = (state.zones || []).map((z, i) => {
+          const names = (z || '').split(/[,，\s]+/).map(n => n.trim()).filter(Boolean);
+          return names.length ? { zone: `${i+1}구역`, names } : null;
+        }).filter(Boolean);
+        return { absent: zones.reduce((a, z) => a + z.names.length, 0), zones };
+      })(),
       memo: state.memo || '',
       createdAt: new Date().toISOString()
     };
@@ -2346,11 +2353,21 @@ function toast(msg) {
 }
 
 // ───────────────────────────────
-// AUTO SAVE ON INPUT
+// AUTO SAVE (무음, 토스트 없음)
 // ───────────────────────────────
-document.addEventListener('input', () => {
+function saveDraftSilent() {
+  collectState();
+  localStorage.setItem('reportDraft', JSON.stringify(state));
+}
+function scheduleSilentSave() {
   clearTimeout(window._saveTimer);
-  window._saveTimer = setTimeout(saveDraft, 2000);
+  window._saveTimer = setTimeout(saveDraftSilent, 1500);
+}
+// 텍스트 입력 시 자동저장
+document.addEventListener('input', () => scheduleSilentSave());
+// 앱 백그라운드 전환 시 즉시 저장
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden') saveDraftSilent();
 });
 
 // ───────────────────────────────
