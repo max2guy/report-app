@@ -370,20 +370,26 @@ async function loadInboxData() {
 
   // 지시사항 목록 로드
   try {
-    const res = await fetch(INSTR_URL + '?t=' + Date.now(), { cache: 'no-store' });
-    if (res.ok) renderInstrList(await res.json());
+    const res = await fetch('https://api.github.com/repos/max2guy/report-app/contents/instructions.json', {
+      headers: { 'Accept': 'application/vnd.github+json' }, cache: 'no-store'
+    });
+    if (res.ok) {
+      const info = await res.json();
+      let list = JSON.parse(new TextDecoder('utf-8').decode(Uint8Array.from(atob(info.content.replace(/\n/g,'')), c => c.charCodeAt(0))));
+      renderInstrList(list);
+    }
   } catch(e) {}
 }
 
 function renderInstrList(list) {
   const el = document.getElementById('instrList');
-  if (!list.length) { el.innerHTML = '<div class="inbox-empty">없음</div>'; return; }
+  if (!el) return;
+  if (!list || !list.length) { el.innerHTML = '<div class="inbox-empty">없음</div>'; return; }
   el.innerHTML = list.slice().reverse().map(i => `
     <div class="inbox-item">
       <div class="inbox-item-meta">
         <span>${i.date}</span>
-        <button onclick="deleteInstruction('${i.id}')"
-          style="background:none;border:none;color:#fc8181;font-size:13px;cursor:pointer;padding:0 2px;line-height:1">🗑️</button>
+        <button onclick="deleteInstruction('${i.id}')" style="background:none;border:none;cursor:pointer;font-size:14px;color:#e53e3e;padding:0">🗑️</button>
       </div>
       <div class="inbox-item-text">${i.text.replace(/\n/g,'<br>')}</div>
     </div>`).join('');
@@ -400,9 +406,10 @@ async function deleteInstruction(id) {
     const infoRes = await fetch(apiBase, { headers });
     if (!infoRes.ok) throw new Error('조회 실패');
     const info = await infoRes.json(); const sha = info.sha;
-    let list = JSON.parse(decodeURIComponent(escape(atob(info.content.replace(/\n/g,'')))));
+    let list = JSON.parse(new TextDecoder('utf-8').decode(Uint8Array.from(atob(info.content.replace(/\n/g,'')), c => c.charCodeAt(0))));
     list = list.filter(i => i.id !== id);
-    const content = btoa(unescape(encodeURIComponent(JSON.stringify(list, null, 2))));
+    const jsonStr = JSON.stringify(list, null, 2);
+    const content = btoa(String.fromCharCode(...new TextEncoder().encode(jsonStr)));
     const putRes = await fetch(apiBase, { method:'PUT', headers, body:JSON.stringify({ message:'delete instruction', content, sha }) });
     if (!putRes.ok) throw new Error('삭제 실패');
     toast('🗑️ 삭제 완료');
@@ -471,11 +478,12 @@ async function sendInstruction() {
     let sha = null; let list = [];
     if (infoRes.ok) {
       const info = await infoRes.json(); sha = info.sha;
-      try { list = JSON.parse(decodeURIComponent(escape(atob(info.content.replace(/\n/g,''))))); } catch(_) {}
+      try { list = JSON.parse(new TextDecoder('utf-8').decode(Uint8Array.from(atob(info.content.replace(/\n/g,'')), c => c.charCodeAt(0)))); } catch(_) {}
     }
     const now = new Date();
     list.push({ id: now.toISOString(), date: now.toLocaleString('ko-KR',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}), text });
-    const content = btoa(unescape(encodeURIComponent(JSON.stringify(list, null, 2))));
+    const jsonStr = JSON.stringify(list, null, 2);
+    const content = btoa(String.fromCharCode(...new TextEncoder().encode(jsonStr)));
     const body = { message:`instruction: ${now.toISOString().slice(0,10)}`, content };
     if (sha) body.sha = sha;
     const putRes = await fetch(apiBase, { method:'PUT', headers, body:JSON.stringify(body) });

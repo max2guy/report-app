@@ -2352,9 +2352,12 @@ function renderStaffInstrList() {
 
 async function fetchInstructions() {
   try {
-    const res = await fetch('https://raw.githubusercontent.com/max2guy/report-app/main/instructions.json?t=' + Date.now(), { cache: 'no-store' });
+    const res = await fetch('https://api.github.com/repos/max2guy/report-app/contents/instructions.json', {
+      headers: { 'Accept': 'application/vnd.github+json' }, cache: 'no-store'
+    });
     if (!res.ok) return;
-    const list = await res.json();
+    const info = await res.json();
+    const list = JSON.parse(new TextDecoder('utf-8').decode(Uint8Array.from(atob(info.content.replace(/\n/g,'')), c => c.charCodeAt(0))));
     if (!list.length) return;
     // 캐시 저장
     localStorage.setItem('cachedInstructions', JSON.stringify(list));
