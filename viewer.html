@@ -612,8 +612,8 @@ async function sendFCMPush(targetToken, title, body) {
       headers:{'Authorization':`Bearer ${at}`,'Content-Type':'application/json'},
       body:JSON.stringify({message:{
         token:targetToken,
-        notification:{title,body},
-        webpush:{notification:{icon:'https://max2guy.github.io/report-app/icon-192.png',badge:'https://max2guy.github.io/report-app/icon-192.png'}}
+        data:{title,body},
+        webpush:{headers:{TTL:'86400'}}
       }})
     });
     if(!res.ok) console.warn('FCM send error', await res.json());

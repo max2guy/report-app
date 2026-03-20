@@ -2506,8 +2506,8 @@ async function sendFCMPush(targetToken, title, body) {
       headers:{'Authorization':`Bearer ${at}`,'Content-Type':'application/json'},
       body:JSON.stringify({message:{
         token:targetToken,
-        notification:{title,body},
-        webpush:{notification:{icon:'https://max2guy.github.io/report-app/icon-192.png',badge:'https://max2guy.github.io/report-app/icon-192.png'}}
+        data:{title,body},
+        webpush:{headers:{TTL:'86400'}}
       }})
     });
     if(!res.ok) console.warn('FCM send error', await res.json());
@@ -2570,12 +2570,13 @@ async function initFCM() {
       await saveFCMTokenToGitHub('reportApp', token);
     }
     messaging.onMessage(payload => {
-      const t = payload.notification?.title || '알림';
-      const b = payload.notification?.body  || '';
-      toast(`🔔 ${t}: ${b}`, 4000);
-      // FCM 수신 즉시 지시사항 갱신 (중복 알림 방지 플래그 설정)
+      const t = payload.data?.title || payload.notification?.title || '알림';
+      const b = payload.data?.body  || payload.notification?.body  || '';
       _fcmJustReceived = true;
-      fetchInstructions(true);
+      fetchInstructions(true).then(() => {
+        // fetchInstructions 완료 후 토스트 (중복 방지)
+        toast(`📋 ${t}`, 3000);
+      });
     });
   } catch(e){ console.warn('FCM init failed',e); }
 }

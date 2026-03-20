@@ -9,14 +9,14 @@ firebase.initializeApp({
 });
 const messaging = firebase.messaging();
 messaging.onBackgroundMessage(payload => {
-  const title = payload.notification?.title || '알림';
-  const body  = payload.notification?.body  || '';
+  const title = payload.data?.title || payload.notification?.title || '알림';
+  const body  = payload.data?.body  || payload.notification?.body  || '';
   self.registration.showNotification(title, {
     body, icon: './icon-192.png', badge: './icon-192.png', tag: 'church-report'
   });
 });
 
-const CACHE_NAME = 'report-app-v22';
+const CACHE_NAME = 'report-app-v23';
 const APP_SHELL = [
   './',
   './index.html',
