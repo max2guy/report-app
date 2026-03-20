@@ -1879,7 +1879,7 @@ async function uploadToNAS() {
       method: 'PUT',
       headers: {
         'Authorization': auth,
-        'X-NAS-Path': nasPath,
+        'X-NAS-Path': encodeURIComponent(nasPath),
         'Content-Type': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
       },
       body: blob,
