@@ -1376,7 +1376,18 @@ async function syncHistoryToGitHub(manual = false, overwrite = false) {
       remoteData.forEach(r => {
         if (!deletedHistoryDates.has(r.date)) mergeMap[r.date] = r; // 삭제된 날짜는 원격에서도 무시
       });
-      reportHistory.forEach(r => { mergeMap[r.date] = r; });
+      reportHistory.forEach(r => {
+        if (mergeMap[r.date]) {
+          // 로컬에 adult 데이터가 없으면 원격 것 보존 (DOCX 추출 데이터 보호)
+          const remote = mergeMap[r.date];
+          mergeMap[r.date] = { ...remote, ...r };
+          if ((!r.adult || !r.adult.zones || !r.adult.zones.length) && remote.adult && remote.adult.zones && remote.adult.zones.length) {
+            mergeMap[r.date].adult = remote.adult;
+          }
+        } else {
+          mergeMap[r.date] = r;
+        }
+      });
       merged = Object.values(mergeMap).sort((a, b) => a.date.localeCompare(b.date));
     }
 
