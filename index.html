@@ -2534,19 +2534,23 @@ async function saveFCMTokenToGitHub(role, fcmToken) {
 }
 
 /* ── FCM: 상대방 토큰 조회 ── */
+let _fcmTokenCache = null, _fcmTokenCacheExpiry = 0;
 async function getTargetFCMToken(role) {
   try {
-    // GitHub Contents API: 캐시 없이 항상 최신 토큰 즉시 반환
+    if (_fcmTokenCache && Date.now() < _fcmTokenCacheExpiry) {
+      return _fcmTokenCache[role] || null;
+    }
     const res = await fetch('https://api.github.com/repos/max2guy/report-app/contents/fcm-tokens.json',{
       headers:{'Accept':'application/vnd.github+json'},cache:'no-store'
     });
     if(!res.ok) return null;
     const info = await res.json();
-    const tokens = JSON.parse(decodeURIComponent(escape(atob(info.content.replace(/\n/g,'')))));
-    return tokens[role] || null;
+    _fcmTokenCache = JSON.parse(decodeURIComponent(escape(atob(info.content.replace(/
+/g,'')))));
+    _fcmTokenCacheExpiry = Date.now() + 5 * 60 * 1000;
+    return _fcmTokenCache[role] || null;
   } catch(e){ return null; }
 }
-
 /* ── FCM: 초기화 (보고서 앱용) ── */
 async function initFCM() {
   if(!('Notification' in window)) return;
