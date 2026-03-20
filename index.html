@@ -528,6 +528,7 @@ textarea { resize: vertical; min-height: 60px; }
           <div class="stats-seg" id="statsGroupSeg">
             <button class="stats-seg-btn active" onclick="setStatsGroup('youth')">중고등부</button>
             <button class="stats-seg-btn" onclick="setStatsGroup('young')">청년부</button>
+            <button class="stats-seg-btn" onclick="setStatsGroup('adult')">교구</button>
           </div>
           <div class="stats-seg" id="statsPeriodSeg">
             <button class="stats-seg-btn active" onclick="setStatsPeriod('monthly')">월별</button>
@@ -923,7 +924,7 @@ function saveToHistory() {
 function setStatsGroup(g) {
   statsGroup = g;
   document.querySelectorAll('#statsGroupSeg .stats-seg-btn').forEach((b, i) => {
-    b.classList.toggle('active', (i === 0 && g === 'youth') || (i === 1 && g === 'young'));
+    b.classList.toggle('active', (i === 0 && g === 'youth') || (i === 1 && g === 'young') || (i === 2 && g === 'adult'));
   });
   renderStats();
 }
@@ -954,6 +955,12 @@ function renderStats() {
 }
 
 function renderMonthlyStats(chart) {
+  // 교구(adult) 전용 렌더
+  if (statsGroup === 'adult') {
+    renderAdultMonthlyStats(chart);
+    return;
+  }
+
   // 월별 집계
   const monthly = {};
   reportHistory.forEach(h => {
@@ -1002,6 +1009,59 @@ function renderMonthlyStats(chart) {
   chart.innerHTML = html;
 }
 
+function renderAdultMonthlyStats(chart) {
+  // 교구 월별 집계 (결석자 수 기준)
+  const monthly = {};
+  reportHistory.forEach(h => {
+    if (!h.adult) return;
+    const ym = h.date.slice(0, 7);
+    if (!monthly[ym]) monthly[ym] = { absent: 0, count: 0 };
+    monthly[ym].absent += h.adult.absent || 0;
+    monthly[ym].count++;
+  });
+
+  const keys = Object.keys(monthly).sort();
+  const recent = keys.slice(-12);
+  if (!recent.length) {
+    chart.innerHTML = '<div class="stats-empty">📭 저장된 교구 데이터가 없습니다</div>';
+    return;
+  }
+
+  // 최대 결석수 기준으로 바 스케일
+  const maxAbsent = Math.max(...recent.map(ym => monthly[ym].absent / monthly[ym].count), 1);
+
+  const byYear = {};
+  recent.forEach(ym => {
+    const yr = ym.slice(0, 4);
+    if (!byYear[yr]) byYear[yr] = [];
+    byYear[yr].push(ym);
+  });
+
+  let html = '';
+  Object.keys(byYear).sort().forEach(yr => {
+    html += `<div class="stats-section-title">${yr}년</div>`;
+    byYear[yr].forEach(ym => {
+      const d = monthly[ym];
+      const m = parseInt(ym.slice(5));
+      const avg = Math.round(d.absent / d.count);
+      const barPct = Math.round(avg / maxAbsent * 100);
+      const barClass = barPct > 70 ? 'bar-low' : barPct > 40 ? 'bar-mid' : '';
+      html += `
+        <div class="stats-row">
+          <div class="stats-label">${m}월</div>
+          <div class="stats-bar-wrap">
+            <div class="stats-bar ${barClass}" style="width:${barPct}%"></div>
+          </div>
+          <div class="stats-pct">${avg}명</div>
+          <div class="stats-detail">주평균 결석</div>
+        </div>`;
+    });
+    html += '<div class="stats-divider"></div>';
+  });
+
+  chart.innerHTML = html;
+}
+
 function renderHistoryDeleteList() {
   const el = document.getElementById('historyDeleteList');
   if (!el) return;
@@ -1029,6 +1089,12 @@ function deleteHistoryRow(date) {
 }
 
 function renderYearlyStats(chart) {
+  // 교구(adult) 전용 렌더
+  if (statsGroup === 'adult') {
+    renderAdultYearlyStats(chart);
+    return;
+  }
+
   const yearly = {};
   reportHistory.forEach(h => {
     const yr = h.date.slice(0, 4);
@@ -1054,6 +1120,45 @@ function renderYearlyStats(chart) {
         </div>
         <div class="stats-pct">${pct}%</div>
         <div class="stats-detail">평균 ${avgPresent}/${avgTotal}명</div>
+      </div>`;
+  });
+
+  chart.innerHTML = html;
+}
+
+function renderAdultYearlyStats(chart) {
+  // 교구 연도별 집계 (결석자 수 기준)
+  const yearly = {};
+  reportHistory.forEach(h => {
+    if (!h.adult) return;
+    const yr = h.date.slice(0, 4);
+    if (!yearly[yr]) yearly[yr] = { absent: 0, count: 0 };
+    yearly[yr].absent += h.adult.absent || 0;
+    yearly[yr].count++;
+  });
+
+  const keys = Object.keys(yearly).sort();
+  if (!keys.length) {
+    chart.innerHTML = '<div class="stats-empty">📭 저장된 교구 데이터가 없습니다</div>';
+    return;
+  }
+
+  const maxAbsent = Math.max(...keys.map(yr => yearly[yr].absent / yearly[yr].count), 1);
+
+  let html = '<div class="stats-section-title">연도별 평균 결석자 수</div>';
+  keys.forEach(yr => {
+    const d = yearly[yr];
+    const avg = Math.round(d.absent / d.count);
+    const barPct = Math.round(avg / maxAbsent * 100);
+    const barClass = barPct > 70 ? 'bar-low' : barPct > 40 ? 'bar-mid' : '';
+    html += `
+      <div class="stats-row">
+        <div class="stats-label">${yr.slice(2)}년</div>
+        <div class="stats-bar-wrap">
+          <div class="stats-bar ${barClass}" style="width:${barPct}%"></div>
+        </div>
+        <div class="stats-pct">${avg}명</div>
+        <div class="stats-detail">주평균 결석</div>
       </div>`;
   });
 
