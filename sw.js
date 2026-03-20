@@ -16,7 +16,7 @@ messaging.onBackgroundMessage(payload => {
   });
 });
 
-const CACHE_NAME = 'report-app-v30';
+const CACHE_NAME = 'report-app-v31';
 const APP_SHELL = [
   './',
   './index.html',
