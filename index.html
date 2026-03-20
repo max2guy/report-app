@@ -776,6 +776,25 @@ textarea { resize: vertical; min-height: 60px; }
       </div>
     </div>
 
+    <!-- NAS 직접 업로드 -->
+    <div class="setting-group">
+      <button class="accordion-btn" id="accNas" onclick="toggleAccordion('accNas','accNasContent')">
+        <span>🗄️ NAS 업로드 설정</span>
+        <span class="acc-arrow">▶</span>
+      </button>
+      <div class="accordion-content" id="accNasContent">
+        <p style="font-size:12px;color:var(--text-muted);margin-bottom:10px">Cloudflare Worker를 통해 NAS에 DOCX 파일을 직접 업로드합니다.</p>
+        <label style="font-size:12px;color:var(--text-muted);display:block;margin-bottom:4px">NAS 계정</label>
+        <input type="text" id="nasAccount" placeholder="NAS 사용자명"
+          style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;margin-bottom:8px"
+          oninput="localStorage.setItem('nasAccount', this.value)">
+        <label style="font-size:12px;color:var(--text-muted);display:block;margin-bottom:4px">NAS 비밀번호</label>
+        <input type="password" id="nasPassword" placeholder="비밀번호"
+          style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;margin-bottom:8px"
+          oninput="localStorage.setItem('nasPassword', this.value)">
+      </div>
+    </div>
+
     <!-- GitHub 동기화 -->
     <div class="setting-group">
       <button class="accordion-btn" id="accGit" onclick="toggleAccordion('accGit','accGitContent')">
@@ -1574,6 +1593,11 @@ function openSettings() {
     if (btn) btn.classList.remove('open');
     if (content) content.classList.remove('open');
   });
+  // NAS 설정값 복원
+  const nasAccEl  = document.getElementById('nasAccount');
+  const nasPassEl = document.getElementById('nasPassword');
+  if (nasAccEl)  nasAccEl.value  = localStorage.getItem('nasAccount')  || '';
+  if (nasPassEl) nasPassEl.value = localStorage.getItem('nasPassword') || '';
   // GitHub 설정값 복원
   const tokEl  = document.getElementById('gitTokenInput');
   const repoEl = document.getElementById('gitRepoInput');
@@ -1748,13 +1772,13 @@ async function shareReport() {
       `<button style="margin-bottom:12px;background:${bg};color:${fg};border:none;padding:16px;border-radius:14px;font-size:16px;font-weight:600;width:100%;display:block" onclick="doShare('${action}')">${label}</button>`;
 
     body.innerHTML = '';
+    body.innerHTML += btn('#1a7f4b','white','nas','☁️ NAS 직접 업로드');
     if (hasShareAPI) {
-      body.innerHTML += btn('#2c7be5','white','dsfile','📱 DS File / 공유 앱으로 보내기');
+      body.innerHTML += btn('#2c7be5','white','share','📱 공유 시트로 보내기');
     }
-    body.innerHTML += btn('#f0f4ff','#2c7be5','docx','📄 DOCX 다운로드');
-    body.innerHTML += btn('#eafaf1','#16a34a','json','💾 JSON 다운로드');
+    body.innerHTML += btn('#f0f4ff','#2c7be5','docx','📥 파일 다운로드 (DOCX)');
     if (!hasShareAPI) {
-      body.innerHTML = `<p style="color:#f59e0b;font-size:13px;margin-bottom:12px;text-align:center">⚠️ 이 기기는 공유 기능을 지원하지 않습니다.<br>다운로드 후 DS File에서 직접 업로드해 주세요.</p>` + body.innerHTML;
+      body.innerHTML = `<p style="color:#f59e0b;font-size:13px;margin-bottom:12px;text-align:center">⚠️ 이 기기는 공유 기능을 지원하지 않습니다.</p>` + body.innerHTML;
     }
 
     document.getElementById('shareSheet').classList.add('open');
@@ -1767,6 +1791,40 @@ async function shareReport() {
 async function doShare(method) {
   closeModal(null, 'shareSheet');
 
+  if (method === 'nas') {
+    await uploadToNAS();
+    return;
+  }
+
+  if (method === 'share') {
+    // navigator.share with DOCX file, fallback to download
+    try {
+      toast('⏳ DOCX 생성 중...');
+      const blob = await buildDocx();
+      const name = _shareFilenameCache.replace('.json', '.docx');
+      const file = new File([blob], name, { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({ files: [file], title: name });
+        toast('✅ 공유 완료');
+      } else {
+        triggerDownload(blob, name);
+        toast('📥 다운로드 완료');
+      }
+    } catch(e) {
+      if (e.name !== 'AbortError') {
+        // fallback to download
+        try {
+          const blob = await buildDocx();
+          const name = _shareFilenameCache.replace('.json', '.docx');
+          triggerDownload(blob, name);
+          toast('📥 다운로드 완료');
+        } catch(e2) { toast('❌ ' + e2.message); }
+      }
+    }
+    return;
+  }
+
+  // legacy: dsfile
   if (method === 'dsfile') {
     const result = await shareReportToDSFile(_shareDataCache, _shareFilenameCache);
     if (result.success) {
@@ -1794,6 +1852,47 @@ async function doShare(method) {
     const blob = new Blob([JSON.stringify(_shareDataCache, null, 2)], { type: 'application/json' });
     triggerDownload(blob, _shareFilenameCache);
     toast('✅ JSON 다운로드 완료');
+  }
+}
+
+async function uploadToNAS() {
+  const account  = localStorage.getItem('nasAccount');
+  const password = localStorage.getItem('nasPassword');
+
+  if (!account || !password) {
+    toast('⚙️ 설정에서 NAS 계정을 입력하세요');
+    return;
+  }
+
+  try {
+    toast('⏳ DOCX 생성 중...');
+    const blob = await buildDocx();
+    const dateStr  = document.getElementById('reportDate').value || new Date().toISOString().slice(0,10);
+    const filename = `주일사역보고서_${dateStr}.docx`;
+
+    const workerUrl = 'https://nas-proxy.max2guy.workers.dev/';
+    const nasPath   = '/home/Backup/연천장로교회/D/연천장로교회 문서/사무실/2026년/담임목사/' + filename;
+    const auth      = 'Basic ' + btoa(unescape(encodeURIComponent(account + ':' + password)));
+
+    toast('☁️ NAS 업로드 중...');
+    const resp = await fetch(workerUrl, {
+      method: 'PUT',
+      headers: {
+        'Authorization': auth,
+        'X-NAS-Path': nasPath,
+        'Content-Type': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      },
+      body: blob,
+    });
+
+    if (resp.status === 201 || resp.status === 204 || resp.status === 200) {
+      toast('✅ NAS 업로드 완료!');
+    } else {
+      toast('❌ NAS 업로드 실패: ' + resp.status);
+    }
+  } catch(e) {
+    toast('❌ NAS 연결 실패: ' + e.message);
+    console.error(e);
   }
 }
 
