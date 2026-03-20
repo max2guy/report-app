@@ -1,18 +1,5 @@
 [
   {
-    "date": "2026-01-25",
-    "youth": {
-      "present": 8,
-      "absent": 5,
-      "total": 13
-    },
-    "young": {
-      "present": 10,
-      "absent": 6,
-      "total": 16
-    }
-  },
-  {
     "date": "2026-02-01",
     "youth": {
       "present": 8,
