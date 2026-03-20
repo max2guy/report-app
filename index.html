@@ -2545,8 +2545,7 @@ async function getTargetFCMToken(role) {
     });
     if(!res.ok) return null;
     const info = await res.json();
-    _fcmTokenCache = JSON.parse(decodeURIComponent(escape(atob(info.content.replace(/
-/g,'')))));
+    _fcmTokenCache = JSON.parse(decodeURIComponent(escape(atob(info.content.replace(/\n/g,'')))));
     _fcmTokenCacheExpiry = Date.now() + 5 * 60 * 1000;
     return _fcmTokenCache[role] || null;
   } catch(e){ return null; }
