@@ -711,7 +711,7 @@ let activeTab = 'youth';
 
 // GitHub API 인증 헤더 (403 방지, 5000회/시간)
 function ghHeaders() {
-  const token = (localStorage.getItem('githubToken') || '').trim();
+  const token = (localStorage.getItem('viewerGithubToken') || '').trim();
   const h = { 'Accept': 'application/vnd.github+json' };
   if (token) h['Authorization'] = token.startsWith('github_pat_') ? `Bearer ${token}` : `token ${token}`;
   return h;
