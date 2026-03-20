@@ -11,6 +11,8 @@
 <link rel="apple-touch-icon" href="./icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-messaging-compat.js"></script>
 <title>사역 현황 — 연천장로교회</title>
 <style>
 :root {
@@ -359,11 +361,18 @@ async function loadInboxData() {
       const el = document.getElementById('notifList');
       if (!list.length) { el.innerHTML = '<div class="inbox-empty">없음</div>'; }
       else {
-        el.innerHTML = list.slice().reverse().map(n => `
-          <div class="inbox-item ${n.id !== viewerLastNotifId && list.indexOf(n) >= list.findIndex(x => x.id === viewerLastNotifId) ? '' : ''}">
+        const lastSeenIdx = list.findIndex(x => x.id === viewerLastNotifId);
+        el.innerHTML = list.slice().reverse().map(n => {
+          const idx = list.indexOf(n);
+          // lastSeenIdx가 -1이면 한 번도 안 본 것 → 전체 unread
+          // 그 외엔 lastSeenIdx보다 뒤(최신)에 있는 항목만 unread
+          const isUnread = lastSeenIdx === -1 || idx > lastSeenIdx;
+          return `
+          <div class="inbox-item ${isUnread ? 'unread' : ''}">
             <div class="inbox-item-meta"><span>${n.date}</span><span>${n.reporter || ''}</span></div>
             <div class="inbox-item-text">📄 ${n.title}</div>
-          </div>`).join('');
+          </div>`;
+        }).join('');
       }
     }
   } catch(e) {}
@@ -633,11 +642,17 @@ async function saveFCMTokenToGitHub(role, fcmToken) {
     let sha=null, tokens={};
     if(infoRes.ok){
       const info=await infoRes.json(); sha=info.sha;
-      try{tokens=JSON.parse(decodeURIComponent(escape(atob(info.content.replace(/\n/g,'')))));} catch(_){}
+      try{
+        const raw = Uint8Array.from(atob(info.content.replace(/\n/g,'')), c => c.charCodeAt(0));
+        tokens = JSON.parse(new TextDecoder('utf-8').decode(raw));
+      } catch(_){}
     }
     if(tokens[role]===fcmToken) return; // 변경없으면 skip
     tokens[role]=fcmToken;
-    const content=btoa(unescape(encodeURIComponent(JSON.stringify(tokens,null,2))));
+    const jsonStr2 = JSON.stringify(tokens,null,2);
+    const bytes2 = new TextEncoder().encode(jsonStr2);
+    let bin2 = ''; bytes2.forEach(b => bin2 += String.fromCharCode(b));
+    const content = btoa(bin2);
     const body={message:`fcm: update ${role} token`,content};
     if(sha) body.sha=sha;
     await fetch(apiBase,{method:'PUT',headers,body:JSON.stringify(body)});
@@ -680,10 +695,12 @@ async function initFCM() {
   } catch(e){ console.warn('FCM init failed',e); }
 }
 
-// 알림 권한 + 폴링 시작
-pollNotifications();
-setInterval(pollNotifications, 3 * 60 * 1000); // 3분 주기
-initFCM();
+// 알림 권한 + 폴링 시작 — Firebase 스크립트 로드 완료 후 실행
+window.addEventListener('load', () => {
+  pollNotifications();
+  setInterval(pollNotifications, 90 * 1000); // 90초 주기 (P3-12)
+  initFCM();
+});
 </script>
 
 <script>
@@ -821,8 +838,6 @@ function renderGroupPanel(group) {
   const recent = allData.slice(-8);
   const months = monthSummary(allData, group);
   const consec = calcConsecAbsent(allData, group);
-  const hasToken = !!localStorage.getItem('githubToken');
-
   el.innerHTML = `
     <div class="card">
       <div class="card-title">
@@ -953,6 +968,9 @@ function renderAdultPanel() {
     </div>`;
 }
 
+/* ── TAB NAMES ── */
+const TAB_NAMES = { youth: '중고등부', young: '청년부', adult: '장년' };
+
 /* ── SWITCH TAB ── */
 function switchTab(tab) {
   activeTab = tab;
@@ -1035,7 +1053,6 @@ if ('serviceWorker' in navigator) {
 }
 
 /* ── HEADER COMPACT ON SCROLL ── */
-const TAB_NAMES = { youth: '중고등부', young: '청년부', adult: '장년' };
 (function(){
   const hdr   = document.querySelector('.header');
   const title = document.getElementById('headerBarTitle');
@@ -1053,7 +1070,5 @@ const TAB_NAMES = { youth: '중고등부', young: '청년부', adult: '장년' }
   }, { passive: true });
 })();
 </script>
-<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-messaging-compat.js"></script>
 </body>
 </html>

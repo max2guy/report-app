@@ -12,6 +12,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-messaging-compat.js"></script>
 <title>주일 사역 보고서</title>
 <style>
 :root {
@@ -793,6 +795,11 @@ textarea { resize: vertical; min-height: 60px; }
         <input type="password" id="nasPassword" placeholder="비밀번호"
           style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;margin-bottom:8px"
           oninput="localStorage.setItem('nasPassword', this.value)">
+        <label style="font-size:12px;color:var(--text-muted);display:block;margin-bottom:4px">업로드 경로 <span style="color:#aaa">(연도 바뀔 때 수정)</span></label>
+        <input type="text" id="nasUploadPath" placeholder="/home/Backup/.../2026년/담임목사/"
+          style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:12px;margin-bottom:4px;font-family:monospace"
+          oninput="localStorage.setItem('nasUploadPath', this.value)">
+        <p style="font-size:11px;color:var(--text-muted);margin:0">파일명은 자동 추가됩니다. 끝에 / 포함.</p>
       </div>
     </div>
 
@@ -1376,9 +1383,12 @@ async function syncHistoryToGitHub(manual = false, overwrite = false) {
       merged = Object.values(mergeMap).sort((a, b) => a.date.localeCompare(b.date));
     }
 
-    // 한글 포함 Base64 인코딩
+    // 한글 포함 Base64 인코딩 (TextEncoder 방식, 안정적)
     const jsonStr = JSON.stringify(merged, null, 2);
-    const content = btoa(unescape(encodeURIComponent(jsonStr)));
+    const bytes = new TextEncoder().encode(jsonStr);
+    let binary = '';
+    bytes.forEach(b => binary += String.fromCharCode(b));
+    const content = btoa(binary);
     const body = {
       message: `sync: history update ${new Date().toISOString().slice(0, 10)}`,
       content,
@@ -1587,20 +1597,22 @@ function buildDistrictSMSMessage(d) {
 }
 
 const smsSentState = {};
+const _smsMsgMap = {}; // SMS 메시지 임시 저장 (onclick 주입 방지)
 
 function renderSMSItem(id, zoneLabel, leaderName, phone, msg, sent) {
+  _smsMsgMap[id] = msg; // 메시지를 전역 맵에 저장 (onclick 속성에 직접 삽입 금지)
   return `
     <div class="sms-queue-item${sent ? ' sent' : phone ? '' : ' no-phone'}" id="smsItem_${id}">
       <div class="sms-queue-header">
         <span class="sms-queue-zone">${zoneLabel}</span>
         <span class="sms-queue-leader">${leaderName} · ${phone || '번호 미등록'}</span>
       </div>
-      <div class="sms-queue-msg">${msg}</div>
+      <div class="sms-queue-msg">${msg.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>
       <div class="sms-queue-footer">
         ${sent
           ? `<span class="sms-sent-badge">✓ 전송완료</span>`
           : phone
-            ? `<button class="btn btn-gold" style="padding:7px 18px;font-size:13px" onclick="sendQueueSMSById('${id}','${phone}',\`${msg.replace(/`/g,"'")}\`)">💬 전송</button>`
+            ? `<button class="btn btn-gold" style="padding:7px 18px;font-size:13px" onclick="sendQueueSMSById('${id}','${phone}')">💬 전송</button>`
             : `<span style="font-size:12px;color:#975a16">⚙️ 설정에서 번호 입력 필요</span>`
         }
       </div>
@@ -1645,7 +1657,8 @@ function openSMSModal() {
   document.getElementById('smsModal').classList.add('open');
 }
 
-function sendQueueSMSById(id, phone, msg) {
+function sendQueueSMSById(id, phone) {
+  const msg = _smsMsgMap[id] || ''; // 전역 맵에서 안전하게 꺼냄
   window.location.href = `sms:${phone}?body=${encodeURIComponent(msg)}`;
   smsSentState[id] = true;
   setTimeout(() => {
@@ -1713,6 +1726,8 @@ function openSettings() {
   const nasPassEl = document.getElementById('nasPassword');
   if (nasAccEl)  nasAccEl.value  = localStorage.getItem('nasAccount')  || '';
   if (nasPassEl) nasPassEl.value = localStorage.getItem('nasPassword') || '';
+  const nasPathEl = document.getElementById('nasUploadPath');
+  if (nasPathEl) nasPathEl.value = localStorage.getItem('nasUploadPath') || '/home/Backup/연천장로교회/D/연천장로교회 문서/사무실/2026년/담임목사/';
   // GitHub 설정값 복원
   const tokEl  = document.getElementById('gitTokenInput');
   const repoEl = document.getElementById('gitRepoInput');
@@ -1866,12 +1881,16 @@ async function shareReport() {
       reporter: state.reporter,
       church: '연천장로교회',
       youth: {
-        present: state.youthPresent, absent: state.youthAbsent, total: state.youthTotal,
-        absentNames: state.youthAbsentNames || []
+        present: state.youth.members.filter(m => m.status === 'present').length,
+        absent:  state.youth.members.filter(m => m.status === 'absent').length,
+        total:   state.youth.members.length,
+        absentNames: state.youth.members.filter(m => m.status === 'absent').map(m => m.name)
       },
       young: {
-        present: state.youngPresent, absent: state.youngAbsent, total: state.youngTotal,
-        absentNames: state.youngAbsentNames || []
+        present: state.young.members.filter(m => m.status === 'present').length,
+        absent:  state.young.members.filter(m => m.status === 'absent').length,
+        total:   state.young.members.length,
+        absentNames: state.young.members.filter(m => m.status === 'absent').map(m => m.name)
       },
       adult: { absent: state.adultAbsent, zones: state.adultZones || [] },
       memo: state.memo || '',
@@ -1986,7 +2005,8 @@ async function uploadToNAS() {
     const filename = `주일사역보고서_${dateStr}.docx`;
 
     const workerUrl = 'https://nas-proxy.max2guy.workers.dev/';
-    const nasPath   = '/home/Backup/연천장로교회/D/연천장로교회 문서/사무실/2026년/담임목사/' + filename;
+    const nasBasePath = localStorage.getItem('nasUploadPath') || '/home/Backup/연천장로교회/D/연천장로교회 문서/사무실/2026년/담임목사/';
+    const nasPath   = nasBasePath + filename;
     const auth      = 'Basic ' + btoa(unescape(encodeURIComponent(account + ':' + password)));
 
     toast('☁️ NAS 업로드 중...');
@@ -2473,8 +2493,14 @@ async function fetchInstructions(fromFCM = false) {
     });
     if (!res.ok) return;
     const info = await res.json();
-    const list = JSON.parse(new TextDecoder('utf-8').decode(Uint8Array.from(atob(info.content.replace(/\n/g,'')), c => c.charCodeAt(0))));
-    if (!list.length) return;
+    let list;
+    try {
+      list = JSON.parse(new TextDecoder('utf-8').decode(Uint8Array.from(atob(info.content.replace(/\n/g,'')), c => c.charCodeAt(0))));
+    } catch(parseErr) {
+      console.warn('지시사항 JSON 파싱 실패:', parseErr.message);
+      return;
+    }
+    if (!Array.isArray(list) || !list.length) return;
     localStorage.setItem('cachedInstructions', JSON.stringify(list));
     renderStaffInstrList(); // 메시지함 즉시 갱신
     const latest = list[list.length - 1];
@@ -2707,7 +2733,5 @@ window.addEventListener('load', () => {
 // START
 init();
 </script>
-<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-messaging-compat.js"></script>
 </body>
 </html>
