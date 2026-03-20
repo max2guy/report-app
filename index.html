@@ -818,6 +818,17 @@ textarea { resize: vertical; min-height: 60px; }
   </div>
 </div>
 
+<!-- 공유 액션 시트 -->
+<div class="modal-overlay" id="shareSheet" onclick="closeModal(event,'shareSheet')">
+  <div class="modal" style="padding-bottom: calc(16px + var(--safe-bottom))">
+    <div class="modal-handle"></div>
+    <div class="modal-title">📤 공유 방법 선택</div>
+    <button class="btn-wide" style="margin-bottom:12px;background:#2c7be5;color:white;border:none;padding:16px;border-radius:14px;font-size:16px;font-weight:600;width:100%" onclick="doShare('api')">📱 공유 시트로 보내기</button>
+    <button class="btn-wide" style="margin-bottom:12px;background:#f0f4ff;color:#2c7be5;border:none;padding:16px;border-radius:14px;font-size:16px;font-weight:600;width:100%" onclick="doShare('download')">📥 파일 다운로드</button>
+    <button class="btn-wide" style="background:#f5f5f5;color:#666;border:none;padding:14px;border-radius:14px;font-size:15px;width:100%" onclick="closeModal(null,'shareSheet')">취소</button>
+  </div>
+</div>
+
 <!-- TOAST -->
 <div class="toast" id="toast"></div>
 
@@ -1662,6 +1673,9 @@ async function downloadAndSave(blob, filename) {
   toast('✅ 다운로드 완료');
 }
 
+let _shareBlobCache = null;
+let _shareFilenameCache = null;
+
 async function shareReport() {
   collectState();
   if (!state.date) { toast('날짜를 입력하세요'); switchTab(0); return; }
@@ -1670,31 +1684,37 @@ async function shareReport() {
   try {
     const blob = await buildDocx();
     const dateStr = state.date.replace(/-/g, '');
-    const filename = `주일사역보고서_${dateStr}_${state.reporter}.docx`;
-    const file = new File([blob], filename, {
-      type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
-    });
-    // Web Share API — canShare 검사 없이 직접 시도 (일부 기기에서 canShare 오탐)
-    if (navigator.share) {
-      try {
-        await navigator.share({ files: [file], title: filename });
-        return;
-      } catch(shareErr) {
-        if (shareErr.name === 'AbortError') return; // 사용자 취소
-        // 파일 공유 실패 시 URL 공유로 재시도
-        try {
-          await navigator.share({ title: filename, text: filename });
-          return;
-        } catch(_) {}
-      }
-    }
-    // 공유 미지원 or 전체 실패 → 다운로드
-    triggerDownload(blob, filename);
-    toast('✅ 다운로드 완료');
+    _shareBlobCache = blob;
+    _shareFilenameCache = `주일사역보고서_${dateStr}_${state.reporter}.docx`;
+    // 액션 시트 표시
+    document.getElementById('shareSheet').classList.add('open');
   } catch(e) {
     toast('❌ 오류: ' + e.message);
     console.error(e);
   }
+}
+
+async function doShare(method) {
+  closeModal(null, 'shareSheet');
+  const blob = _shareBlobCache;
+  const filename = _shareFilenameCache;
+  if (!blob) { toast('먼저 보고서를 생성해주세요'); return; }
+
+  if (method === 'api' && navigator.share) {
+    try {
+      const file = new File([blob], filename, {
+        type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+      });
+      await navigator.share({ files: [file], title: filename });
+      return;
+    } catch(e) {
+      if (e.name === 'AbortError') return;
+      toast('공유 시트를 열 수 없습니다. 다운로드로 전환합니다.');
+    }
+  }
+  // 다운로드
+  triggerDownload(blob, filename);
+  toast('✅ 다운로드 완료');
 }
 
 function triggerDownload(blob, filename) {
