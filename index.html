@@ -2350,7 +2350,8 @@ function renderStaffInstrList() {
     </div>`).join('');
 }
 
-async function fetchInstructions() {
+let _fcmJustReceived = false;
+async function fetchInstructions(fromFCM = false) {
   try {
     const res = await fetch('https://api.github.com/repos/max2guy/report-app/contents/instructions.json', {
       headers: { 'Accept': 'application/vnd.github+json' }, cache: 'no-store'
@@ -2359,8 +2360,8 @@ async function fetchInstructions() {
     const info = await res.json();
     const list = JSON.parse(new TextDecoder('utf-8').decode(Uint8Array.from(atob(info.content.replace(/\n/g,'')), c => c.charCodeAt(0))));
     if (!list.length) return;
-    // 캐시 저장
     localStorage.setItem('cachedInstructions', JSON.stringify(list));
+    renderStaffInstrList(); // 메시지함 즉시 갱신
     const latest = list[list.length - 1];
     if (latest.id !== lastInstrId) {
       lastInstrId = latest.id;
@@ -2368,10 +2369,11 @@ async function fetchInstructions() {
       staffUnread++;
       const badge = document.getElementById('staffInboxBadge');
       if (badge) { badge.style.display='flex'; badge.textContent = staffUnread; }
-      toast('📋 새 지시사항이 있습니다');
-      if (Notification.permission === 'granted') {
-        new Notification('📋 새 지시사항', { body: latest.text.slice(0,80), icon:'./icon-192.png' });
+      // FCM으로 이미 알림 받은 경우 토스트만, 중복 Web Notification 제거
+      if (!_fcmJustReceived) {
+        toast('📋 새 지시사항이 있습니다');
       }
+      _fcmJustReceived = false;
     }
   } catch(e) { console.log('지시사항 로드 실패:', e.message); }
 }
@@ -2571,6 +2573,9 @@ async function initFCM() {
       const t = payload.notification?.title || '알림';
       const b = payload.notification?.body  || '';
       toast(`🔔 ${t}: ${b}`, 4000);
+      // FCM 수신 즉시 지시사항 갱신 (중복 알림 방지 플래그 설정)
+      _fcmJustReceived = true;
+      fetchInstructions(true);
     });
   } catch(e){ console.warn('FCM init failed',e); }
 }
