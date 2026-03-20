@@ -1584,7 +1584,7 @@ function openSettings() {
   document.getElementById('settingsModal').classList.add('open');
 }
 function closeModal(e, id) {
-  if (e.target === e.currentTarget) document.getElementById(id).classList.remove('open');
+  if (!e || e.target === e.currentTarget) document.getElementById(id).classList.remove('open');
 }
 
 // ───────────────────────────────
