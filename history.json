@@ -30,12 +30,23 @@
     "youth": {
       "present": 8,
       "absent": 5,
-      "total": 13
+      "total": 13,
+      "absentNames": [
+        "김주찬",
+        "이태양",
+        "변아영",
+        "변현섭",
+        "최우진"
+      ]
     },
     "young": {
       "present": 17,
       "absent": 2,
-      "total": 19
+      "total": 19,
+      "absentNames": [
+        "유세희",
+        "신승환"
+      ]
     },
     "adult": {
       "absent": 36,
@@ -139,12 +150,24 @@
     "youth": {
       "present": 9,
       "absent": 4,
-      "total": 13
+      "total": 13,
+      "absentNames": [
+        "김주찬",
+        "변아영",
+        "변현섭",
+        "최우진"
+      ]
     },
     "young": {
       "present": 12,
       "absent": 7,
-      "total": 19
+      "total": 19,
+      "absentNames": [
+        "고현아",
+        "김주은",
+        "황원영",
+        "유세희"
+      ]
     },
     "adult": {
       "absent": 42,
@@ -259,12 +282,24 @@
     "youth": {
       "present": 7,
       "absent": 6,
-      "total": 13
+      "total": 13,
+      "absentNames": [
+        "이태양",
+        "정소원",
+        "김주찬",
+        "변아영",
+        "변현섭",
+        "최우진"
+      ]
     },
     "young": {
       "present": 17,
       "absent": 2,
-      "total": 19
+      "total": 19,
+      "absentNames": [
+        "김주은",
+        "황원영"
+      ]
     },
     "adult": {
       "absent": 30,
@@ -357,12 +392,24 @@
     "youth": {
       "present": 9,
       "absent": 4,
-      "total": 13
+      "total": 13,
+      "absentNames": [
+        "김주찬",
+        "변아영",
+        "변현섭",
+        "최우진"
+      ]
     },
     "young": {
       "present": 15,
       "absent": 4,
-      "total": 19
+      "total": 19,
+      "absentNames": [
+        "김주은",
+        "유세희",
+        "차예담",
+        "황원영"
+      ]
     },
     "adult": {
       "absent": 30,
@@ -450,12 +497,24 @@
     "youth": {
       "present": 9,
       "absent": 4,
-      "total": 13
+      "total": 13,
+      "absentNames": [
+        "김주찬",
+        "변아영",
+        "변현섭",
+        "최우진"
+      ]
     },
     "young": {
       "present": 15,
       "absent": 4,
-      "total": 19
+      "total": 19,
+      "absentNames": [
+        "김주은",
+        "유세희",
+        "차예담",
+        "황원영"
+      ]
     },
     "adult": {
       "absent": 30,
@@ -543,12 +602,28 @@
     "youth": {
       "present": 8,
       "absent": 5,
-      "total": 13
+      "total": 13,
+      "absentNames": [
+        "김주찬",
+        "변아영",
+        "변현섭",
+        "최우진",
+        "이호석"
+      ]
     },
     "young": {
       "present": 12,
       "absent": 7,
-      "total": 19
+      "total": 19,
+      "absentNames": [
+        "라규미",
+        "유세희",
+        "차예담",
+        "황원영",
+        "김보은",
+        "김정인",
+        "김주은"
+      ]
     },
     "adult": {
       "absent": 37,
@@ -653,12 +728,25 @@
     "youth": {
       "present": 9,
       "absent": 4,
-      "total": 13
+      "total": 13,
+      "absentNames": [
+        "김주찬",
+        "변아영",
+        "변현섭",
+        "최우진"
+      ]
     },
     "young": {
       "present": 9,
       "absent": 9,
-      "total": 18
+      "total": 18,
+      "absentNames": [
+        "김태양",
+        "한혜원",
+        "신승환",
+        "차예담",
+        "황원영"
+      ]
     },
     "adult": {
       "absent": 37,

@@ -883,9 +883,28 @@ async function loadHistorySeed() {
     let changed = false;
     seed.forEach(entry => {
       if (deletedHistoryDates.has(entry.date)) return; // 삭제된 날짜는 복원 금지
-      if (!reportHistory.find(h => h.date === entry.date)) {
+      const idx = reportHistory.findIndex(h => h.date === entry.date);
+      if (idx === -1) {
+        // 새 날짜: 그냥 추가
         reportHistory.push(entry);
         changed = true;
+      } else {
+        // 기존 날짜: adult/absentNames 등 부족한 필드만 시드로 보완
+        const local = reportHistory[idx];
+        let updated = false;
+        if (entry.adult && entry.adult.zones && entry.adult.zones.length &&
+            (!local.adult || !local.adult.zones || !local.adult.zones.length)) {
+          local.adult = entry.adult;
+          updated = true;
+        }
+        for (const g of ['youth', 'young']) {
+          if (entry[g] && entry[g].absentNames && entry[g].absentNames.length &&
+              local[g] && (!local[g].absentNames || !local[g].absentNames.length)) {
+            local[g].absentNames = entry[g].absentNames;
+            updated = true;
+          }
+        }
+        if (updated) changed = true;
       }
     });
     if (changed) {
@@ -1378,11 +1397,17 @@ async function syncHistoryToGitHub(manual = false, overwrite = false) {
       });
       reportHistory.forEach(r => {
         if (mergeMap[r.date]) {
-          // 로컬에 adult 데이터가 없으면 원격 것 보존 (DOCX 추출 데이터 보호)
           const remote = mergeMap[r.date];
           mergeMap[r.date] = { ...remote, ...r };
+          // adult: 로컬에 zones 없으면 원격 adult 보존
           if ((!r.adult || !r.adult.zones || !r.adult.zones.length) && remote.adult && remote.adult.zones && remote.adult.zones.length) {
             mergeMap[r.date].adult = remote.adult;
+          }
+          // youth/young absentNames: 로컬에 없으면 원격 것 보존
+          for (const g of ['youth', 'young']) {
+            if (r[g] && (!r[g].absentNames || !r[g].absentNames.length) && remote[g] && remote[g].absentNames && remote[g].absentNames.length) {
+              mergeMap[r.date][g].absentNames = remote[g].absentNames;
+            }
           }
         } else {
           mergeMap[r.date] = r;
