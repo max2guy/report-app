@@ -862,6 +862,11 @@ const APP_VERSION = '0.2.2';
 // 출결 통계
 // ───────────────────────────────
 let reportHistory = JSON.parse(localStorage.getItem('reportHistory') || '[]');
+// 삭제된 날짜 블랙리스트 — loadHistorySeed/병합 시 재복원 방지
+let deletedHistoryDates = new Set(JSON.parse(localStorage.getItem('deletedHistoryDates') || '[]'));
+function saveDeletedDates() {
+  localStorage.setItem('deletedHistoryDates', JSON.stringify([...deletedHistoryDates]));
+}
 let statsGroup = 'youth';   // 'youth' | 'young'
 let statsPeriod = 'monthly'; // 'monthly' | 'yearly'
 
@@ -873,6 +878,7 @@ async function loadHistorySeed() {
     const seed = await res.json();
     let changed = false;
     seed.forEach(entry => {
+      if (deletedHistoryDates.has(entry.date)) return; // 삭제된 날짜는 복원 금지
       if (!reportHistory.find(h => h.date === entry.date)) {
         reportHistory.push(entry);
         changed = true;
@@ -1081,6 +1087,8 @@ function renderHistoryDeleteList() {
 
 function deleteHistoryRow(date) {
   if (!confirm(`${date} 기록을 삭제할까요?`)) return;
+  deletedHistoryDates.add(date); // 블랙리스트 등록 — 이후 seed/병합에서 재복원 금지
+  saveDeletedDates();
   reportHistory = reportHistory.filter(h => h.date !== date);
   localStorage.setItem('reportHistory', JSON.stringify(reportHistory));
   renderStats();
@@ -1361,7 +1369,9 @@ async function syncHistoryToGitHub(manual = false, overwrite = false) {
       merged = reportHistory.slice().sort((a, b) => a.date.localeCompare(b.date));
     } else {
       const mergeMap = {};
-      remoteData.forEach(r => { mergeMap[r.date] = r; });
+      remoteData.forEach(r => {
+        if (!deletedHistoryDates.has(r.date)) mergeMap[r.date] = r; // 삭제된 날짜는 원격에서도 무시
+      });
       reportHistory.forEach(r => { mergeMap[r.date] = r; });
       merged = Object.values(mergeMap).sort((a, b) => a.date.localeCompare(b.date));
     }
