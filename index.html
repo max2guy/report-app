@@ -1674,34 +1674,39 @@ async function downloadAndSave(blob, filename) {
 
 // ── DS File 공유 (Web Share API Level 2, iOS/Android 크로스플랫폼) ──
 async function shareReportToDSFile(reportData, fileName) {
-  // 1. JSON 파일 생성 (DS File이 신뢰하는 표준 MIME 타입)
-  const jsonStr = JSON.stringify(reportData, null, 2);
-  const blob = new Blob([jsonStr], { type: 'application/json' });
-  const fileObj = new File([blob], fileName, { type: blob.type });
+  const jsonStr = typeof reportData === 'string' ? reportData : JSON.stringify(reportData, null, 2);
 
-  // 2. canShare 철저 검증 (iOS 구버전 / PC 방어)
-  const supported = !!(
-    navigator.share &&
-    navigator.canShare &&
-    navigator.canShare({ files: [fileObj] })
-  );
+  // MIME 타입 다단계 시도 (text/plain이 OS 수준에서 가장 넓게 인식)
+  const attempts = [
+    { ext: '.txt',  type: 'text/plain' },
+    { ext: '.json', type: 'application/json' }
+  ];
 
-  if (supported) {
-    try {
-      await navigator.share({ files: [fileObj], title: '보고서 업로드' });
-      return true;
-    } catch (e) {
-      if (e.name === 'AbortError') return false; // 사용자 취소 — 오류 아님
-      // 그 외 오류 → fallback 진행
+  // navigator.share 존재하면 canShare 검사 없이 직접 시도
+  if (navigator.share) {
+    for (const { ext, type } of attempts) {
+      try {
+        const name = fileName.replace(/\.[^.]+$/, '') + ext;
+        const blob = new Blob([jsonStr], { type });
+        const fileObj = new File([blob], name, { type });
+        await navigator.share({ files: [fileObj], title: '보고서 업로드' });
+        return { success: true };
+      } catch (e) {
+        if (e.name === 'AbortError') return { success: false, cancelled: true };
+        // 이 타입 실패 → 다음 타입 시도
+        continue;
+      }
     }
   }
 
-  // 3. Fallback: 로컬 강제 다운로드
+  // 모든 시도 실패 or navigator.share 미지원 → Fallback 다운로드
+  const blob = new Blob([jsonStr], { type: 'text/plain' });
+  const fallbackName = fileName.replace(/\.[^.]+$/, '') + '.txt';
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
-  a.href = url; a.download = fileName; a.click();
+  a.href = url; a.download = fallbackName; a.click();
   setTimeout(() => URL.revokeObjectURL(url), 3000);
-  return false;
+  return { success: false, downloaded: true };
 }
 
 let _shareDataCache = null;
@@ -1735,21 +1740,22 @@ async function shareReport() {
     };
     _shareFilenameCache = filename;
 
-    // 공유 가능 여부에 따라 액션 시트 버튼 구성
-    const testFile = new File(
-      [JSON.stringify(_shareDataCache)], filename, { type: 'application/json' }
-    );
-    const canFileShare = !!(navigator.share && navigator.canShare && navigator.canShare({ files: [testFile] }));
+    // navigator.share 존재하면 무조건 DS File 버튼 표시 (canShare 게이트키퍼 제거)
+    const hasShareAPI = !!navigator.share;
 
     const body = document.getElementById('shareSheetBody');
     const btn = (bg, fg, action, label) =>
       `<button style="margin-bottom:12px;background:${bg};color:${fg};border:none;padding:16px;border-radius:14px;font-size:16px;font-weight:600;width:100%;display:block" onclick="doShare('${action}')">${label}</button>`;
 
-    body.innerHTML = canFileShare
-      ? btn('#2c7be5','white','dsfile','📱 DS File / 공유 앱으로 보내기')
-      : `<p style="color:#f59e0b;font-size:13px;margin-bottom:12px;text-align:center">⚠️ 이 기기는 파일 직접 공유를 지원하지 않습니다.<br>다운로드 후 DS File에서 직접 업로드해 주세요.</p>`;
+    body.innerHTML = '';
+    if (hasShareAPI) {
+      body.innerHTML += btn('#2c7be5','white','dsfile','📱 DS File / 공유 앱으로 보내기');
+    }
     body.innerHTML += btn('#f0f4ff','#2c7be5','docx','📄 DOCX 다운로드');
     body.innerHTML += btn('#eafaf1','#16a34a','json','💾 JSON 다운로드');
+    if (!hasShareAPI) {
+      body.innerHTML = `<p style="color:#f59e0b;font-size:13px;margin-bottom:12px;text-align:center">⚠️ 이 기기는 공유 기능을 지원하지 않습니다.<br>다운로드 후 DS File에서 직접 업로드해 주세요.</p>` + body.innerHTML;
+    }
 
     document.getElementById('shareSheet').classList.add('open');
   } catch(e) {
@@ -1762,8 +1768,14 @@ async function doShare(method) {
   closeModal(null, 'shareSheet');
 
   if (method === 'dsfile') {
-    const ok = await shareReportToDSFile(_shareDataCache, _shareFilenameCache);
-    if (!ok) toast('✅ 다운로드 완료 (공유 취소 또는 미지원)');
+    const result = await shareReportToDSFile(_shareDataCache, _shareFilenameCache);
+    if (result.success) {
+      toast('✅ 공유 완료');
+    } else if (result.cancelled) {
+      // 사용자 취소 — 아무것도 안 함
+    } else if (result.downloaded) {
+      toast('📥 다운로드 완료. DS File 앱 → 업로드로 NAS에 올려주세요.');
+    }
     return;
   }
 
