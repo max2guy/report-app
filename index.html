@@ -2612,18 +2612,15 @@ function buildDocumentXml() {
   const gPresent = d.young.members.filter(m => m.status === 'present');
   const gAbsent  = d.young.members.filter(m => m.status === 'absent');
 
-  // Zone absent list
-  const zoneLines = d.zones.map((z, i) => {
-    const names = (z || '').trim();
-    return names ? `(${i+1}구역): ${names}` : null;
+  // Zone absent list (새 구조: state.adult.zones[i].members)
+  const zones = (d.adult && d.adult.zones) ? d.adult.zones : [];
+  const zoneLines = zones.map((z, i) => {
+    const absent = (z.members || []).filter(m => m.status === 'absent').map(m => m.name);
+    return absent.length ? `(${i+1}구역) ${ZONE_MEMBERS[i]?.members.find(m=>m.role==='leader')?.name||''}: ${absent.join(', ')}` : null;
   }).filter(Boolean);
 
   // Total zone absent count
-  let zoneTotal = 0;
-  d.zones.forEach(z => {
-    if (!z.trim()) return;
-    zoneTotal += z.split(/[,，\s]+/).filter(n => n.trim()).length;
-  });
+  let zoneTotal = zones.reduce((sum, z) => sum + (z.members || []).filter(m => m.status === 'absent').length, 0);
 
   return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"
