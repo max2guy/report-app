@@ -859,15 +859,7 @@ textarea { resize: vertical; min-height: 60px; }
         <span class="acc-arrow">▶</span>
       </button>
       <div class="accordion-content" id="accGitContent">
-        <p style="font-size:12px;color:var(--text-muted);margin-bottom:10px">결석자 이름 포함 history.json을 GitHub에 업로드합니다.<br>GitHub Personal Access Token(repo 권한)이 필요합니다.</p>
-        <label style="font-size:12px;color:var(--text-muted);display:block;margin-bottom:4px">GitHub Token</label>
-        <input type="password" id="gitTokenInput" placeholder="ghp_xxxxxxxxxxxx"
-          style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;margin-bottom:8px"
-          oninput="localStorage.setItem('githubToken', this.value)">
-        <label style="font-size:12px;color:var(--text-muted);display:block;margin-bottom:4px">저장소 (owner/repo)</label>
-        <input type="text" id="gitRepoInput" placeholder="max2guy/report-app"
-          style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;margin-bottom:8px"
-          oninput="localStorage.setItem('githubRepo', this.value)">
+        <p style="font-size:12px;color:var(--text-muted);margin-bottom:10px">출석 기록(history.json)을 GitHub에 자동 동기화합니다.</p>
         <div id="gitSyncStatus" style="font-size:12px;color:var(--text-muted);margin-bottom:8px"></div>
         <button class="btn-wide btn-blue" onclick="syncHistoryToGitHub(true)">☁️ 지금 동기화</button>
       </div>
@@ -1499,31 +1491,19 @@ function updateGitSyncStatus(msg) {
   el.textContent = last ? `마지막 동기화: ${last}` : '아직 동기화 안 됨';
 }
 
-async function syncHistoryToGitHub(manual = false, overwrite = false) {
-  const token = (localStorage.getItem('githubToken') || '').trim();
-  const repo  = (localStorage.getItem('githubRepo')  || 'max2guy/report-app').trim();
-  if (!token) {
-    if (manual) toast('⚠️ GitHub Token을 설정에 입력하세요');
-    return;
-  }
+const WORKER_URL = 'https://nas-proxy.max2guy.workers.dev';
 
-  const path    = 'history.json';
+async function syncHistoryToGitHub(manual = false, overwrite = false) {
+  const repo = (localStorage.getItem('githubRepo') || 'max2guy/report-app').trim();
+  const path = 'history.json';
   const apiBase = `https://api.github.com/repos/${repo}/contents/${path}`;
-  // Fine-grained 토큰(github_pat_)은 Bearer, classic(ghp_)은 token
-  const authVal = token.startsWith('github_pat_') ? `Bearer ${token}` : `token ${token}`;
-  const headers = {
-    'Authorization': authVal,
-    'Accept': 'application/vnd.github+json',
-    'Content-Type': 'application/json',
-    'X-GitHub-Api-Version': '2022-11-28'
-  };
 
   try {
     updateGitSyncStatus('동기화 중...');
     if (manual) toast('⏳ GitHub 동기화 중...');
 
-    // 현재 파일 SHA 가져오기 (필수 — 없으면 PUT 실패)
-    const infoRes = await fetch(apiBase, { headers });
+    // GET: 공개 레포 — 토큰 불필요
+    const infoRes = await fetch(apiBase, { headers: { 'Accept': 'application/vnd.github+json' } });
     if (!infoRes.ok) {
       const errBody = await infoRes.json().catch(() => ({}));
       throw new Error(`GET 실패 ${infoRes.status}: ${errBody.message || infoRes.statusText}`);
@@ -1578,7 +1558,12 @@ async function syncHistoryToGitHub(manual = false, overwrite = false) {
       sha  // 기존 파일 SHA 반드시 포함
     };
 
-    const putRes = await fetch(apiBase, { method: 'PUT', headers, body: JSON.stringify(body) });
+    // PUT: Worker 경유 (토큰 서버측 보관)
+    const putRes = await fetch(`${WORKER_URL}/github-write`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
     if (!putRes.ok) {
       const errBody = await putRes.json().catch(() => ({}));
       throw new Error(`PUT 실패 ${putRes.status}: ${errBody.message || putRes.statusText}`);
@@ -2127,11 +2112,6 @@ function openSettings() {
   if (nasPassEl) nasPassEl.value = localStorage.getItem('nasPassword') || '';
   const nasPathEl = document.getElementById('nasUploadPath');
   if (nasPathEl) nasPathEl.value = localStorage.getItem('nasUploadPath') || '/home/Backup/연천장로교회/D/연천장로교회 문서/사무실/2026년/담임목사/';
-  // GitHub 설정값 복원
-  const tokEl  = document.getElementById('gitTokenInput');
-  const repoEl = document.getElementById('gitRepoInput');
-  if (tokEl)  tokEl.value  = localStorage.getItem('githubToken') || '';
-  if (repoEl) repoEl.value = localStorage.getItem('githubRepo')  || 'max2guy/report-app';
   updateGitSyncStatus();
   document.getElementById('settingsModal').classList.add('open');
 }
@@ -2918,14 +2898,10 @@ async function fetchInstructions(fromFCM = false) {
 
 // 보고서 생성 시 목사님께 알림 전송
 async function pushReportNotification() {
-  const token = (localStorage.getItem('githubToken') || '').trim();
-  const repo  = (localStorage.getItem('githubRepo')  || 'max2guy/report-app').trim();
-  if (!token) return;
-  const apiBase = `https://api.github.com/repos/${repo}/contents/notifications.json`;
-  const authVal = token.startsWith('github_pat_') ? `Bearer ${token}` : `token ${token}`;
-  const headers = { 'Authorization':authVal,'Accept':'application/vnd.github+json','Content-Type':'application/json','X-GitHub-Api-Version':'2022-11-28' };
+  const apiBase = 'https://api.github.com/repos/max2guy/report-app/contents/notifications.json';
   try {
-    const infoRes = await fetch(apiBase, { headers });
+    // GET: 공개 레포 — 토큰 불필요
+    const infoRes = await fetch(apiBase, { headers: { 'Accept': 'application/vnd.github+json' } });
     let sha = null; let list = [];
     if (infoRes.ok) {
       const info = await infoRes.json(); sha = info.sha;
@@ -2939,9 +2915,12 @@ async function pushReportNotification() {
       reporter: state.reporter || ''
     });
     const content = btoa(unescape(encodeURIComponent(JSON.stringify(list, null, 2))));
-    const body = { message:`notify: report submitted ${state.date}`, content };
-    if (sha) body.sha = sha;
-    await fetch(apiBase, { method:'PUT', headers, body:JSON.stringify(body) });
+    // PUT: Worker 경유
+    await fetch(`${WORKER_URL}/github-write`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ file: 'notifications.json', message: `notify: report submitted ${state.date}`, content, sha })
+    });
     // FCM 푸시 (뷰어앱에 알림)
     getTargetFCMToken('viewerApp').then(tok => {
       if(tok) sendFCMPush(tok, '📄 새 보고서 도착', `${new Date().toLocaleDateString('ko-KR')} 주일 보고서가 제출되었습니다`);
@@ -3054,14 +3033,12 @@ async function sendFCMPush(targetToken, title, body) {
 
 /* ── FCM: 토큰 GitHub 저장 ── */
 async function saveFCMTokenToGitHub(role, fcmToken) {
-  const ghToken = (localStorage.getItem('githubToken')||'').trim();
-  if(!ghToken || !fcmToken) return;
+  if(!fcmToken) return;
   const repo = localStorage.getItem('githubRepo') || 'max2guy/report-app';
   const apiBase = `https://api.github.com/repos/${repo}/contents/fcm-tokens.json`;
-  const authVal = ghToken.startsWith('github_pat_') ? `Bearer ${ghToken}` : `token ${ghToken}`;
-  const headers = {'Authorization':authVal,'Accept':'application/vnd.github+json','Content-Type':'application/json','X-GitHub-Api-Version':'2022-11-28'};
   try {
-    const infoRes = await fetch(apiBase,{headers});
+    // GET: 공개 레포 무인증
+    const infoRes = await fetch(apiBase, {headers:{'Accept':'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28'}});
     let sha=null, tokens={};
     if(infoRes.ok){
       const info=await infoRes.json(); sha=info.sha;
@@ -3070,9 +3047,10 @@ async function saveFCMTokenToGitHub(role, fcmToken) {
     if(tokens[role]===fcmToken) return; // 변경없으면 skip
     tokens[role]=fcmToken;
     const content=btoa(unescape(encodeURIComponent(JSON.stringify(tokens,null,2))));
-    const body={message:`fcm: update ${role} token`,content};
+    const body={file:'fcm-tokens.json', message:`fcm: update ${role} token`, content};
     if(sha) body.sha=sha;
-    await fetch(apiBase,{method:'PUT',headers,body:JSON.stringify(body)});
+    // PUT: Worker 프록시로 (토큰 서버측 보관)
+    await fetch(`${WORKER_URL}/github-write`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)});
   } catch(e){ console.warn('FCM token save failed',e); }
 }
 
