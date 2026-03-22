@@ -917,7 +917,7 @@ textarea { resize: vertical; min-height: 60px; }
 // ───────────────────────────────
 // APP VERSION
 // ───────────────────────────────
-const APP_VERSION = '0.3.3';
+const APP_VERSION = '0.3.4';
 
 // ───────────────────────────────
 // 출결 통계
@@ -1291,7 +1291,7 @@ const ZONE_MEMBERS = [
   { district:1, members:[
     {name:'임미자',role:'leader'},{name:'우정식',role:'member'},
     {name:'김성숙',role:'inspector'},{name:'박영준',role:'member'},
-    {name:'권옥자',role:'member'},{name:'류흥렬',role:'member'},{name:'박순옥',role:'member'},
+    {name:'권옥자',role:'member'},{name:'류홍렬',role:'member'},{name:'박순옥',role:'member'},
     {name:'서유정',role:'member'},{name:'황흥도',role:'member'},{name:'이이순',role:'member'},
     {name:'김수근',role:'member'},{name:'최순옥',role:'member'},{name:'최현숙',role:'member'},
   ]},
@@ -1328,12 +1328,12 @@ const ZONE_MEMBERS = [
     {name:'조자형',role:'member'},{name:'양태모',role:'member'},{name:'한선분',role:'member'},
   ]},
   { district:2, members:[
-    {name:'김영수',role:'leader'},
+    {name:'김영숙',role:'leader'},
     {name:'유미선',role:'inspector'},{name:'나인용',role:'member'},
     {name:'권금애',role:'member'},{name:'김미순',role:'member'},{name:'김병기',role:'member'},
     {name:'김은정',role:'member'},{name:'김규보',role:'member'},{name:'심기동',role:'member'},
-    {name:'원흥순',role:'member'},{name:'이헌상',role:'member'},{name:'윤석현',role:'member'},
-    {name:'최필남',role:'member'},{name:'이금순',role:'member'},{name:'정현숙',role:'member'},
+    {name:'원흥순',role:'member'},{name:'이현상',role:'member'},{name:'윤석현',role:'member'},
+    {name:'최필남',role:'member'},{name:'정현숙',role:'member'},
     {name:'심완섭',role:'member'},{name:'최기환',role:'member'},
   ]},
   { district:2, members:[
@@ -1341,7 +1341,7 @@ const ZONE_MEMBERS = [
     {name:'전미영',role:'inspector'},{name:'이봉열',role:'member'},
     {name:'강상희',role:'member'},{name:'고환필',role:'member'},{name:'김미용',role:'member'},
     {name:'모동수',role:'member'},{name:'박순복',role:'member'},{name:'박영철',role:'member'},
-    {name:'윤여임',role:'member'},{name:'이영주',role:'member'},{name:'김호철',role:'member'},{name:'한정애',role:'member'},
+    {name:'윤여임',role:'member'},{name:'이영주',role:'member'},{name:'김효철',role:'member'},{name:'한정애',role:'member'},
   ]},
   { district:2, members:[
     {name:'조옥희',role:'leader'},{name:'박양권',role:'member'},
@@ -1364,8 +1364,8 @@ const ZONE_MEMBERS = [
     {name:'조명숙',role:'inspector'},{name:'이순용',role:'member'},
     {name:'강지아',role:'member'},{name:'나요나',role:'member'},{name:'전진구',role:'member'},
     {name:'박진아',role:'member'},{name:'정민시',role:'member'},{name:'이사라',role:'member'},
-    {name:'천성현',role:'member'},{name:'정수미',role:'member'},{name:'민건우',role:'member'},
-    {name:'최주희',role:'member'},{name:'한상미',role:'member'},{name:'윤승희',role:'member'},
+    {name:'천성현',role:'member'},{name:'최주희',role:'member'},{name:'정수미',role:'member'},{name:'민건우',role:'member'},
+    {name:'한상미',role:'member'},{name:'윤승희',role:'member'},
   ]},
 ];
 // 하위호환: ZONE_LEADERS[i] = [구역장명, 권찰명]
@@ -2492,20 +2492,23 @@ function wParagraph(text, opts = {}) {
 }
 
 function wTableRow(cells, isHeader = false) {
-  const tcWidth = Math.floor(8638 / cells.length);
+  // 2열 고정: 레이블(1800) + 값(8280)
+  const colWidths = [1800, 8280];
   return `
 <w:tr>
+  <w:trPr><w:trHeight w:val="320" w:hRule="atLeast"/></w:trPr>
   ${cells.map((cell, i) => `
   <w:tc>
     <w:tcPr>
-      <w:tcW w:w="${tcWidth}" w:type="dxa"/>
-      ${isHeader && i === 0 ? '<w:shd w:val="clear" w:color="auto" w:fill="2C5AA0"/>' : ''}
+      <w:tcW w:w="${colWidths[i] || 8280}" w:type="dxa"/>
+      ${i === 0 ? '<w:shd w:val="clear" w:color="auto" w:fill="EBF4FF"/>' : ''}
     </w:tcPr>
     <w:p>
+      <w:pPr><w:jc w:val="${i === 0 ? 'center' : 'left'}"/></w:pPr>
       <w:r>
         <w:rPr>
-          ${isHeader && i === 0 ? '<w:b/><w:color w:val="FFFFFF"/>' : ''}
-          <w:sz w:val="22"/><w:szCs w:val="22"/>
+          ${i === 0 ? '<w:b/><w:color w:val="2C5AA0"/>' : ''}
+          <w:sz w:val="20"/><w:szCs w:val="20"/>
         </w:rPr>
         <w:t xml:space="preserve">${esc(cell)}</w:t>
       </w:r>
@@ -2518,25 +2521,25 @@ function wInfoTable(rows) {
   return `
 <w:tbl>
   <w:tblPr>
-    <w:tblW w:w="8638" w:type="dxa"/>
+    <w:tblW w:w="10080" w:type="dxa"/>
     <w:tblBorders>
-      <w:top w:val="single" w:sz="4" w:space="0" w:color="2C5AA0"/>
-      <w:left w:val="single" w:sz="4" w:space="0" w:color="2C5AA0"/>
-      <w:bottom w:val="single" w:sz="4" w:space="0" w:color="2C5AA0"/>
-      <w:right w:val="single" w:sz="4" w:space="0" w:color="2C5AA0"/>
-      <w:insideH w:val="single" w:sz="4" w:space="0" w:color="CCCCCC"/>
-      <w:insideV w:val="single" w:sz="4" w:space="0" w:color="CCCCCC"/>
+      <w:top w:val="none" w:sz="0" w:space="0" w:color="auto"/>
+      <w:left w:val="none" w:sz="0" w:space="0" w:color="auto"/>
+      <w:bottom w:val="none" w:sz="0" w:space="0" w:color="auto"/>
+      <w:right w:val="none" w:sz="0" w:space="0" w:color="auto"/>
+      <w:insideH w:val="single" w:sz="2" w:space="0" w:color="DDDDDD"/>
+      <w:insideV w:val="none" w:sz="0" w:space="0" w:color="auto"/>
     </w:tblBorders>
     <w:tblCellMar>
-      <w:top w:w="80" w:type="dxa"/>
-      <w:left w:w="120" w:type="dxa"/>
-      <w:bottom w:w="80" w:type="dxa"/>
-      <w:right w:w="120" w:type="dxa"/>
+      <w:top w:w="40" w:type="dxa"/>
+      <w:left w:w="80" w:type="dxa"/>
+      <w:bottom w:w="40" w:type="dxa"/>
+      <w:right w:w="80" w:type="dxa"/>
     </w:tblCellMar>
   </w:tblPr>
   <w:tblGrid>
-    <w:gridCol w:w="2160"/>
-    <w:gridCol w:w="6478"/>
+    <w:gridCol w:w="1800"/>
+    <w:gridCol w:w="8280"/>
   </w:tblGrid>
   ${rows.map(r => wTableRow(r)).join('')}
 </w:tbl>`;
@@ -2614,13 +2617,14 @@ function buildDocumentXml() {
 
   // Zone absent list (새 구조: state.adult.zones[i].members)
   const zones = (d.adult && d.adult.zones) ? d.adult.zones : [];
+  // 구역장(leader) 제외한 결석자 목록
   const zoneLines = zones.map((z, i) => {
-    const absent = (z.members || []).filter(m => m.status === 'absent').map(m => m.name);
+    const absent = (z.members || []).filter(m => m.status === 'absent' && m.role !== 'leader').map(m => m.name);
     return absent.length ? `(${i+1}구역) ${ZONE_MEMBERS[i]?.members.find(m=>m.role==='leader')?.name||''}: ${absent.join(', ')}` : null;
   }).filter(Boolean);
 
-  // Total zone absent count
-  let zoneTotal = zones.reduce((sum, z) => sum + (z.members || []).filter(m => m.status === 'absent').length, 0);
+  let zoneTotal = zones.reduce((sum, z) =>
+    sum + (z.members || []).filter(m => m.status === 'absent' && m.role !== 'leader').length, 0);
 
   return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"
