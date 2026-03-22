@@ -272,6 +272,20 @@ textarea { resize: vertical; min-height: 60px; }
 }
 .zone-btn-present { border-color: #63b3ed; color: #2b6cb0; }
 .zone-btn-absent  { border-color: #feb2b2; color: #c53030; }
+.zone-btn-add     { border-color: #68d391; color: #276749; background: #f0fff4; }
+.zone-add-row {
+  display: none; gap: 6px; margin-top: 8px; align-items: center;
+}
+.zone-add-row.open { display: flex; }
+.zone-add-row input {
+  flex: 1; font-size: 12px; padding: 5px 8px; border-radius: 7px;
+  border: 1.5px solid #68d391; background: #f0fff4; color: var(--text);
+}
+.zone-add-submit {
+  padding: 5px 12px; border-radius: 7px; border: none;
+  background: #38a169; color: white; font-size: 13px; font-weight: 700;
+  cursor: pointer; touch-action: manipulation; flex-shrink: 0;
+}
 .zone-chevron { font-size: 10px; color: var(--text-muted); transition: transform 0.2s; flex-shrink:0; }
 .zone-chevron.open { transform: rotate(90deg); }
 .zone-acc-body { display: none; padding: 6px 10px 10px; }
@@ -1761,6 +1775,7 @@ function renderAdultGrid() {
           ${absentCount ? `<span class="zone-head-absent">결석 ${absentCount}명</span>` : ''}
         </span>
         <span class="zone-head-btns">
+          <button class="zone-btn-all zone-btn-add"     onclick="event.stopPropagation();toggleZoneAddRow(${zi})">인원추가</button>
           <button class="zone-btn-all zone-btn-present" onclick="event.stopPropagation();setAllZone(${zi},'present')">전원출석</button>
           <button class="zone-btn-all zone-btn-absent"  onclick="event.stopPropagation();setAllZone(${zi},'absent')">전원결석</button>
         </span>
@@ -1768,6 +1783,11 @@ function renderAdultGrid() {
       </div>
       <div class="zone-acc-body open" id="zoneBody${zi}">
         <div class="adult-chip-grid" id="zoneChipGrid${zi}"></div>
+        <div class="zone-add-row" id="zoneAddRow${zi}">
+          <input type="text" id="zoneAddInput${zi}" placeholder="이름 입력" autocomplete="off"
+            onkeydown="if(event.key==='Enter')addZoneMember(${zi})">
+          <button class="zone-add-submit" onclick="addZoneMember(${zi})">+</button>
+        </div>
       </div>
     `;
     container.appendChild(acc);
@@ -1839,6 +1859,29 @@ function toggleZoneAcc(zi) {
   const chevron = document.getElementById(`zoneChevron${zi}`);
   const isOpen = body.classList.toggle('open');
   chevron.classList.toggle('open', isOpen);
+}
+
+function toggleZoneAddRow(zi) {
+  const row = document.getElementById(`zoneAddRow${zi}`);
+  const isOpen = row.classList.toggle('open');
+  if (isOpen) {
+    // 구역 바디도 열기
+    document.getElementById(`zoneBody${zi}`).classList.add('open');
+    document.getElementById(`zoneChevron${zi}`).classList.add('open');
+    setTimeout(() => document.getElementById(`zoneAddInput${zi}`)?.focus(), 50);
+  }
+}
+
+function addZoneMember(zi) {
+  const input = document.getElementById(`zoneAddInput${zi}`);
+  const name = (input?.value || '').trim();
+  if (!name) return;
+  state.adult.zones[zi].members.push({ name, role: 'member', status: 'present' });
+  input.value = '';
+  renderZoneChips(zi);
+  updateAdultStats();
+  scheduleSilentSave();
+  toast(`✅ ${name} 추가됨`);
 }
 
 function updateAdultStats() {
