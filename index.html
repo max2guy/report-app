@@ -222,7 +222,29 @@ textarea { resize: vertical; min-height: 60px; }
 }
 .sms-summary {
   text-align: center; padding: 8px 0 4px;
-  font-size: 13px; color: var(--text-muted); margin-bottom: 12px;
+  font-size: 13px; color: var(--text-muted); margin-bottom: 8px;
+}
+/* SMS 전체 순차 전송 */
+.sms-queue-controls {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 0 12px; border-bottom: 1px solid var(--border); margin-bottom: 12px;
+}
+.btn-sms-all {
+  flex: 1; background: var(--navy); color: white;
+  border: none; border-radius: 10px; padding: 10px 0;
+  font-size: 14px; font-weight: 700; cursor: pointer; letter-spacing: -0.3px;
+}
+.btn-sms-all:disabled { opacity: 0.35; cursor: not-allowed; }
+.btn-sms-stop {
+  background: #e53e3e; color: white; border: none;
+  border-radius: 10px; padding: 10px 12px; font-size: 14px; cursor: pointer;
+}
+.sms-progress-label {
+  font-size: 12px; color: var(--text-muted); white-space: nowrap; min-width: 48px; text-align: right;
+}
+.sms-queue-item.current {
+  border-color: var(--navy); background: rgba(26,54,93,0.06);
+  box-shadow: 0 0 0 2px rgba(26,54,93,0.15);
 }
 .zone-total {
   grid-column: 1 / -1; background: linear-gradient(135deg, var(--navy), var(--navy2));
@@ -1636,6 +1658,78 @@ function buildDistrictSMSMessage(d) {
 const smsSentState = {};
 const _smsMsgMap = {}; // SMS 메시지 임시 저장 (onclick 주입 방지)
 
+// ── SMS 순차 큐 상태 ──
+let _smsQueue = [];      // [{id, phone, msg, label}]
+let _smsQueueIdx = 0;
+let _smsQueueActive = false;
+
+function getSMSTargets() {
+  const targets = [];
+  for (let i = 0; i < 12; i++) {
+    if (!(state.zones[i] || '').trim()) continue;
+    const [leader] = ZONE_LEADERS[i];
+    targets.push({ id: `z${i}`, label: `${i+1}구역`, leaderName: `구역장 ${leader}`, phone: zonePhones[i], msg: buildSMSMessage(i) });
+  }
+  DISTRICT_LEADERS.forEach(d => {
+    const msg = buildDistrictSMSMessage(d);
+    if (!msg) return;
+    targets.push({ id: `d${d.phoneIdx}`, label: d.label, leaderName: `교구장 ${d.name}`, phone: zonePhones[d.phoneIdx], msg });
+  });
+  return targets;
+}
+
+function startSMSQueue() {
+  _smsQueue = getSMSTargets().filter(t => t.phone && !smsSentState[t.id]);
+  if (!_smsQueue.length) { toast('전송할 항목이 없습니다'); return; }
+  _smsQueueIdx = 0;
+  _smsQueueActive = true;
+  renderSMSModalBody();
+  sendNextSMS();
+}
+
+function sendNextSMS() {
+  if (!_smsQueueActive) return;
+  if (_smsQueueIdx >= _smsQueue.length) {
+    _smsQueueActive = false;
+    renderSMSModalBody();
+    toast('✅ 전체 문자 전송 완료');
+    return;
+  }
+  const { id, phone, msg } = _smsQueue[_smsQueueIdx];
+
+  // 현재 항목 하이라이트 & 스크롤
+  document.querySelectorAll('.sms-queue-item').forEach(el => el.classList.remove('current'));
+  const cur = document.getElementById(`smsItem_${id}`);
+  if (cur) { cur.classList.add('current'); cur.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+
+  // 진행률 업데이트
+  const prog = document.getElementById('smsQueueProgress');
+  if (prog) prog.textContent = `${_smsQueueIdx}/${_smsQueue.length}`;
+
+  // 문자 앱 열기
+  window.location.href = `sms:${phone}?body=${encodeURIComponent(msg)}`;
+
+  // 앱으로 돌아오면 다음 항목 처리
+  const onVisible = () => {
+    if (document.visibilityState === 'visible') {
+      document.removeEventListener('visibilitychange', onVisible);
+      smsSentState[id] = true;
+      _smsQueueIdx++;
+      renderSMSModalBody();
+      const prog2 = document.getElementById('smsQueueProgress');
+      if (prog2) prog2.textContent = `${_smsQueueIdx}/${_smsQueue.length}`;
+      setTimeout(sendNextSMS, 900);
+    }
+  };
+  document.addEventListener('visibilitychange', onVisible);
+}
+
+function stopSMSQueue() {
+  _smsQueueActive = false;
+  renderSMSModalBody();
+  toast('⏹ 전송 중단');
+}
+
 function renderSMSItem(id, zoneLabel, leaderName, phone, msg, sent) {
   _smsMsgMap[id] = msg; // 메시지를 전역 맵에 저장 (onclick 속성에 직접 삽입 금지)
   return `
@@ -1656,57 +1750,56 @@ function renderSMSItem(id, zoneLabel, leaderName, phone, msg, sent) {
     </div>`;
 }
 
-function openSMSModal() {
-  const targets = [];
-  for (let i = 0; i < 12; i++) {
-    if ((state.zones[i] || '').trim()) targets.push(i);
-  }
-  if (!targets.length) {
-    toast('결석자를 먼저 입력해주세요');
-    return;
-  }
+function renderSMSModalBody() {
+  const allTargets = getSMSTargets();
+  if (!allTargets.length) return;
 
-  // 구역장 항목
-  const zoneItems = targets.map(i => {
-    const [leader] = ZONE_LEADERS[i];
-    return renderSMSItem(`z${i}`, `${i+1}구역`, `구역장 ${leader}`, zonePhones[i], buildSMSMessage(i), smsSentState[`z${i}`]);
-  }).join('');
+  const totalCount = allTargets.length;
+  const sentCount = allTargets.filter(t => smsSentState[t.id]).length;
+  const remaining = allTargets.filter(t => t.phone && !smsSentState[t.id]).length;
 
-  // 교구장 항목 (해당 교구에 결석자 있는 경우만)
-  const districtItems = DISTRICT_LEADERS.map(d => {
-    const msg = buildDistrictSMSMessage(d);
-    if (!msg) return '';
-    const phone = zonePhones[d.phoneIdx];
-    return renderSMSItem(`d${d.phoneIdx}`, d.label, `교구장 ${d.name}`, phone, msg, smsSentState[`d${d.phoneIdx}`]);
-  }).join('');
+  const zoneItems = allTargets.filter(t => t.id.startsWith('z'))
+    .map(t => renderSMSItem(t.id, t.label, t.leaderName, t.phone, t.msg, smsSentState[t.id])).join('');
+  const districtItems = allTargets.filter(t => t.id.startsWith('d'))
+    .map(t => renderSMSItem(t.id, t.label, t.leaderName, t.phone, t.msg, smsSentState[t.id])).join('');
 
-  const totalCount = targets.length + DISTRICT_LEADERS.filter(d => buildDistrictSMSMessage(d)).length;
-  const sentCount = Object.values(smsSentState).filter(Boolean).length;
+  const queueIdx = _smsQueueActive ? _smsQueueIdx : 0;
+  const queueTotal = _smsQueue.length;
 
   const body = document.getElementById('smsModalBody');
   body.innerHTML = `
-    <p class="sms-summary">전송완료 <span id="smsSentCount">${sentCount}</span>/${totalCount}</p>
+    <div class="sms-queue-controls">
+      <button class="btn-sms-all" onclick="startSMSQueue()" ${_smsQueueActive || !remaining ? 'disabled' : ''}>
+        📤 전체 순차 전송
+      </button>
+      ${_smsQueueActive ? `<button class="btn-sms-stop" onclick="stopSMSQueue()">⏹</button>` : ''}
+      <span class="sms-progress-label" id="smsQueueProgress">${_smsQueueActive ? `${queueIdx}/${queueTotal}` : ''}</span>
+    </div>
+    <p class="sms-summary">전송완료 ${sentCount}/${totalCount}</p>
     <p style="font-size:12px;font-weight:600;color:var(--navy);margin-bottom:8px">── 구역장 개별 전송 ──</p>
     ${zoneItems}
-    <p style="font-size:12px;font-weight:600;color:var(--navy);margin:14px 0 8px">── 교구장 전체 결석자 전송 ──</p>
-    ${districtItems}
+    ${districtItems ? `<p style="font-size:12px;font-weight:600;color:var(--navy);margin:14px 0 8px">── 교구장 전체 결석자 전송 ──</p>${districtItems}` : ''}
   `;
+
+  // 큐 진행 중이면 현재 항목 다시 하이라이트
+  if (_smsQueueActive && _smsQueue[_smsQueueIdx]) {
+    const cur = document.getElementById(`smsItem_${_smsQueue[_smsQueueIdx].id}`);
+    if (cur) cur.classList.add('current');
+  }
+}
+
+function openSMSModal() {
+  const hasTargets = Array.from({length: 12}, (_, i) => i).some(i => (state.zones[i] || '').trim());
+  if (!hasTargets) { toast('결석자를 먼저 입력해주세요'); return; }
+  renderSMSModalBody();
   document.getElementById('smsModal').classList.add('open');
 }
 
 function sendQueueSMSById(id, phone) {
-  const msg = _smsMsgMap[id] || ''; // 전역 맵에서 안전하게 꺼냄
+  const msg = _smsMsgMap[id] || '';
   window.location.href = `sms:${phone}?body=${encodeURIComponent(msg)}`;
   smsSentState[id] = true;
-  setTimeout(() => {
-    const item = document.getElementById(`smsItem_${id}`);
-    if (item) {
-      item.classList.add('sent');
-      item.querySelector('.sms-queue-footer').innerHTML = `<span class="sms-sent-badge">✓ 전송완료</span>`;
-    }
-    const cnt = document.getElementById('smsSentCount');
-    if (cnt) cnt.textContent = Object.values(smsSentState).filter(Boolean).length;
-  }, 1000);
+  setTimeout(() => renderSMSModalBody(), 900);
 }
 
 // 구역장 번호 관리
