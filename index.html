@@ -2852,36 +2852,41 @@ function deleteStaffInstr(id) {
 
 let _fcmJustReceived = false;
 async function fetchInstructions(fromFCM = false) {
-  try {
-    const res = await fetch('https://api.github.com/repos/max2guy/report-app/contents/instructions.json', {
-      headers: { 'Accept': 'application/vnd.github+json' }, cache: 'no-store'
-    });
-    if (!res.ok) return;
-    const info = await res.json();
-    let list;
+  // FCM 수신 직후엔 GitHub 반영 대기 후 재시도
+  const delays = fromFCM ? [2000, 4000] : [0];
+  for (const delay of delays) {
+    if (delay) await new Promise(r => setTimeout(r, delay));
     try {
-      list = JSON.parse(new TextDecoder('utf-8').decode(Uint8Array.from(atob(info.content.replace(/\n/g,'')), c => c.charCodeAt(0))));
-    } catch(parseErr) {
-      console.warn('지시사항 JSON 파싱 실패:', parseErr.message);
-      return;
-    }
-    if (!Array.isArray(list) || !list.length) return;
-    localStorage.setItem('cachedInstructions', JSON.stringify(list));
-    renderStaffInstrList(); // 메시지함 즉시 갱신
-    const latest = list[list.length - 1];
-    if (latest.id !== lastInstrId) {
-      lastInstrId = latest.id;
-      localStorage.setItem('lastInstrId', latest.id);
-      staffUnread++;
-      const badge = document.getElementById('staffInboxBadge');
-      if (badge) { badge.style.display='flex'; badge.textContent = staffUnread; }
-      // FCM으로 이미 알림 받은 경우 토스트만, 중복 Web Notification 제거
-      if (!_fcmJustReceived) {
-        toast('📋 새 지시사항이 있습니다');
+      const res = await fetch('https://api.github.com/repos/max2guy/report-app/contents/instructions.json', {
+        headers: { 'Accept': 'application/vnd.github+json' }, cache: 'no-store'
+      });
+      if (!res.ok) continue;
+      const info = await res.json();
+      let list;
+      try {
+        list = JSON.parse(new TextDecoder('utf-8').decode(Uint8Array.from(atob(info.content.replace(/\n/g,'')), c => c.charCodeAt(0))));
+      } catch(parseErr) {
+        console.warn('지시사항 JSON 파싱 실패:', parseErr.message);
+        continue;
       }
-      _fcmJustReceived = false;
-    }
-  } catch(e) { console.log('지시사항 로드 실패:', e.message); }
+      if (!Array.isArray(list) || !list.length) continue;
+      localStorage.setItem('cachedInstructions', JSON.stringify(list));
+      renderStaffInstrList();
+      const latest = list[list.length - 1];
+      if (latest.id !== lastInstrId) {
+        lastInstrId = latest.id;
+        localStorage.setItem('lastInstrId', latest.id);
+        staffUnread++;
+        const badge = document.getElementById('staffInboxBadge');
+        if (badge) { badge.style.display='flex'; badge.textContent = staffUnread; }
+        if (!_fcmJustReceived) {
+          toast('📋 새 지시사항이 있습니다');
+        }
+        _fcmJustReceived = false;
+      }
+      return; // 성공하면 재시도 불필요
+    } catch(e) { console.log('지시사항 로드 실패:', e.message); }
+  }
 }
 
 // 보고서 생성 시 목사님께 알림 전송
