@@ -339,8 +339,6 @@ textarea { resize: vertical; min-height: 60px; }
 .btn-primary:active { transform: scale(0.97); }
 .btn-gold { background: linear-gradient(135deg, var(--gold), #b8922a); color: white; }
 .btn-gold:active { transform: scale(0.97); }
-.btn-blue-sms { background: linear-gradient(135deg, #2c82e0, #1a5fbf); color: white; }
-.btn-blue-sms:active { transform: scale(0.97); }
 .btn-share { background: linear-gradient(135deg, #2c7be5, #1a5bbf); color: white; }
 .btn-share:active { transform: scale(0.97); }
 .btn-secondary { background: var(--bg); color: var(--text-muted); border: 1.5px solid var(--border); }
@@ -746,7 +744,7 @@ textarea { resize: vertical; min-height: 60px; }
       </div>
       <div id="adultZoneContainer"></div>
     </div>
-    <button class="btn btn-blue-sms" style="width:100%;margin-top:8px" onclick="openSMSModal()">
+    <button class="btn btn-share" style="width:100%;margin-top:8px" onclick="openSMSModal()">
       📨 구역장 SMS 전송하기
     </button>
     <div class="card">
@@ -920,7 +918,7 @@ textarea { resize: vertical; min-height: 60px; }
 // ───────────────────────────────
 // APP VERSION
 // ───────────────────────────────
-const APP_VERSION = '0.4.6';
+const APP_VERSION = '0.4.7';
 
 // ───────────────────────────────
 // 출결 통계
@@ -1175,7 +1173,7 @@ function deleteHistoryRow(date) {
   reportHistory = reportHistory.filter(h => h.date !== date);
   localStorage.setItem('reportHistory', JSON.stringify(reportHistory));
   renderStats();
-  syncHistoryToGitHub(false, true); // overwrite=true: 병합 없이 로컬로 덮어쓰기
+  syncHistoryToGitHub(true); // overwrite=true: 병합 없이 로컬로 덮어쓰기
   toast('🗑️ 삭제 완료');
 }
 
@@ -1425,18 +1423,18 @@ function init() {
     // 교구 멤버 복원: 저장된 상태 vs 기본값
     if (s.adult?.zones?.length === 12) {
       // ZONE_MEMBERS 기준으로 이름·순서 동기화 (사망 삭제·이름 수정 반영)
+      // 구 이름 → 새 이름 매핑 (이름 변경 시 출결 정보 이전)
+      const nameRemap = {
+        '김영수': '김영숙',
+        '류흥렬': '류홍렬',
+        '이헌상': '이현상',
+        '김호철': '김효철',
+      };
       state.adult.zones = ZONE_MEMBERS.map((zDef, zi) => {
         const saved = s.adult.zones[zi] || { members: [] };
         // 저장된 구역원 맵: 이름 → status (출결 정보 보존용)
         const statusByName = {};
         (saved.members || []).forEach(m => { statusByName[m.name] = m.status; });
-        // 구 이름 → 새 이름 매핑 (이름 변경 시 출결 정보 이전)
-        const nameRemap = {
-          '김영수': '김영숙',
-          '류흥렬': '류홍렬',
-          '이헌상': '이현상',
-          '김호철': '김효철',
-        };
         // 구 이름으로 저장된 status도 이전
         Object.entries(nameRemap).forEach(([oldName, newName]) => {
           if (statusByName[oldName] !== undefined && statusByName[newName] === undefined) {
@@ -1526,22 +1524,13 @@ function toggleAccordion(btnId, contentId) {
 // ───────────────────────────────
 // GITHUB SYNC
 // ───────────────────────────────
-function updateGitSyncStatus(msg) {
-  const el = document.getElementById('gitSyncStatus');
-  if (!el) return;
-  const last = localStorage.getItem('githubLastSync');
-  if (msg) { el.textContent = msg; return; }
-  el.textContent = last ? `마지막 동기화: ${last}` : '아직 동기화 안 됨';
-}
-
 const WORKER_URL = 'https://nas-proxy.max2guy.workers.dev';
 
-async function syncHistoryToGitHub(manual = false, overwrite = false) {
+async function syncHistoryToGitHub(overwrite = false) {
   const repo = (localStorage.getItem('githubRepo') || 'max2guy/report-app').trim();
   const rawUrl = `https://raw.githubusercontent.com/${repo}/main/history.json`;
 
   try {
-    updateGitSyncStatus('동기화 중...');
 
     // GET: raw URL 사용 (인증 불필요, rate limit 없음)
     let remoteData = [];
@@ -1603,9 +1592,7 @@ async function syncHistoryToGitHub(manual = false, overwrite = false) {
 
     const now = new Date().toLocaleString('ko-KR', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
     localStorage.setItem('githubLastSync', now);
-    updateGitSyncStatus(`✅ ${now}`);
   } catch(e) {
-    updateGitSyncStatus(`❌ ${e.message}`);
     console.error('GitHub sync error', e);
   }
 }
@@ -2164,8 +2151,6 @@ function openSettings() {
   // 버전 표시
   const vEl = document.getElementById('appVersionText');
   if (vEl) vEl.textContent = APP_VERSION;
-  const hVer = document.getElementById('headerVersion');
-  if (hVer) hVer.textContent = `v${APP_VERSION}`;
   // 아코디언 초기화 (모두 닫힌 상태)
   ['accPhone','accGit'].forEach(id => {
     const btn = document.getElementById(id);
@@ -2180,7 +2165,6 @@ function openSettings() {
   if (nasPassEl) nasPassEl.value = localStorage.getItem('nasPassword') || '';
   const nasPathEl = document.getElementById('nasUploadPath');
   if (nasPathEl) nasPathEl.value = localStorage.getItem('nasUploadPath') || '/home/Backup/연천장로교회/D/연천장로교회 문서/사무실/2026년/담임목사/';
-  updateGitSyncStatus();
   document.getElementById('settingsModal').classList.add('open');
 }
 function closeModal(e, id) {
@@ -2234,7 +2218,7 @@ async function generateReport() {
     const filename = `주일사역보고서_${dateStr}_${state.reporter}.docx`;
     await downloadAndSave(blob, filename);
     // 보고서 생성 시 GitHub 자동 동기화 (백그라운드)
-    syncHistoryToGitHub(false);
+    syncHistoryToGitHub();
     pushReportNotification(); // 목사님께 알림
   } catch(e) {
     toast('❌ 생성 실패: ' + e.message);
@@ -2348,49 +2332,6 @@ async function doShare(method) {
     return;
   }
 
-  if (method === 'share') {
-    // navigator.share with DOCX file, fallback to download
-    try {
-      toast('⏳ DOCX 생성 중...');
-      const blob = await buildDocx();
-      const name = _shareFilenameCache.replace('.json', '.docx');
-      const file = new File([blob], name, { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
-      if (navigator.canShare && navigator.canShare({ files: [file] })) {
-        await navigator.share({ files: [file], title: name });
-        toast('✅ 공유 완료');
-        syncHistoryToGitHub(false); // 공유 성공 시 GitHub 자동 동기화
-      } else {
-        triggerDownload(blob, name);
-        toast('📥 다운로드 완료');
-        syncHistoryToGitHub(false); // 다운로드 시 GitHub 자동 동기화
-      }
-    } catch(e) {
-      if (e.name !== 'AbortError') {
-        // fallback to download
-        try {
-          const blob = await buildDocx();
-          const name = _shareFilenameCache.replace('.json', '.docx');
-          triggerDownload(blob, name);
-          toast('📥 다운로드 완료');
-        } catch(e2) { toast('❌ ' + e2.message); }
-      }
-    }
-    return;
-  }
-
-  // legacy: dsfile
-  if (method === 'dsfile') {
-    const result = await shareReportToDSFile(_shareDataCache, _shareFilenameCache);
-    if (result.success) {
-      toast('✅ 공유 완료');
-    } else if (result.cancelled) {
-      // 사용자 취소 — 아무것도 안 함
-    } else if (result.downloaded) {
-      toast('📥 다운로드 완료. DS File 앱 → 업로드로 NAS에 올려주세요.');
-    }
-    return;
-  }
-
   if (method === 'docx') {
     try {
       toast('⏳ DOCX 생성 중...');
@@ -2398,14 +2339,9 @@ async function doShare(method) {
       const name = _shareFilenameCache.replace('.json', '.docx');
       triggerDownload(blob, name);
       toast('✅ DOCX 다운로드 완료');
+      syncHistoryToGitHub(); // 다운로드 시 GitHub 자동 동기화
     } catch(e) { toast('❌ ' + e.message); }
     return;
-  }
-
-  if (method === 'json') {
-    const blob = new Blob([JSON.stringify(_shareDataCache, null, 2)], { type: 'application/json' });
-    triggerDownload(blob, _shareFilenameCache);
-    toast('✅ JSON 다운로드 완료');
   }
 }
 
@@ -2424,13 +2360,12 @@ async function uploadToNAS() {
     const dateStr  = document.getElementById('reportDate').value || new Date().toISOString().slice(0,10);
     const filename = `주일사역보고서_${dateStr}.docx`;
 
-    const workerUrl = 'https://nas-proxy.max2guy.workers.dev/';
     const nasBasePath = localStorage.getItem('nasUploadPath') || '/home/Backup/연천장로교회/D/연천장로교회 문서/사무실/2026년/담임목사/';
     const nasPath   = nasBasePath + filename;
     const auth      = 'Basic ' + btoa(unescape(encodeURIComponent(account + ':' + password)));
 
     toast('☁️ NAS 업로드 중...');
-    const resp = await fetch(workerUrl, {
+    const resp = await fetch(WORKER_URL + '/', {
       method: 'PUT',
       headers: {
         'Authorization': auth,
@@ -2442,7 +2377,7 @@ async function uploadToNAS() {
 
     if (resp.status === 201 || resp.status === 204 || resp.status === 200) {
       toast('✅ NAS 업로드 완료!');
-      syncHistoryToGitHub(false); // NAS 업로드 성공 시 GitHub 자동 동기화
+      syncHistoryToGitHub(); // NAS 업로드 성공 시 GitHub 자동 동기화
     } else {
       toast('❌ NAS 업로드 실패: ' + resp.status);
     }
@@ -2513,7 +2448,7 @@ function wParagraph(text, opts = {}) {
 </w:p>`;
 }
 
-function wTableRow(cells, isHeader = false) {
+function wTableRow(cells) {
   // 2열 고정: 레이블(1800) + 값(8280)
   const colWidths = [1800, 8280];
   return `
@@ -2791,10 +2726,11 @@ function scheduleSilentSave() {
 // 텍스트 입력 시 자동저장
 document.addEventListener('input', () => scheduleSilentSave());
 // 앱 백그라운드 전환 시 즉시 저장 + GitHub 동기화
+// SMS 큐 진행 중에는 동기화 생략 (문자 앱 전환마다 반복 호출 방지)
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'hidden') {
     saveDraftSilent();
-    syncHistoryToGitHub(false); // 백그라운드 자동 동기화
+    if (!_smsQueueActive) syncHistoryToGitHub(); // 백그라운드 자동 동기화
   }
 });
 
@@ -2895,9 +2831,6 @@ if ('serviceWorker' in navigator) {
         toast('🔄 최신 버전으로 업데이트 중...');
         setTimeout(() => location.reload(), 800);
       });
-
-      // 앱 실행 시마다 SW 업데이트 확인 (깃허브 변경 감지)
-      reg.update();
 
     } catch (e) {
       console.log('SW 등록 실패:', e);
