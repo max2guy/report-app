@@ -1808,6 +1808,23 @@ function renderZoneChips(zi) {
     if (m.role === 'inspector') badge = '<span class="adult-role-badge inspector">권</span>';
     chip.innerHTML = `${badge}<span>${m.name}</span>`;
     chip.onclick = () => toggleAdultMember(zi, mi);
+
+    // 길게 누르면 삭제
+    let pressTimer;
+    chip.addEventListener('touchstart', () => {
+      pressTimer = setTimeout(() => {
+        if (confirm(`${m.name}을(를) 명단에서 삭제할까요?`)) {
+          state.adult.zones[zi].members.splice(mi, 1);
+          renderZoneChips(zi);
+          updateAdultStats();
+          scheduleSilentSave();
+          toast(`🗑 ${m.name} 삭제됨`);
+        }
+      }, 600);
+    }, { passive: true });
+    chip.addEventListener('touchend',   () => clearTimeout(pressTimer), { passive: true });
+    chip.addEventListener('touchmove',  () => clearTimeout(pressTimer), { passive: true });
+
     grid.appendChild(chip);
   });
 }
