@@ -246,6 +246,53 @@ textarea { resize: vertical; min-height: 60px; }
   border-color: var(--navy); background: rgba(26,54,93,0.06);
   box-shadow: 0 0 0 2px rgba(26,54,93,0.15);
 }
+/* ── 교구 출석체크 ── */
+.district-bar {
+  background: var(--navy); color: white; font-size: 11px; font-weight: 700;
+  letter-spacing: 0.8px; padding: 5px 14px;
+}
+.zone-acc { border-bottom: 1px solid var(--border); }
+.zone-acc-head {
+  display: flex; align-items: center; gap: 8px; padding: 8px 12px;
+  cursor: pointer; user-select: none; background: var(--bg);
+  -webkit-tap-highlight-color: transparent;
+}
+.zone-acc-head:active { background: var(--border-light, #f0f4f8); }
+.zone-num-badge {
+  font-size: 11px; font-weight: 700; color: white; background: var(--navy);
+  border-radius: 4px; padding: 2px 6px; flex-shrink: 0;
+}
+.zone-head-info { flex: 1; min-width: 0; }
+.zone-head-leader { font-size: 12px; font-weight: 600; color: var(--navy); }
+.zone-head-absent { font-size: 11px; color: #c53030; font-weight: 700; margin-left: 6px; }
+.zone-head-btns { display: flex; gap: 4px; flex-shrink: 0; }
+.zone-btn-all {
+  font-size: 10px; padding: 3px 7px; border-radius: 5px; border: 1px solid;
+  cursor: pointer; background: none; touch-action: manipulation;
+}
+.zone-btn-present { border-color: #63b3ed; color: #2b6cb0; }
+.zone-btn-absent  { border-color: #feb2b2; color: #c53030; }
+.zone-chevron { font-size: 10px; color: var(--text-muted); transition: transform 0.2s; flex-shrink:0; }
+.zone-chevron.open { transform: rotate(90deg); }
+.zone-acc-body { display: none; padding: 6px 10px 10px; }
+.zone-acc-body.open { display: block; }
+.adult-chip-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(66px, 1fr)); gap: 5px; margin-top: 6px;
+}
+.adult-chip {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: 5px 3px; border-radius: 8px; border: 1.5px solid var(--border);
+  background: #f8fafc; cursor: pointer; transition: all 0.15s;
+  font-size: 11px; font-weight: 500; user-select: none; touch-action: manipulation;
+  text-align: center; min-height: 36px; gap: 2px;
+}
+.adult-chip.present { background: linear-gradient(135deg,#ebf8ff,#e6fffa); border-color: #63b3ed; color: #2b6cb0; }
+.adult-chip.absent  { background: #fff5f5; border-color: #feb2b2; color: #c53030; text-decoration: line-through; opacity: 0.8; }
+.adult-role-badge {
+  font-size: 8px; font-weight: 700; padding: 1px 3px; border-radius: 3px; line-height: 1.3;
+}
+.adult-role-badge.leader   { background: #2b6cb0; color: white; }
+.adult-role-badge.inspector{ background: #744210; color: white; }
 .zone-total {
   grid-column: 1 / -1; background: linear-gradient(135deg, var(--navy), var(--navy2));
   border-radius: 10px; padding: 12px 16px; color: white;
@@ -661,22 +708,21 @@ textarea { resize: vertical; min-height: 60px; }
 
   <!-- TAB 3: 교구 -->
   <section class="section" id="tab3">
-    <div class="card">
-      <div class="card-header">
+    <div class="card" style="overflow:hidden;padding:0">
+      <div class="card-header" style="margin:0;padding:12px 16px;border-bottom:1px solid var(--border)">
         <span class="card-header-icon">⛪</span>
-        <h2>교구 결석 현황</h2>
-        <span class="badge" id="zoneTotalNum">0명</span>
+        <h2>교구 출석 현황</h2>
+        <span class="badge" id="adultAbsentBadge">결석 0명</span>
       </div>
+      <div id="adultZoneContainer"></div>
+    </div>
+    <button class="btn btn-gold" style="width:100%;margin-top:8px" onclick="openSMSModal()">
+      📨 구역장 SMS 전송하기
+    </button>
+    <div class="card">
       <div class="card-body">
-        <div class="zone-grid" id="zoneGrid"></div>
-        <button class="btn btn-gold" style="width:100%;margin-top:12px" onclick="openSMSModal()">
-          📨 구역장 SMS 전송하기
-        </button>
-        <div class="divider"></div>
-        <div class="form-row">
-          <label>교구 특이사항</label>
-          <textarea id="parishNote" placeholder="" rows="2"></textarea>
-        </div>
+        <label>교구 특이사항</label>
+        <textarea id="parishNote" placeholder="" rows="2"></textarea>
       </div>
     </div>
   </section>
@@ -941,10 +987,10 @@ async function loadHistorySeed() {
 
 function saveToHistory() {
   if (!state.date) return;
-  // 장년 구역별 결석자 수집 (빈 구역 제외)
-  const adultZones = (state.zones || [])
+  // 장년 구역별 결석자 수집
+  const adultZones = (state.adult.zones || [])
     .map((z, i) => {
-      const names = (z || '').split(/[,，\s]+/).map(n => n.trim()).filter(Boolean);
+      const names = z.members.filter(m => m.status === 'absent').map(m => m.name);
       return names.length ? { zone: `${i + 1}구역`, names } : null;
     })
     .filter(Boolean);
@@ -1233,22 +1279,111 @@ const DEFAULT_YOUNG = [
 ];
 
 // ───────────────────────────────
-// ZONE LEADERS (구역장, 권찰)
+// ZONE MEMBERS (구역 전체 명단)
+// role: leader=구역장, inspector=권찰, member=일반
 // ───────────────────────────────
-const ZONE_LEADERS = [
-  ['이명숙', '김영순'],  // 1구역
-  ['민옥화', '박진숙'],  // 2구역
-  ['임미자', '김성숙'],  // 3구역
-  ['임혜진', '조성주'],  // 4구역
-  ['오민자', '이미자'],  // 5구역
-  ['김순이', '김미경'],  // 6구역
-  ['이정순', '현명숙'],  // 7구역
-  ['김영숙', '유미선'],  // 8구역
-  ['양경순', '전미영'],  // 9구역
-  ['조옥희', '성복임'],  // 10구역
-  ['최숙녀', '최옥연'],  // 11구역
-  ['유은희', '조명숙'],  // 12구역
+const ZONE_MEMBERS = [
+  { district:1, members:[
+    {name:'이명숙',role:'leader'},{name:'안성문',role:'member'},
+    {name:'김영순',role:'inspector'},
+    {name:'김명호',role:'member'},{name:'이종순',role:'member'},{name:'지정웅',role:'member'},
+    {name:'임한나',role:'member'},{name:'정나단',role:'member'},{name:'조병옥',role:'member'},
+    {name:'조병임',role:'member'},{name:'이덕재',role:'member'},{name:'최순복',role:'member'},
+    {name:'양창운',role:'member'},{name:'최정분',role:'member'},{name:'황재희',role:'member'},{name:'전정예',role:'member'},
+  ]},
+  { district:1, members:[
+    {name:'민옥화',role:'leader'},
+    {name:'박진숙',role:'inspector'},{name:'김두곤',role:'member'},
+    {name:'송을범',role:'member'},{name:'심순덕',role:'member'},{name:'염재훈',role:'member'},
+    {name:'이승숙',role:'member'},{name:'이윤형',role:'member'},{name:'당윤수',role:'member'},
+    {name:'이지현',role:'member'},{name:'정현철',role:'member'},{name:'임금란',role:'member'},
+    {name:'임희순',role:'member'},{name:'김석규',role:'member'},{name:'조남주',role:'member'},
+  ]},
+  { district:1, members:[
+    {name:'임미자',role:'leader'},{name:'우정식',role:'member'},
+    {name:'김성숙',role:'inspector'},{name:'박영준',role:'member'},
+    {name:'권옥자',role:'member'},{name:'류흥렬',role:'member'},{name:'박순옥',role:'member'},
+    {name:'서유정',role:'member'},{name:'황흥도',role:'member'},{name:'이이순',role:'member'},
+    {name:'김수근',role:'member'},{name:'최순옥',role:'member'},{name:'최현숙',role:'member'},
+  ]},
+  { district:1, members:[
+    {name:'임혜진',role:'leader'},{name:'임법상',role:'member'},
+    {name:'조성주',role:'inspector'},{name:'김수년',role:'member'},
+    {name:'김명옥',role:'member'},{name:'김애경',role:'member'},{name:'손정숙',role:'member'},
+    {name:'김경석',role:'member'},{name:'유제경',role:'member'},{name:'엄동규',role:'member'},
+    {name:'이도화',role:'member'},{name:'최인숙',role:'member'},{name:'이진우',role:'member'},
+    {name:'황영숙',role:'member'},{name:'김주훈',role:'member'},
+  ]},
+  { district:1, members:[
+    {name:'오민자',role:'leader'},{name:'이상석',role:'member'},
+    {name:'이미자',role:'inspector'},{name:'한준식',role:'member'},
+    {name:'고분선',role:'member'},{name:'김교순',role:'member'},{name:'김혜진',role:'member'},
+    {name:'노필언',role:'member'},{name:'박승애',role:'member'},{name:'박화자',role:'member'},
+    {name:'유분의',role:'member'},{name:'이성희',role:'member'},{name:'이승현',role:'member'},
+    {name:'이희열',role:'member'},{name:'임정숙',role:'member'},{name:'장국지',role:'member'},{name:'최종분',role:'member'},
+  ]},
+  { district:1, members:[
+    {name:'김순이',role:'leader'},
+    {name:'김미경',role:'inspector'},
+    {name:'김덕희',role:'member'},{name:'김은주',role:'member'},{name:'신영락',role:'member'},
+    {name:'노학심',role:'member'},{name:'박순영',role:'member'},{name:'변기성',role:'member'},
+    {name:'윤숙경',role:'member'},{name:'이순희',role:'member'},{name:'박종학',role:'member'},
+    {name:'이춘생',role:'member'},{name:'최봉석',role:'member'},{name:'최태인',role:'member'},
+  ]},
+  { district:2, members:[
+    {name:'이정순',role:'leader'},
+    {name:'현명숙',role:'inspector'},{name:'이규훈',role:'member'},
+    {name:'권성배',role:'member'},{name:'김연자',role:'member'},{name:'김희수',role:'member'},
+    {name:'송경섭',role:'member'},{name:'송헌숙',role:'member'},{name:'김동호',role:'member'},
+    {name:'유순하',role:'member'},{name:'박광천',role:'member'},{name:'이재선',role:'member'},
+    {name:'조자형',role:'member'},{name:'양태모',role:'member'},{name:'한선분',role:'member'},
+  ]},
+  { district:2, members:[
+    {name:'김영수',role:'leader'},
+    {name:'유미선',role:'inspector'},{name:'나인용',role:'member'},
+    {name:'권금애',role:'member'},{name:'김미순',role:'member'},{name:'김병기',role:'member'},
+    {name:'김은정',role:'member'},{name:'김규보',role:'member'},{name:'심기동',role:'member'},
+    {name:'원흥순',role:'member'},{name:'이헌상',role:'member'},{name:'윤석현',role:'member'},
+    {name:'최필남',role:'member'},{name:'이금순',role:'member'},{name:'정현숙',role:'member'},
+    {name:'심완섭',role:'member'},{name:'최기환',role:'member'},
+  ]},
+  { district:2, members:[
+    {name:'양경순',role:'leader'},
+    {name:'전미영',role:'inspector'},{name:'이봉열',role:'member'},
+    {name:'강상희',role:'member'},{name:'고환필',role:'member'},{name:'김미용',role:'member'},
+    {name:'모동수',role:'member'},{name:'박순복',role:'member'},{name:'박영철',role:'member'},
+    {name:'윤여임',role:'member'},{name:'이영주',role:'member'},{name:'김호철',role:'member'},{name:'한정애',role:'member'},
+  ]},
+  { district:2, members:[
+    {name:'조옥희',role:'leader'},{name:'박양권',role:'member'},
+    {name:'성복임',role:'inspector'},
+    {name:'박덕순',role:'member'},{name:'윤정희',role:'member'},{name:'신임재',role:'member'},
+    {name:'김건중',role:'member'},{name:'이명희',role:'member'},{name:'정대호',role:'member'},
+    {name:'지정옥',role:'member'},{name:'고경설',role:'member'},{name:'이옥현',role:'member'},
+    {name:'지행자',role:'member'},{name:'곽명희',role:'member'},
+  ]},
+  { district:2, members:[
+    {name:'최숙녀',role:'leader'},{name:'한명식',role:'member'},
+    {name:'최옥연',role:'inspector'},
+    {name:'박종금',role:'member'},{name:'송종란',role:'member'},{name:'전준석',role:'member'},
+    {name:'이옥순',role:'member'},{name:'김명량',role:'member'},{name:'이한나',role:'member'},
+    {name:'김광진',role:'member'},{name:'장월기',role:'member'},{name:'정국자',role:'member'},
+    {name:'최기복',role:'member'},{name:'한승훈',role:'member'},
+  ]},
+  { district:2, members:[
+    {name:'유은희',role:'leader'},{name:'안준용',role:'member'},
+    {name:'조명숙',role:'inspector'},{name:'이순용',role:'member'},
+    {name:'강지아',role:'member'},{name:'나요나',role:'member'},{name:'전진구',role:'member'},
+    {name:'박진아',role:'member'},{name:'정민시',role:'member'},{name:'이사라',role:'member'},
+    {name:'천성현',role:'member'},{name:'정수미',role:'member'},{name:'민건우',role:'member'},
+    {name:'최주희',role:'member'},{name:'한상미',role:'member'},{name:'윤승희',role:'member'},
+  ]},
 ];
+// 하위호환: ZONE_LEADERS[i] = [구역장명, 권찰명]
+const ZONE_LEADERS = ZONE_MEMBERS.map(z => [
+  z.members.find(m=>m.role==='leader')?.name || '',
+  z.members.find(m=>m.role==='inspector')?.name || '',
+]);
 
 // ───────────────────────────────
 // STATE
@@ -1259,7 +1394,7 @@ let state = {
   department: '중고등부 / 청년부',
   youth: { members: [], note: '' },
   young: { members: [], note: '' },
-  zones: Array(12).fill(''),
+  adult: { zones: [] },
   parishNote: '',
   nextWeekPlan: '',
   prayer: '',
@@ -1295,14 +1430,25 @@ function init() {
     } else {
       state.young = s.young;
     }
+    // 교구 멤버 복원: 저장된 상태 vs 기본값
+    if (s.adult?.zones?.length === 12) {
+      state.adult.zones = s.adult.zones;
+    } else {
+      state.adult.zones = ZONE_MEMBERS.map(z => ({
+        members: z.members.map(m => ({ name: m.name, role: m.role, status: 'present' }))
+      }));
+    }
   } else {
     state.youth.members = DEFAULT_YOUTH.map(n => ({ name: n, status: 'present' }));
     state.young.members = DEFAULT_YOUNG.map(n => ({ name: n, status: 'present' }));
+    state.adult.zones = ZONE_MEMBERS.map(z => ({
+      members: z.members.map(m => ({ name: m.name, role: m.role, status: 'present' }))
+    }));
   }
 
   renderYouthGrid();
   renderYoungGrid();
-  renderZoneGrid();
+  renderAdultGrid();
   renderStats();
   loadHistorySeed(); // history.json 시드 데이터 병합
 }
@@ -1589,40 +1735,119 @@ function addMember(group) {
 // ───────────────────────────────
 // ZONE GRID
 // ───────────────────────────────
-function renderZoneGrid() {
-  const grid = document.getElementById('zoneGrid');
-  grid.innerHTML = '';
-  for (let i = 0; i < 12; i++) {
-    const [leader, inspector] = ZONE_LEADERS[i];
-    const div = document.createElement('div');
-    div.className = 'zone-item form-row';
-    div.innerHTML = `
-      <label>
-        ${i + 1}구역 결석자
-        <span style="display:block;font-size:11px;font-weight:400;color:var(--text-muted);margin-top:2px">
-          구역장 ${leader} · 권찰 ${inspector}
+function renderAdultGrid() {
+  const container = document.getElementById('adultZoneContainer');
+  if (!container) return;
+  container.innerHTML = '';
+  let currentDistrict = 0;
+  state.adult.zones.forEach((zone, zi) => {
+    const d = ZONE_MEMBERS[zi].district;
+    if (d !== currentDistrict) {
+      currentDistrict = d;
+      const bar = document.createElement('div');
+      bar.className = 'district-bar';
+      bar.textContent = `${d}교구`;
+      container.appendChild(bar);
+    }
+    const absentCount = zone.members.filter(m => m.status === 'absent').length;
+    const leaderName = zone.members.find(m => m.role === 'leader')?.name || '';
+    const acc = document.createElement('div');
+    acc.className = 'zone-acc';
+    acc.innerHTML = `
+      <div class="zone-acc-head" onclick="toggleZoneAcc(${zi})">
+        <span class="zone-num-badge">${zi+1}구역</span>
+        <span class="zone-head-info">
+          <span class="zone-head-leader">${leaderName}</span>
+          ${absentCount ? `<span class="zone-head-absent">결석 ${absentCount}명</span>` : ''}
         </span>
-      </label>
-      <input type="text" placeholder="이름 입력"
-        value="${state.zones[i] || ''}"
-        oninput="state.zones[${i}]=this.value;updateZoneTotal()"
-        style="font-size:13px;padding:8px 10px">
+        <span class="zone-head-btns">
+          <button class="zone-btn-all zone-btn-present" onclick="event.stopPropagation();setAllZone(${zi},'present')">전원출석</button>
+          <button class="zone-btn-all zone-btn-absent"  onclick="event.stopPropagation();setAllZone(${zi},'absent')">전원결석</button>
+        </span>
+        <span class="zone-chevron" id="zoneChevron${zi}">▶</span>
+      </div>
+      <div class="zone-acc-body" id="zoneBody${zi}">
+        <div class="adult-chip-grid" id="zoneChipGrid${zi}"></div>
+      </div>
     `;
-    grid.appendChild(div);
-  }
-  updateZoneTotal();
+    container.appendChild(acc);
+    renderZoneChips(zi);
+  });
+  updateAdultStats();
 }
 
-function updateZoneTotal() {
-  // Count names in all zones (comma/space separated)
-  let total = 0;
-  state.zones.forEach(z => {
-    if (!z.trim()) return;
-    const names = z.split(/[,，\s]+/).filter(n => n.trim());
-    total += names.length;
+function renderZoneChips(zi) {
+  const grid = document.getElementById(`zoneChipGrid${zi}`);
+  if (!grid) return;
+  grid.innerHTML = '';
+  state.adult.zones[zi].members.forEach((m, mi) => {
+    const chip = document.createElement('div');
+    chip.className = `adult-chip ${m.status}`;
+    let badge = '';
+    if (m.role === 'leader')   badge = '<span class="adult-role-badge leader">장</span>';
+    if (m.role === 'inspector') badge = '<span class="adult-role-badge inspector">권</span>';
+    chip.innerHTML = `${badge}<span>${m.name}</span>`;
+    chip.onclick = () => toggleAdultMember(zi, mi);
+    grid.appendChild(chip);
   });
-  const el = document.getElementById('zoneTotalNum');
-  if (el) el.textContent = total + '명';
+}
+
+function toggleAdultMember(zi, mi) {
+  const m = state.adult.zones[zi].members[mi];
+  m.status = m.status === 'present' ? 'absent' : 'present';
+  const grid = document.getElementById(`zoneChipGrid${zi}`);
+  if (grid) {
+    const chips = grid.querySelectorAll('.adult-chip');
+    chips[mi].className = `adult-chip ${m.status}`;
+  }
+  // 헤더 결석 카운트 업데이트
+  const absentCount = state.adult.zones[zi].members.filter(m => m.status === 'absent').length;
+  const head = document.querySelector(`#zoneBody${zi}`).previousElementSibling;
+  let absentSpan = head.querySelector('.zone-head-absent');
+  if (absentCount) {
+    if (!absentSpan) {
+      absentSpan = document.createElement('span');
+      absentSpan.className = 'zone-head-absent';
+      head.querySelector('.zone-head-info').appendChild(absentSpan);
+    }
+    absentSpan.textContent = `결석 ${absentCount}명`;
+  } else if (absentSpan) {
+    absentSpan.remove();
+  }
+  updateAdultStats();
+  scheduleSilentSave();
+}
+
+function setAllZone(zi, status) {
+  state.adult.zones[zi].members.forEach(m => m.status = status);
+  renderZoneChips(zi);
+  // 헤더 결석 카운트 갱신
+  const absentCount = status === 'absent' ? state.adult.zones[zi].members.length : 0;
+  const body = document.getElementById(`zoneBody${zi}`);
+  const head = body.previousElementSibling;
+  let absentSpan = head.querySelector('.zone-head-absent');
+  if (absentCount) {
+    if (!absentSpan) { absentSpan = document.createElement('span'); absentSpan.className='zone-head-absent'; head.querySelector('.zone-head-info').appendChild(absentSpan); }
+    absentSpan.textContent = `결석 ${absentCount}명`;
+  } else if (absentSpan) { absentSpan.remove(); }
+  updateAdultStats();
+  scheduleSilentSave();
+}
+
+function toggleZoneAcc(zi) {
+  const body = document.getElementById(`zoneBody${zi}`);
+  const chevron = document.getElementById(`zoneChevron${zi}`);
+  const isOpen = body.classList.toggle('open');
+  chevron.classList.toggle('open', isOpen);
+}
+
+function updateAdultStats() {
+  let totalAbsent = 0;
+  state.adult.zones.forEach(z => {
+    totalAbsent += z.members.filter(m => m.status === 'absent').length;
+  });
+  const el = document.getElementById('adultAbsentBadge');
+  if (el) el.textContent = `결석 ${totalAbsent}명`;
 }
 
 // ───────────────────────────────
@@ -1635,23 +1860,25 @@ const DISTRICT_LEADERS = [
 ];
 
 function buildSMSMessage(i) {
-  const names = (state.zones[i] || '').trim();
-  if (!names) return '';
-  const count = names.split(/[,，\s]+/).filter(n => n.trim()).length;
+  const zone = state.adult.zones[i];
+  if (!zone) return '';
+  const absentMembers = zone.members.filter(m => m.status === 'absent');
+  if (!absentMembers.length) return '';
+  const names = absentMembers.map(m => m.name).join(' ');
   const date = state.date || new Date().toISOString().slice(0, 10);
-  const leader = ZONE_LEADERS[i][0];
-  return `[${date} 주일 결석 현황]\n${i + 1}구역 결석자 ${count}명\n${names}`;
+  return `[${date} 주일 결석 현황]\n${i + 1}구역 결석자 ${absentMembers.length}명\n${names}`;
 }
 
 function buildDistrictSMSMessage(d) {
   const date = state.date || new Date().toISOString().slice(0, 10);
   const lines = d.zones
-    .filter(i => (state.zones[i] || '').trim())
-    .map(i => `${i + 1}구역: ${state.zones[i].trim()}`);
+    .filter(i => state.adult.zones[i]?.members.some(m => m.status === 'absent'))
+    .map(i => {
+      const names = state.adult.zones[i].members.filter(m => m.status === 'absent').map(m => m.name).join(' ');
+      return `${i + 1}구역: ${names}`;
+    });
   if (!lines.length) return '';
-  const total = d.zones.reduce((acc, i) => {
-    return acc + (state.zones[i] || '').split(/[,，\s]+/).filter(n => n.trim()).length;
-  }, 0);
+  const total = d.zones.reduce((acc, i) => acc + (state.adult.zones[i]?.members.filter(m => m.status === 'absent').length || 0), 0);
   return `[${date} 주일 결석 현황]\n${d.label} 총 결석 ${total}명\n\n${lines.join('\n')}`;
 }
 
@@ -1666,9 +1893,10 @@ let _smsQueueActive = false;
 function getSMSTargets() {
   const targets = [];
   for (let i = 0; i < 12; i++) {
-    if (!(state.zones[i] || '').trim()) continue;
+    const msg = buildSMSMessage(i);
+    if (!msg) continue;
     const [leader] = ZONE_LEADERS[i];
-    targets.push({ id: `z${i}`, label: `${i+1}구역`, leaderName: `구역장 ${leader}`, phone: zonePhones[i], msg: buildSMSMessage(i) });
+    targets.push({ id: `z${i}`, label: `${i+1}구역`, leaderName: `구역장 ${leader}`, phone: zonePhones[i], msg });
   }
   DISTRICT_LEADERS.forEach(d => {
     const msg = buildDistrictSMSMessage(d);
@@ -1789,7 +2017,7 @@ function renderSMSModalBody() {
 }
 
 function openSMSModal() {
-  const hasTargets = Array.from({length: 12}, (_, i) => i).some(i => (state.zones[i] || '').trim());
+  const hasTargets = Array.from({length: 12}, (_, i) => i).some(i => state.adult.zones[i]?.members.some(m => m.status === 'absent'));
   if (!hasTargets) { toast('결석자를 먼저 입력해주세요'); return; }
   renderSMSModalBody();
   document.getElementById('smsModal').classList.add('open');
@@ -2023,8 +2251,8 @@ async function shareReport() {
         absentNames: state.young.members.filter(m => m.status === 'absent').map(m => m.name)
       },
       adult: (() => {
-        const zones = (state.zones || []).map((z, i) => {
-          const names = (z || '').split(/[,，\s]+/).map(n => n.trim()).filter(Boolean);
+        const zones = (state.adult.zones || []).map((z, i) => {
+          const names = z.members.filter(m => m.status === 'absent').map(m => m.name);
           return names.length ? { zone: `${i+1}구역`, names } : null;
         }).filter(Boolean);
         return { absent: zones.reduce((a, z) => a + z.names.length, 0), zones };
