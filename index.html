@@ -854,9 +854,21 @@ textarea { resize: vertical; min-height: 60px; }
 
 
     <div class="setting-group">
-      <h3>🔄 앱 관리</h3>
-      <button class="btn-wide btn-blue" onclick="forceRefresh()" style="margin-bottom:8px">🔄 강제 새로고침 (캐시 초기화)</button>
-      <button class="btn-wide btn-outline" onclick="resetApp()" style="border-color:#e53e3e;color:#e53e3e">🗑️ 모든 데이터 초기화</button>
+      <button class="accordion-btn" id="accAppMgr" onclick="toggleAccordion('accAppMgr','accAppMgrContent')">
+        <span>🔧 앱 관리</span>
+        <span class="acc-arrow">▶</span>
+      </button>
+      <div class="accordion-content" id="accAppMgrContent">
+        <button class="btn-wide btn-blue" onclick="forceRefresh()" style="margin-bottom:12px">🔄 강제 새로고침 (캐시 초기화)</button>
+        <p style="font-size:11px;color:var(--text-muted);margin-bottom:6px;text-align:center">⬇️ 아래 버튼은 3초 길게 눌러야 실행됩니다</p>
+        <button class="btn-wide btn-outline" id="btnResetApp"
+          style="border-color:#e53e3e;color:#e53e3e;position:relative;overflow:hidden"
+          ontouchstart="startResetHold()" ontouchend="cancelResetHold()" ontouchcancel="cancelResetHold()"
+          onmousedown="startResetHold()" onmouseup="cancelResetHold()" onmouseleave="cancelResetHold()">
+          <span id="btnResetLabel">🗑️ 모든 데이터 초기화</span>
+          <div id="btnResetBar" style="position:absolute;left:0;bottom:0;height:3px;width:0%;background:#e53e3e;transition:none"></div>
+        </button>
+      </div>
     </div>
 
     <p style="text-align:center;font-size:11px;color:var(--text-muted);margin-top:4px;padding-bottom:4px">
@@ -1568,6 +1580,33 @@ async function syncHistoryToGitHub(manual = false, overwrite = false) {
   }
 }
 
+// 모든 데이터 초기화 — 3초 길게 누르기
+let _resetHoldTimer = null;
+let _resetAnimFrame = null;
+let _resetStart = 0;
+const RESET_HOLD_MS = 3000;
+
+function startResetHold() {
+  _resetStart = Date.now();
+  const bar = document.getElementById('btnResetBar');
+  const label = document.getElementById('btnResetLabel');
+  bar.style.transition = `width ${RESET_HOLD_MS}ms linear`;
+  bar.style.width = '100%';
+  label.textContent = '계속 누르세요...';
+  _resetHoldTimer = setTimeout(() => {
+    cancelResetHold();
+    resetApp();
+  }, RESET_HOLD_MS);
+}
+
+function cancelResetHold() {
+  clearTimeout(_resetHoldTimer);
+  const bar = document.getElementById('btnResetBar');
+  const label = document.getElementById('btnResetLabel');
+  if (bar) { bar.style.transition = 'none'; bar.style.width = '0%'; }
+  if (label) label.textContent = '🗑️ 모든 데이터 초기화';
+}
+
 async function forceRefresh() {
   if (!confirm('캐시를 초기화하고 최신 버전으로 새로고침할까요?')) return;
   if ('caches' in window) {
@@ -2130,10 +2169,14 @@ function saveDraft() {
   toast('💾 임시저장 완료');
 }
 function resetApp() {
-  if (!confirm('모든 데이터를 초기화할까요?')) return;
   localStorage.removeItem('reportDraft');
   localStorage.removeItem('reportSettings');
-  location.reload();
+  localStorage.removeItem('reportHistory');
+  localStorage.removeItem('cachedInstructions');
+  localStorage.removeItem('lastInstrId');
+  localStorage.removeItem('zonePhones');
+  toast('🗑️ 초기화 완료, 재시작 중...');
+  setTimeout(() => location.reload(), 800);
 }
 
 // ───────────────────────────────
