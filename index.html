@@ -568,6 +568,7 @@ textarea { resize: vertical; min-height: 60px; }
   </div>
   <div class="header-actions">
     <button class="btn-icon" id="btnInstall" onclick="installPWA()" title="앱 설치" style="display:none">📲</button>
+    <button class="btn-icon" onclick="forceRefresh()" title="강제 새로고침">🔄</button>
     <div style="position:relative;display:inline-flex">
       <button class="btn-icon" onclick="openStaffInbox()">💬</button>
       <span id="staffInboxBadge" style="display:none;position:absolute;top:-4px;right:-4px;background:#e53e3e;color:#fff;border-radius:50%;width:16px;height:16px;font-size:9px;font-weight:700;align-items:center;justify-content:center">0</span>
@@ -919,7 +920,7 @@ textarea { resize: vertical; min-height: 60px; }
 // ───────────────────────────────
 // APP VERSION
 // ───────────────────────────────
-const APP_VERSION = '0.3.8';
+const APP_VERSION = '0.3.9';
 
 // ───────────────────────────────
 // 출결 통계
