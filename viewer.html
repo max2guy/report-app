@@ -290,17 +290,6 @@ body::-webkit-scrollbar{display:none}
         style="margin-left:auto;background:none;border:none;font-size:18px;color:#a0aec0;cursor:pointer;line-height:1;padding:0 2px">✕</button>
     </div>
 
-    <!-- GitHub 토큰 설정 -->
-    <div id="tokenSection" style="margin-bottom:12px">
-      <div class="inbox-section-title">🔑 토큰 설정</div>
-      <div style="display:flex;gap:6px">
-        <input id="viewerTokenInput" type="password" placeholder="github_pat_…" style="flex:1;padding:8px 10px;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;font-family:inherit;outline:none">
-        <button onclick="saveViewerToken()" style="padding:8px 14px;background:#0f2044;color:#fff;border:none;border-radius:8px;font-size:13px;font-family:inherit;cursor:pointer">저장</button>
-      </div>
-    </div>
-
-    <hr class="inbox-divider">
-
     <!-- 지시사항 작성 -->
     <div class="inbox-compose">
       <div class="inbox-section-title">📝 지시사항 작성 (부교역자에게 전달)</div>
@@ -320,11 +309,6 @@ body::-webkit-scrollbar{display:none}
     <div class="inbox-section-title">📋 발신 지시사항</div>
     <div id="instrList"><div class="inbox-empty">없음</div></div>
 
-    <!-- 토큰 재설정 (맨 아래, 작게) -->
-    <div id="tokenResetWrap" style="display:none;text-align:center;margin-top:20px;padding-top:12px;border-top:1px solid #f0f4f8">
-      <span id="tokenResetBtn" onclick="requestTokenReset()"
-        style="font-size:10px;color:#cbd5e0;cursor:pointer;user-select:none">토큰 재설정</span>
-    </div>
   </div>
 </div>
 
@@ -337,7 +321,6 @@ let viewerUnread = 0;
 
 function openInbox() {
   document.getElementById('inboxOverlay').classList.add('open');
-  initTokenStatus();
   // 뱃지 초기화
   viewerUnread = 0;
   const badge = document.getElementById('viewerInboxBadge');
@@ -348,7 +331,6 @@ function openInbox() {
 function closeInbox(e) {
   if (e.target === e.currentTarget) {
     document.getElementById('inboxOverlay').classList.remove('open');
-    initTokenStatus(); // 재설정 버튼 상태 초기화
   }
 }
 
@@ -404,86 +386,32 @@ function renderInstrList(list) {
     </div>`).join('');
 }
 
+const WORKER_URL = 'https://nas-proxy.max2guy.workers.dev';
+
 async function deleteInstruction(id) {
-  const token = (localStorage.getItem('viewerGithubToken') || '').trim();
-  if (!token) { toast('🔑 토큰이 필요합니다'); return; }
-  const repo = 'max2guy/report-app';
-  const apiBase = `https://api.github.com/repos/${repo}/contents/instructions.json`;
-  const authVal = token.startsWith('github_pat_') ? `Bearer ${token}` : `token ${token}`;
-  const headers = { 'Authorization':authVal,'Accept':'application/vnd.github+json','Content-Type':'application/json','X-GitHub-Api-Version':'2022-11-28' };
+  const apiBase = 'https://api.github.com/repos/max2guy/report-app/contents/instructions.json';
   try {
-    const infoRes = await fetch(apiBase, { headers });
+    const infoRes = await fetch(apiBase, { headers: {'Accept':'application/vnd.github+json'} });
     if (!infoRes.ok) throw new Error('조회 실패');
-    const info = await infoRes.json(); const sha = info.sha;
+    const info = await infoRes.json();
     let list = JSON.parse(new TextDecoder('utf-8').decode(Uint8Array.from(atob(info.content.replace(/\n/g,'')), c => c.charCodeAt(0))));
     list = list.filter(i => i.id !== id);
-    const jsonStr = JSON.stringify(list, null, 2);
-    const content = btoa(String.fromCharCode(...new TextEncoder().encode(jsonStr)));
-    const putRes = await fetch(apiBase, { method:'PUT', headers, body:JSON.stringify({ message:'delete instruction', content, sha }) });
+    const content = btoa(String.fromCharCode(...new TextEncoder().encode(JSON.stringify(list, null, 2))));
+    const putRes = await fetch(`${WORKER_URL}/github-write`, { method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ file:'instructions.json', message:'delete instruction', content, sha: info.sha }) });
     if (!putRes.ok) throw new Error('삭제 실패');
     toast('🗑️ 삭제 완료');
-    renderInstrList(list); // 로컬 데이터로 즉시 반영
+    renderInstrList(list);
   } catch(e) { toast('❌ ' + e.message); }
-}
-
-function saveViewerToken() {
-  const val = document.getElementById('viewerTokenInput').value.trim();
-  if (!val) { toast('토큰을 입력하세요'); return; }
-  localStorage.setItem('viewerGithubToken', val);
-  document.getElementById('viewerTokenInput').value = '';
-  toast('✅ 토큰 저장 완료');
-  initTokenStatus();
-}
-
-function initTokenStatus() {
-  const saved = localStorage.getItem('viewerGithubToken');
-  document.getElementById('tokenSection').style.display   = saved ? 'none'  : 'block';
-  document.getElementById('tokenResetWrap').style.display = saved ? 'block' : 'none';
-  // 재설정 버튼 초기화
-  tokenResetStep = 0;
-  const btn = document.getElementById('tokenResetBtn');
-  if (btn) { btn.textContent = '토큰 재설정'; btn.style.color = '#cbd5e0'; }
-}
-
-let tokenResetStep = 0;
-let tokenResetTimer = null;
-function requestTokenReset() {
-  const btn = document.getElementById('tokenResetBtn');
-  tokenResetStep++;
-  // 4초 후 자동 취소
-  clearTimeout(tokenResetTimer);
-  tokenResetTimer = setTimeout(() => {
-    tokenResetStep = 0;
-    btn.textContent = '토큰 재설정';
-    btn.style.color = '#cbd5e0';
-  }, 4000);
-  if (tokenResetStep < 5) {
-    const left = 5 - tokenResetStep;
-    btn.textContent = `삭제하려면 ${left}번 더 누르세요`;
-    btn.style.color = tokenResetStep >= 3 ? '#e53e3e' : '#a0aec0';
-    return;
-  }
-  // 5번째: 실제 삭제
-  clearTimeout(tokenResetTimer);
-  localStorage.removeItem('viewerGithubToken');
-  toast('🔑 토큰이 삭제됐습니다');
-  initTokenStatus();
 }
 
 async function sendInstruction() {
   const text = document.getElementById('instrText').value.trim();
   if (!text) { toast('내용을 입력하세요'); return; }
-  const token = (localStorage.getItem('viewerGithubToken') || '').trim();
-  const repo  = 'max2guy/report-app';
-  if (!token) { toast('🔑 먼저 토큰을 설정해 주세요'); return; }
-
-  const apiBase = `https://api.github.com/repos/${repo}/contents/instructions.json`;
-  const authVal = token.startsWith('github_pat_') ? `Bearer ${token}` : `token ${token}`;
-  const headers = { 'Authorization':authVal,'Accept':'application/vnd.github+json','Content-Type':'application/json','X-GitHub-Api-Version':'2022-11-28' };
-
+  const apiBase = 'https://api.github.com/repos/max2guy/report-app/contents/instructions.json';
   try {
     toast('⏳ 전송 중...');
-    const infoRes = await fetch(apiBase, { headers });
+    const infoRes = await fetch(apiBase, { headers: {'Accept':'application/vnd.github+json'} });
     let sha = null; let list = [];
     if (infoRes.ok) {
       const info = await infoRes.json(); sha = info.sha;
@@ -491,19 +419,17 @@ async function sendInstruction() {
     }
     const now = new Date();
     list.push({ id: now.toISOString(), date: now.toLocaleString('ko-KR',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}), text });
-    const jsonStr = JSON.stringify(list, null, 2);
-    const content = btoa(String.fromCharCode(...new TextEncoder().encode(jsonStr)));
-    const body = { message:`instruction: ${now.toISOString().slice(0,10)}`, content };
+    const content = btoa(String.fromCharCode(...new TextEncoder().encode(JSON.stringify(list, null, 2))));
+    const body = { file:'instructions.json', message:`instruction: ${now.toISOString().slice(0,10)}`, content };
     if (sha) body.sha = sha;
-    const putRes = await fetch(apiBase, { method:'PUT', headers, body:JSON.stringify(body) });
-    if (!putRes.ok) { const err = await putRes.json(); throw new Error(err.message); }
+    const putRes = await fetch(`${WORKER_URL}/github-write`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
+    if (!putRes.ok) { const err = await putRes.json().catch(()=>({message:'전송 실패'})); throw new Error(err.message); }
     document.getElementById('instrText').value = '';
     toast('✅ 지시사항 전송 완료');
-    // FCM 푸시 (보고서앱에 알림)
     getTargetFCMToken('reportApp').then(tok => {
       if(tok) sendFCMPush(tok, '📋 새 지시사항', text.substring(0,60));
     });
-    renderInstrList(list); // 로컬 데이터로 즉시 반영
+    renderInstrList(list);
   } catch(e) { toast('❌ 전송 실패: ' + e.message); }
 }
 
@@ -631,14 +557,11 @@ async function sendFCMPush(targetToken, title, body) {
 
 /* ── FCM: 토큰 GitHub 저장 ── */
 async function saveFCMTokenToGitHub(role, fcmToken) {
-  const ghToken = (localStorage.getItem('viewerGithubToken')||'').trim();
-  if(!ghToken || !fcmToken) return;
-  const repo = 'max2guy/report-app';
-  const apiBase = `https://api.github.com/repos/${repo}/contents/fcm-tokens.json`;
-  const authVal = ghToken.startsWith('github_pat_') ? `Bearer ${ghToken}` : `token ${ghToken}`;
-  const headers = {'Authorization':authVal,'Accept':'application/vnd.github+json','Content-Type':'application/json','X-GitHub-Api-Version':'2022-11-28'};
+  if(!fcmToken) return;
+  const apiBase = 'https://api.github.com/repos/max2guy/report-app/contents/fcm-tokens.json';
   try {
-    const infoRes = await fetch(apiBase,{headers});
+    // GET: 공개 레포 무인증
+    const infoRes = await fetch(apiBase, {headers:{'Accept':'application/vnd.github+json'}});
     let sha=null, tokens={};
     if(infoRes.ok){
       const info=await infoRes.json(); sha=info.sha;
@@ -647,15 +570,15 @@ async function saveFCMTokenToGitHub(role, fcmToken) {
         tokens = JSON.parse(new TextDecoder('utf-8').decode(raw));
       } catch(_){}
     }
-    if(tokens[role]===fcmToken) return; // 변경없으면 skip
+    if(tokens[role]===fcmToken) return;
     tokens[role]=fcmToken;
-    const jsonStr2 = JSON.stringify(tokens,null,2);
-    const bytes2 = new TextEncoder().encode(jsonStr2);
-    let bin2 = ''; bytes2.forEach(b => bin2 += String.fromCharCode(b));
-    const content = btoa(bin2);
-    const body={message:`fcm: update ${role} token`,content};
+    const bytes = new TextEncoder().encode(JSON.stringify(tokens,null,2));
+    let bin = ''; bytes.forEach(b => bin += String.fromCharCode(b));
+    const content = btoa(bin);
+    const body = {file:'fcm-tokens.json', message:`fcm: update ${role} token`, content};
     if(sha) body.sha=sha;
-    await fetch(apiBase,{method:'PUT',headers,body:JSON.stringify(body)});
+    // PUT: Worker 프록시
+    await fetch(`${WORKER_URL}/github-write`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)});
   } catch(e){ console.warn('FCM token save failed',e); }
 }
 
@@ -709,12 +632,9 @@ const VIEWER_VERSION = '0.3.1';
 let allData = [];
 let activeTab = 'youth';
 
-// GitHub API 인증 헤더 (403 방지, 5000회/시간)
+// GitHub API 헤더 (공개 레포 무인증)
 function ghHeaders() {
-  const token = (localStorage.getItem('viewerGithubToken') || '').trim();
-  const h = { 'Accept': 'application/vnd.github+json' };
-  if (token) h['Authorization'] = token.startsWith('github_pat_') ? `Bearer ${token}` : `token ${token}`;
-  return h;
+  return { 'Accept': 'application/vnd.github+json' };
 }
 
 /* ── TOAST ── */
