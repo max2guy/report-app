@@ -16,7 +16,7 @@ messaging.onBackgroundMessage(payload => {
   });
 });
 
-const CACHE = 'viewer-v30';
+const CACHE = 'viewer-v31';
 const SHELL = ['./viewer.html', './viewer-manifest.json', './icon-192.png', './icon-512.png', './notifications.json', './fcm-tokens.json'];
 
 self.addEventListener('install', e => {
