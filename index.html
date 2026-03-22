@@ -339,6 +339,8 @@ textarea { resize: vertical; min-height: 60px; }
 .btn-primary:active { transform: scale(0.97); }
 .btn-gold { background: linear-gradient(135deg, var(--gold), #b8922a); color: white; }
 .btn-gold:active { transform: scale(0.97); }
+.btn-blue-sms { background: linear-gradient(135deg, #2c82e0, #1a5fbf); color: white; }
+.btn-blue-sms:active { transform: scale(0.97); }
 .btn-share { background: linear-gradient(135deg, #2c7be5, #1a5bbf); color: white; }
 .btn-share:active { transform: scale(0.97); }
 .btn-secondary { background: var(--bg); color: var(--text-muted); border: 1.5px solid var(--border); }
@@ -743,7 +745,7 @@ textarea { resize: vertical; min-height: 60px; }
       </div>
       <div id="adultZoneContainer"></div>
     </div>
-    <button class="btn btn-gold" style="width:100%;margin-top:8px" onclick="openSMSModal()">
+    <button class="btn btn-blue-sms" style="width:100%;margin-top:8px" onclick="openSMSModal()">
       📨 구역장 SMS 전송하기
     </button>
     <div class="card">
@@ -917,7 +919,7 @@ textarea { resize: vertical; min-height: 60px; }
 // ───────────────────────────────
 // APP VERSION
 // ───────────────────────────────
-const APP_VERSION = '0.3.6';
+const APP_VERSION = '0.3.7';
 
 // ───────────────────────────────
 // 출결 통계
