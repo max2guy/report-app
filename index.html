@@ -876,6 +876,7 @@ textarea { resize: vertical; min-height: 60px; }
       </button>
       <div class="accordion-content" id="accAppMgrContent">
         <button class="btn-wide btn-blue" onclick="forceRefresh()" style="margin-bottom:12px">🔄 강제 새로고침 (캐시 초기화)</button>
+        <button class="btn-wide btn-blue" onclick="syncHistoryToGitHub(true)" style="margin-bottom:12px;background:var(--success)">☁️ GitHub 지금 동기화</button>
         <p style="font-size:11px;color:var(--text-muted);margin-bottom:6px;text-align:center">⬇️ 아래 버튼은 3초 길게 눌러야 실행됩니다</p>
         <button class="btn-wide btn-outline" id="btnResetApp"
           style="border-color:#e53e3e;color:#e53e3e;position:relative;overflow:hidden"
@@ -920,7 +921,7 @@ textarea { resize: vertical; min-height: 60px; }
 // ───────────────────────────────
 // APP VERSION
 // ───────────────────────────────
-const APP_VERSION = '0.4.1';
+const APP_VERSION = '0.4.3';
 
 // ───────────────────────────────
 // 출결 통계
@@ -2371,9 +2372,11 @@ async function doShare(method) {
       if (navigator.canShare && navigator.canShare({ files: [file] })) {
         await navigator.share({ files: [file], title: name });
         toast('✅ 공유 완료');
+        syncHistoryToGitHub(false); // 공유 성공 시 GitHub 자동 동기화
       } else {
         triggerDownload(blob, name);
         toast('📥 다운로드 완료');
+        syncHistoryToGitHub(false); // 다운로드 시 GitHub 자동 동기화
       }
     } catch(e) {
       if (e.name !== 'AbortError') {
@@ -2453,6 +2456,7 @@ async function uploadToNAS() {
 
     if (resp.status === 201 || resp.status === 204 || resp.status === 200) {
       toast('✅ NAS 업로드 완료!');
+      syncHistoryToGitHub(false); // NAS 업로드 성공 시 GitHub 자동 동기화
     } else {
       toast('❌ NAS 업로드 실패: ' + resp.status);
     }
@@ -2800,9 +2804,12 @@ function scheduleSilentSave() {
 }
 // 텍스트 입력 시 자동저장
 document.addEventListener('input', () => scheduleSilentSave());
-// 앱 백그라운드 전환 시 즉시 저장
+// 앱 백그라운드 전환 시 즉시 저장 + GitHub 동기화
 document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState === 'hidden') saveDraftSilent();
+  if (document.visibilityState === 'hidden') {
+    saveDraftSilent();
+    syncHistoryToGitHub(false); // 백그라운드 자동 동기화
+  }
 });
 
 // ───────────────────────────────
