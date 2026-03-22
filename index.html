@@ -920,7 +920,7 @@ textarea { resize: vertical; min-height: 60px; }
 // ───────────────────────────────
 // APP VERSION
 // ───────────────────────────────
-const APP_VERSION = '0.3.9';
+const APP_VERSION = '0.4.0';
 
 // ───────────────────────────────
 // 출결 통계
@@ -1469,6 +1469,10 @@ function init() {
   renderAdultGrid();
   renderStats();
   loadHistorySeed(); // history.json 시드 데이터 병합
+
+  // 헤더 버전 표시
+  const hVer = document.getElementById('headerVersion');
+  if (hVer) hVer.textContent = `v${APP_VERSION}`;
 }
 
 // ───────────────────────────────
@@ -2527,19 +2531,22 @@ function wTableRow(cells, isHeader = false) {
   const colWidths = [1800, 8280];
   return `
 <w:tr>
-  <w:trPr><w:trHeight w:val="320" w:hRule="atLeast"/></w:trPr>
+  <w:trPr><w:trHeight w:val="380" w:hRule="atLeast"/></w:trPr>
   ${cells.map((cell, i) => `
   <w:tc>
     <w:tcPr>
       <w:tcW w:w="${colWidths[i] || 8280}" w:type="dxa"/>
-      ${i === 0 ? '<w:shd w:val="clear" w:color="auto" w:fill="EBF4FF"/>' : ''}
+      ${i === 0 ? '<w:shd w:val="clear" w:color="auto" w:fill="2C5AA0"/>' : '<w:shd w:val="clear" w:color="auto" w:fill="FFFFFF"/>'}
     </w:tcPr>
     <w:p>
-      <w:pPr><w:jc w:val="${i === 0 ? 'center' : 'left'}"/></w:pPr>
+      <w:pPr>
+        <w:jc w:val="${i === 0 ? 'center' : 'left'}"/>
+        <w:spacing w:before="40" w:after="40"/>
+      </w:pPr>
       <w:r>
         <w:rPr>
-          ${i === 0 ? '<w:b/><w:color w:val="2C5AA0"/>' : ''}
-          <w:sz w:val="20"/><w:szCs w:val="20"/>
+          ${i === 0 ? '<w:b/><w:color w:val="FFFFFF"/>' : '<w:color w:val="1a1a1a"/>'}
+          <w:sz w:val="21"/><w:szCs w:val="21"/>
         </w:rPr>
         <w:t xml:space="preserve">${esc(cell)}</w:t>
       </w:r>
@@ -2554,18 +2561,18 @@ function wInfoTable(rows) {
   <w:tblPr>
     <w:tblW w:w="10080" w:type="dxa"/>
     <w:tblBorders>
-      <w:top w:val="none" w:sz="0" w:space="0" w:color="auto"/>
-      <w:left w:val="none" w:sz="0" w:space="0" w:color="auto"/>
-      <w:bottom w:val="none" w:sz="0" w:space="0" w:color="auto"/>
-      <w:right w:val="none" w:sz="0" w:space="0" w:color="auto"/>
-      <w:insideH w:val="single" w:sz="2" w:space="0" w:color="DDDDDD"/>
-      <w:insideV w:val="none" w:sz="0" w:space="0" w:color="auto"/>
+      <w:top    w:val="single" w:sz="16" w:space="0" w:color="2C5AA0"/>
+      <w:left   w:val="none"   w:sz="0"  w:space="0" w:color="auto"/>
+      <w:bottom w:val="single" w:sz="4"  w:space="0" w:color="2C5AA0"/>
+      <w:right  w:val="none"   w:sz="0"  w:space="0" w:color="auto"/>
+      <w:insideH w:val="single" w:sz="2" w:space="0" w:color="CCCCCC"/>
+      <w:insideV w:val="none"   w:sz="0" w:space="0" w:color="auto"/>
     </w:tblBorders>
     <w:tblCellMar>
-      <w:top w:w="40" w:type="dxa"/>
-      <w:left w:w="80" w:type="dxa"/>
-      <w:bottom w:w="40" w:type="dxa"/>
-      <w:right w:w="80" w:type="dxa"/>
+      <w:top w:w="60" w:type="dxa"/>
+      <w:left w:w="100" w:type="dxa"/>
+      <w:bottom w:w="60" w:type="dxa"/>
+      <w:right w:w="100" w:type="dxa"/>
     </w:tblCellMar>
   </w:tblPr>
   <w:tblGrid>
@@ -2648,10 +2655,12 @@ function buildDocumentXml() {
 
   // Zone absent list (새 구조: state.adult.zones[i].members)
   const zones = (d.adult && d.adult.zones) ? d.adult.zones : [];
-  // 구역장(leader) 제외한 결석자 목록
+  // 구역장(leader) 제외한 결석자 목록 — 구역장 이름은 진하게 표시
   const zoneLines = zones.map((z, i) => {
     const absent = (z.members || []).filter(m => m.status === 'absent' && m.role !== 'leader').map(m => m.name);
-    return absent.length ? `(${i+1}구역) ${ZONE_MEMBERS[i]?.members.find(m=>m.role==='leader')?.name||''}: ${absent.join(' ')}` : null;
+    if (!absent.length) return null;
+    const leaderName = ZONE_MEMBERS[i]?.members.find(m => m.role === 'leader')?.name || '';
+    return { zoneNum: i + 1, leaderName, absentNames: absent.join(' ') };
   }).filter(Boolean);
 
   let zoneTotal = zones.reduce((sum, z) =>
@@ -2677,19 +2686,24 @@ ${wSectionTitle('1', '부서별 주일 사역')}
 
 ${wSubTitle('중고등부')}
 ${wBullet('출석', `${yPresent.length}명`)}
-${yPresent.length ? wBullet('출석자', yPresent.map(m => m.name).join('  ')) : ''}
-${yAbsent.length  ? wBullet('결석자', yAbsent.map(m => m.name).join('  ')) : ''}
+${yPresent.length ? wBullet('출석자', yPresent.map(m => m.name).join(' ')) : ''}
+${yAbsent.length  ? wBullet('결석자', yAbsent.map(m => m.name).join(' ')) : ''}
 ${d.youth.note    ? wBullet('특이사항', d.youth.note) : ''}
 
 ${wSubTitle('청년부')}
 ${wBullet('출석', `${gPresent.length}명`)}
-${gPresent.length ? wBullet('출석자', gPresent.map(m => m.name).join('  ')) : ''}
-${gAbsent.length  ? wBullet('결석자', gAbsent.map(m => m.name).join('  ')) : ''}
+${gPresent.length ? wBullet('출석자', gPresent.map(m => m.name).join(' ')) : ''}
+${gAbsent.length  ? wBullet('결석자', gAbsent.map(m => m.name).join(' ')) : ''}
 ${d.young.note    ? wBullet('특이사항', d.young.note) : ''}
 
 ${wSubTitle('교구')}
 ${wBullet('결석', `총 ${zoneTotal}명 (장기결석·비정기출석·유병자 포함)`)}
-${zoneLines.map(line => wBullet('', line)).join('')}
+${zoneLines.map(({ zoneNum, leaderName, absentNames }) => `
+<w:p>
+  <w:pPr><w:ind w:left="280"/><w:spacing w:line="240" w:lineRule="auto"/></w:pPr>
+  <w:r><w:rPr><w:b/><w:sz w:val="22"/><w:szCs w:val="22"/></w:rPr><w:t xml:space="preserve">(${zoneNum}구역) ${esc(leaderName)}: </w:t></w:r>
+  <w:r><w:rPr><w:sz w:val="22"/><w:szCs w:val="22"/></w:rPr><w:t xml:space="preserve">${esc(absentNames)}</w:t></w:r>
+</w:p>`).join('')}
 ${d.parishNote ? wBullet('비고', d.parishNote) : ''}
 
 ${wSectionTitle('2', '차주 사역 계획')}
