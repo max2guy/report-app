@@ -816,36 +816,6 @@ textarea { resize: vertical; min-height: 60px; }
     <div class="modal-handle"></div>
     <div class="modal-title">⚙️ 설정</div>
 
-    <!-- 중고등부 멤버 관리 (아코디언) -->
-    <div class="setting-group">
-      <button class="accordion-btn" id="accYouth" onclick="toggleAccordion('accYouth','accYouthContent')">
-        <span>🎓 중고등부 멤버 관리</span>
-        <span class="acc-arrow">▶</span>
-      </button>
-      <div class="accordion-content" id="accYouthContent">
-        <div class="member-manage-list" id="youthMemberList"></div>
-        <div class="add-member-row" style="margin-top:8px">
-          <input type="text" id="addYouthManage" placeholder="이름 추가">
-          <button class="btn-add-submit" onclick="addMemberFromManage('youth')">+</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- 청년부 멤버 관리 (아코디언) -->
-    <div class="setting-group">
-      <button class="accordion-btn" id="accYoung" onclick="toggleAccordion('accYoung','accYoungContent')">
-        <span>🙏 청년부 멤버 관리</span>
-        <span class="acc-arrow">▶</span>
-      </button>
-      <div class="accordion-content" id="accYoungContent">
-        <div class="member-manage-list" id="youngMemberList"></div>
-        <div class="add-member-row" style="margin-top:8px">
-          <input type="text" id="addYoungManage" placeholder="이름 추가">
-          <button class="btn-add-submit" onclick="addMemberFromManage('young')">+</button>
-        </div>
-      </div>
-    </div>
-
     <!-- 구역장 전화번호 (아코디언) -->
     <div class="setting-group">
       <button class="accordion-btn" id="accPhone" onclick="toggleAccordion('accPhone','accPhoneContent')">
@@ -1511,8 +1481,6 @@ function toggleAccordion(btnId, contentId) {
   content.classList.toggle('open', !isOpen);
   // 멤버 목록 렌더 (열릴 때)
   if (!isOpen) {
-    if (contentId === 'accYouthContent') renderMemberManageList('youth');
-    if (contentId === 'accYoungContent') renderMemberManageList('young');
     if (contentId === 'accPhoneContent') renderZonePhoneList();
   }
 }
@@ -1670,10 +1638,16 @@ function renderYouthGrid() {
     chip.className = `member-chip ${m.status}`;
     chip.innerHTML = `<div class="status-dot"></div>${m.name}`;
     chip.onclick = () => toggleYouth(i);
+    attachLongPressDelete(chip, () => {
+      if (confirm(`${m.name}을(를) 명단에서 삭제할까요?`)) {
+        state.youth.members.splice(i, 1);
+        renderYouthGrid();
+        toast(`🗑 ${m.name} 삭제됨`);
+      }
+    });
     grid.appendChild(chip);
   });
   updateYouthStats();
-  renderMemberManageList('youth');
 }
 
 function renderYoungGrid() {
@@ -1685,10 +1659,24 @@ function renderYoungGrid() {
     chip.className = `member-chip ${m.status}`;
     chip.innerHTML = `<div class="status-dot"></div>${m.name}`;
     chip.onclick = () => toggleYoung(i);
+    attachLongPressDelete(chip, () => {
+      if (confirm(`${m.name}을(를) 명단에서 삭제할까요?`)) {
+        state.young.members.splice(i, 1);
+        renderYoungGrid();
+        toast(`🗑 ${m.name} 삭제됨`);
+      }
+    });
     grid.appendChild(chip);
   });
   updateYoungStats();
-  renderMemberManageList('young');
+}
+
+// 길게 누르기 공통 헬퍼
+function attachLongPressDelete(el, onDelete) {
+  let t;
+  el.addEventListener('touchstart', () => { t = setTimeout(onDelete, 600); }, { passive: true });
+  el.addEventListener('touchend',  () => clearTimeout(t), { passive: true });
+  el.addEventListener('touchmove', () => clearTimeout(t), { passive: true });
 }
 
 function toggleYouth(i) {
@@ -1808,22 +1796,15 @@ function renderZoneChips(zi) {
     if (m.role === 'inspector') badge = '<span class="adult-role-badge inspector">권</span>';
     chip.innerHTML = `${badge}<span>${m.name}</span>`;
     chip.onclick = () => toggleAdultMember(zi, mi);
-
-    // 길게 누르면 삭제
-    let pressTimer;
-    chip.addEventListener('touchstart', () => {
-      pressTimer = setTimeout(() => {
-        if (confirm(`${m.name}을(를) 명단에서 삭제할까요?`)) {
-          state.adult.zones[zi].members.splice(mi, 1);
-          renderZoneChips(zi);
-          updateAdultStats();
-          scheduleSilentSave();
-          toast(`🗑 ${m.name} 삭제됨`);
-        }
-      }, 600);
-    }, { passive: true });
-    chip.addEventListener('touchend',   () => clearTimeout(pressTimer), { passive: true });
-    chip.addEventListener('touchmove',  () => clearTimeout(pressTimer), { passive: true });
+    attachLongPressDelete(chip, () => {
+      if (confirm(`${m.name}을(를) 명단에서 삭제할까요?`)) {
+        state.adult.zones[zi].members.splice(mi, 1);
+        renderZoneChips(zi);
+        updateAdultStats();
+        scheduleSilentSave();
+        toast(`🗑 ${m.name} 삭제됨`);
+      }
+    });
 
     grid.appendChild(chip);
   });
@@ -2133,7 +2114,7 @@ function openSettings() {
   const vEl = document.getElementById('appVersionText');
   if (vEl) vEl.textContent = APP_VERSION;
   // 아코디언 초기화 (모두 닫힌 상태)
-  ['accYouth','accYoung','accPhone','accGit'].forEach(id => {
+  ['accPhone','accGit'].forEach(id => {
     const btn = document.getElementById(id);
     const content = document.getElementById(id + 'Content');
     if (btn) btn.classList.remove('open');
@@ -2158,36 +2139,6 @@ function closeModal(e, id) {
   if (!e || e.target === e.currentTarget) document.getElementById(id).classList.remove('open');
 }
 
-// ───────────────────────────────
-// MEMBER MANAGE
-// ───────────────────────────────
-function renderMemberManageList(group) {
-  const listId = group === 'youth' ? 'youthMemberList' : 'youngMemberList';
-  const list = document.getElementById(listId);
-  if (!list) return;
-  const members = state[group].members;
-  list.innerHTML = '';
-  members.forEach((m, i) => {
-    const item = document.createElement('div');
-    item.className = 'member-manage-item';
-    item.innerHTML = `<span>${m.name}</span><button class="btn-delete" onclick="deleteMember('${group}',${i})">✕</button>`;
-    list.appendChild(item);
-  });
-}
-function addMemberFromManage(group) {
-  const inputId = group === 'youth' ? 'addYouthManage' : 'addYoungManage';
-  const input = document.getElementById(inputId);
-  const name = input.value.trim();
-  if (!name) return;
-  state[group].members.push({ name, status: 'present' });
-  input.value = '';
-  group === 'youth' ? renderYouthGrid() : renderYoungGrid();
-  toast(`${name} 추가됨`);
-}
-function deleteMember(group, idx) {
-  state[group].members.splice(idx, 1);
-  group === 'youth' ? renderYouthGrid() : renderYoungGrid();
-}
 
 // ───────────────────────────────
 // DRAFT SAVE
