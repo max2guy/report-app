@@ -563,7 +563,7 @@ textarea { resize: vertical; min-height: 60px; }
 <!-- HEADER -->
 <header class="header">
   <div class="header-title">
-    <h1>⛪ 주일 사역 보고서</h1>
+    <h1>⛪ 주일 사역 보고서 <span id="headerVersion" style="font-size:11px;font-weight:400;opacity:0.55;letter-spacing:0"></span></h1>
     <p id="headerDate">날짜를 선택하세요</p>
   </div>
   <div class="header-actions">
@@ -919,7 +919,7 @@ textarea { resize: vertical; min-height: 60px; }
 // ───────────────────────────────
 // APP VERSION
 // ───────────────────────────────
-const APP_VERSION = '0.3.7';
+const APP_VERSION = '0.3.8';
 
 // ───────────────────────────────
 // 출결 통계
@@ -2175,6 +2175,8 @@ function openSettings() {
   // 버전 표시
   const vEl = document.getElementById('appVersionText');
   if (vEl) vEl.textContent = APP_VERSION;
+  const hVer = document.getElementById('headerVersion');
+  if (hVer) hVer.textContent = `v${APP_VERSION}`;
   // 아코디언 초기화 (모두 닫힌 상태)
   ['accPhone','accGit'].forEach(id => {
     const btn = document.getElementById(id);
