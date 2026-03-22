@@ -917,7 +917,7 @@ textarea { resize: vertical; min-height: 60px; }
 // ───────────────────────────────
 // APP VERSION
 // ───────────────────────────────
-const APP_VERSION = '0.3.5';
+const APP_VERSION = '0.3.6';
 
 // ───────────────────────────────
 // 출결 통계
@@ -1421,7 +1421,33 @@ function init() {
     }
     // 교구 멤버 복원: 저장된 상태 vs 기본값
     if (s.adult?.zones?.length === 12) {
-      state.adult.zones = s.adult.zones;
+      // ZONE_MEMBERS 기준으로 이름·순서 동기화 (사망 삭제·이름 수정 반영)
+      state.adult.zones = ZONE_MEMBERS.map((zDef, zi) => {
+        const saved = s.adult.zones[zi] || { members: [] };
+        // 저장된 구역원 맵: 이름 → status (출결 정보 보존용)
+        const statusByName = {};
+        (saved.members || []).forEach(m => { statusByName[m.name] = m.status; });
+        // 구 이름 → 새 이름 매핑 (이름 변경 시 출결 정보 이전)
+        const nameRemap = {
+          '김영수': '김영숙',
+          '류흥렬': '류홍렬',
+          '이헌상': '이현상',
+          '김호철': '김효철',
+        };
+        // 구 이름으로 저장된 status도 이전
+        Object.entries(nameRemap).forEach(([oldName, newName]) => {
+          if (statusByName[oldName] !== undefined && statusByName[newName] === undefined) {
+            statusByName[newName] = statusByName[oldName];
+          }
+        });
+        return {
+          members: zDef.members.map(m => ({
+            name: m.name,
+            role: m.role,
+            status: statusByName[m.name] || 'present',
+          }))
+        };
+      });
     } else {
       state.adult.zones = ZONE_MEMBERS.map(z => ({
         members: z.members.map(m => ({ name: m.name, role: m.role, status: 'present' }))
