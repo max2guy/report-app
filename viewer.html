@@ -432,19 +432,17 @@ async function pollNotifications() {
     const list = await res.json();
     if (!list.length) return;
     const latest = list[list.length - 1];
-    if (latest.id !== viewerLastNotifId && viewerLastNotifId !== latest.id) {
-      const savedId = localStorage.getItem('viewerLastNotifId') || '';
-      if (latest.id !== savedId) {
-        viewerUnread++;
-        const badge = document.getElementById('viewerInboxBadge');
-        if (badge) { badge.style.display='flex'; badge.textContent = viewerUnread; }
-        toast('📄 새 보고서가 도착했습니다');
-        if (Notification.permission === 'granted') {
-          new Notification('📄 새 보고서 도착', { body: latest.title, icon:'./icon-192.png' });
-        }
-        viewerLastNotifId = latest.id;
-        localStorage.setItem('viewerLastNotifId', latest.id);
+    const savedId = localStorage.getItem('viewerLastNotifId') || '';
+    if (latest.id !== savedId) {
+      viewerUnread++;
+      const badge = document.getElementById('viewerInboxBadge');
+      if (badge) { badge.style.display='flex'; badge.textContent = viewerUnread; }
+      toast('📄 새 보고서가 도착했습니다');
+      if (Notification.permission === 'granted') {
+        new Notification('📄 새 보고서 도착', { body: latest.title, icon:'./icon-192.png' });
       }
+      viewerLastNotifId = latest.id;
+      localStorage.setItem('viewerLastNotifId', latest.id);
     }
   } catch(e) {}
 }
@@ -590,8 +588,8 @@ async function initFCM() {
       await saveFCMTokenToGitHub('viewerApp', token);
     }
     messaging.onMessage(payload => {
-      const t = payload.notification?.title || '알림';
-      const b = payload.notification?.body  || '';
+      const t = payload.data?.title || payload.notification?.title || '알림';
+      const b = payload.data?.body  || payload.notification?.body  || '';
       toast(`🔔 ${t}: ${b}`, 4000);
     });
   } catch(e){ console.warn('FCM init failed',e); }
@@ -607,7 +605,7 @@ window.addEventListener('load', () => {
 
 <script>
 const DATA_URL = RAW_BASE + '/history.json';
-const VIEWER_VERSION = '0.4.7';
+const VIEWER_VERSION = '0.4.8';
 let allData = [];
 let activeTab = 'youth';
 

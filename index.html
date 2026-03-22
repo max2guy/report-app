@@ -918,7 +918,7 @@ textarea { resize: vertical; min-height: 60px; }
 // ───────────────────────────────
 // APP VERSION
 // ───────────────────────────────
-const APP_VERSION = '0.4.7';
+const APP_VERSION = '0.4.8';
 
 // ───────────────────────────────
 // 출결 통계
@@ -2917,15 +2917,16 @@ async function fetchInstructions(fromFCM = false) {
 
 // 보고서 생성 시 목사님께 알림 전송
 async function pushReportNotification() {
-  const apiBase = 'https://api.github.com/repos/max2guy/report-app/contents/notifications.json';
+  const repo = (localStorage.getItem('githubRepo') || 'max2guy/report-app').trim();
+  const rawUrl = `https://raw.githubusercontent.com/${repo}/main/notifications.json`;
   try {
-    // GET: 공개 레포 — 토큰 불필요
-    const infoRes = await fetch(apiBase, { headers: { 'Accept': 'application/vnd.github+json' } });
-    let sha = null; let list = [];
-    if (infoRes.ok) {
-      const info = await infoRes.json(); sha = info.sha;
-      try { list = JSON.parse(atob(info.content.replace(/\n/g,''))); } catch(_) {}
-    }
+    // GET: raw URL (인증 불필요, rate limit 없음)
+    let list = [];
+    try {
+      const r = await fetch(rawUrl + '?t=' + Date.now(), { cache: 'no-store' });
+      if (r.ok) list = await r.json();
+    } catch(_) {}
+
     const now = new Date();
     list.push({
       id:       now.toISOString(),
@@ -2933,12 +2934,14 @@ async function pushReportNotification() {
       title:    `${state.date} 주일 사역 보고서`,
       reporter: state.reporter || ''
     });
-    const content = btoa(unescape(encodeURIComponent(JSON.stringify(list, null, 2))));
-    // PUT: Worker 경유
+    const bytes = new TextEncoder().encode(JSON.stringify(list, null, 2));
+    let bin = ''; bytes.forEach(b => bin += String.fromCharCode(b));
+    const content = btoa(bin);
+    // PUT: Worker 경유 (sha는 Worker가 자동 처리)
     await fetch(`${WORKER_URL}/github-write`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ file: 'notifications.json', message: `notify: report submitted ${state.date}`, content, sha })
+      body: JSON.stringify({ file: 'notifications.json', message: `notify: report submitted ${state.date}`, content })
     });
     // FCM 푸시 (뷰어앱에 알림)
     getTargetFCMToken('viewerApp').then(tok => {
@@ -3080,12 +3083,11 @@ async function getTargetFCMToken(role) {
     if (_fcmTokenCache && Date.now() < _fcmTokenCacheExpiry) {
       return _fcmTokenCache[role] || null;
     }
-    const res = await fetch('https://api.github.com/repos/max2guy/report-app/contents/fcm-tokens.json',{
-      headers:{'Accept':'application/vnd.github+json'},cache:'no-store'
-    });
+    const repo = (localStorage.getItem('githubRepo') || 'max2guy/report-app').trim();
+    const rawUrl = `https://raw.githubusercontent.com/${repo}/main/fcm-tokens.json`;
+    const res = await fetch(rawUrl + '?t=' + Date.now(), { cache: 'no-store' });
     if(!res.ok) return null;
-    const info = await res.json();
-    _fcmTokenCache = JSON.parse(decodeURIComponent(escape(atob(info.content.replace(/\n/g,'')))));
+    _fcmTokenCache = await res.json();
     _fcmTokenCacheExpiry = Date.now() + 5 * 60 * 1000;
     return _fcmTokenCache[role] || null;
   } catch(e){ return null; }
