@@ -16,7 +16,8 @@ messaging.onBackgroundMessage(payload => {
   });
 });
 
-const CACHE_NAME = 'report-app-v60';
+const CACHE_NAME = 'report-app-v61';
+// 동적 데이터 파일은 제외 — 설치 실패 방지
 const APP_SHELL = [
   './',
   './index.html',
@@ -24,17 +25,13 @@ const APP_SHELL = [
   './icon.svg',
   './icon-192.png',
   './icon-512.png',
-  './history.json',
-  './notifications.json',
-  './fcm-tokens.json'
 ];
 
-// 설치: 앱 셸 캐시
+// 설치: 핵심 앱 셸만 캐시
 self.addEventListener('install', e => {
   e.waitUntil(
     caches.open(CACHE_NAME).then(c => c.addAll(APP_SHELL))
   );
-  // 기존 SW 즉시 교체 (대기 없이)
   self.skipWaiting();
 });
 
