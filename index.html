@@ -2306,22 +2306,13 @@ async function shareReport() {
     };
     _shareFilenameCache = filename;
 
-    // navigator.share 존재하면 무조건 DS File 버튼 표시 (canShare 게이트키퍼 제거)
-    const hasShareAPI = !!navigator.share;
-
     const body = document.getElementById('shareSheetBody');
     const btn = (bg, fg, action, label) =>
       `<button style="margin-bottom:12px;background:${bg};color:${fg};border:none;padding:16px;border-radius:14px;font-size:16px;font-weight:600;width:100%;display:block" onclick="doShare('${action}')">${label}</button>`;
 
     body.innerHTML = '';
     body.innerHTML += btn('#1a7f4b','white','nas','☁️ NAS 직접 업로드');
-    if (hasShareAPI) {
-      body.innerHTML += btn('#2c7be5','white','share','📱 공유 시트로 보내기');
-    }
     body.innerHTML += btn('#f0f4ff','#2c7be5','docx','📥 파일 다운로드 (DOCX)');
-    if (!hasShareAPI) {
-      body.innerHTML = `<p style="color:#f59e0b;font-size:13px;margin-bottom:12px;text-align:center">⚠️ 이 기기는 공유 기능을 지원하지 않습니다.</p>` + body.innerHTML;
-    }
 
     document.getElementById('shareSheet').classList.add('open');
   } catch(e) {
