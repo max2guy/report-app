@@ -917,7 +917,7 @@ textarea { resize: vertical; min-height: 60px; }
 // ───────────────────────────────
 // APP VERSION
 // ───────────────────────────────
-const APP_VERSION = '0.3.4';
+const APP_VERSION = '0.3.5';
 
 // ───────────────────────────────
 // 출결 통계
@@ -2620,7 +2620,7 @@ function buildDocumentXml() {
   // 구역장(leader) 제외한 결석자 목록
   const zoneLines = zones.map((z, i) => {
     const absent = (z.members || []).filter(m => m.status === 'absent' && m.role !== 'leader').map(m => m.name);
-    return absent.length ? `(${i+1}구역) ${ZONE_MEMBERS[i]?.members.find(m=>m.role==='leader')?.name||''}: ${absent.join(', ')}` : null;
+    return absent.length ? `(${i+1}구역) ${ZONE_MEMBERS[i]?.members.find(m=>m.role==='leader')?.name||''}: ${absent.join(' ')}` : null;
   }).filter(Boolean);
 
   let zoneTotal = zones.reduce((sum, z) =>
