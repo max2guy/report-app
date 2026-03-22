@@ -1764,9 +1764,9 @@ function renderAdultGrid() {
           <button class="zone-btn-all zone-btn-present" onclick="event.stopPropagation();setAllZone(${zi},'present')">전원출석</button>
           <button class="zone-btn-all zone-btn-absent"  onclick="event.stopPropagation();setAllZone(${zi},'absent')">전원결석</button>
         </span>
-        <span class="zone-chevron" id="zoneChevron${zi}">▶</span>
+        <span class="zone-chevron open" id="zoneChevron${zi}">▶</span>
       </div>
-      <div class="zone-acc-body" id="zoneBody${zi}">
+      <div class="zone-acc-body open" id="zoneBody${zi}">
         <div class="adult-chip-grid" id="zoneChipGrid${zi}"></div>
       </div>
     `;
