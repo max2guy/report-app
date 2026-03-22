@@ -876,7 +876,6 @@ textarea { resize: vertical; min-height: 60px; }
       </button>
       <div class="accordion-content" id="accAppMgrContent">
         <button class="btn-wide btn-blue" onclick="forceRefresh()" style="margin-bottom:12px">🔄 강제 새로고침 (캐시 초기화)</button>
-        <button class="btn-wide btn-blue" onclick="syncHistoryToGitHub(true)" style="margin-bottom:12px;background:var(--success)">☁️ GitHub 지금 동기화</button>
         <p style="font-size:11px;color:var(--text-muted);margin-bottom:6px;text-align:center">⬇️ 아래 버튼은 3초 길게 눌러야 실행됩니다</p>
         <button class="btn-wide btn-outline" id="btnResetApp"
           style="border-color:#e53e3e;color:#e53e3e;position:relative;overflow:hidden"
@@ -921,7 +920,7 @@ textarea { resize: vertical; min-height: 60px; }
 // ───────────────────────────────
 // APP VERSION
 // ───────────────────────────────
-const APP_VERSION = '0.4.3';
+const APP_VERSION = '0.4.4';
 
 // ───────────────────────────────
 // 출결 통계
@@ -1539,47 +1538,36 @@ const WORKER_URL = 'https://nas-proxy.max2guy.workers.dev';
 
 async function syncHistoryToGitHub(manual = false, overwrite = false) {
   const repo = (localStorage.getItem('githubRepo') || 'max2guy/report-app').trim();
-  const path = 'history.json';
-  const apiBase = `https://api.github.com/repos/${repo}/contents/${path}`;
+  const rawUrl = `https://raw.githubusercontent.com/${repo}/main/history.json`;
 
   try {
     updateGitSyncStatus('동기화 중...');
-    if (manual) toast('⏳ GitHub 동기화 중...');
 
-    // GET: 공개 레포 — 토큰 불필요
-    const infoRes = await fetch(apiBase, { headers: { 'Accept': 'application/vnd.github+json' } });
-    if (!infoRes.ok) {
-      const errBody = await infoRes.json().catch(() => ({}));
-      throw new Error(`GET 실패 ${infoRes.status}: ${errBody.message || infoRes.statusText}`);
-    }
-    const info = await infoRes.json();
-    const sha  = info.sha;
-
-    // 원격 데이터 파싱
+    // GET: raw URL 사용 (인증 불필요, rate limit 없음)
     let remoteData = [];
-    try { remoteData = JSON.parse(atob(info.content.replace(/\n/g, ''))); } catch(_) {}
+    try {
+      const rawRes = await fetch(rawUrl + '?t=' + Date.now(), { cache: 'no-store' });
+      if (rawRes.ok) remoteData = await rawRes.json();
+    } catch(_) {}
 
-    // overwrite=true(삭제 후): 로컬 데이터로 그대로 덮어씀 (병합 없음)
-    // overwrite=false(일반 동기화): 원격+로컬 병합, 로컬 우선
+    // overwrite=true: 로컬로 덮어씀 / false: 원격+로컬 병합
     let merged;
     if (overwrite) {
       merged = reportHistory.slice().sort((a, b) => a.date.localeCompare(b.date));
     } else {
       const mergeMap = {};
       remoteData.forEach(r => {
-        if (!deletedHistoryDates.has(r.date)) mergeMap[r.date] = r; // 삭제된 날짜는 원격에서도 무시
+        if (!deletedHistoryDates.has(r.date)) mergeMap[r.date] = r;
       });
       reportHistory.forEach(r => {
         if (mergeMap[r.date]) {
           const remote = mergeMap[r.date];
           mergeMap[r.date] = { ...remote, ...r };
-          // adult: 로컬에 zones 없으면 원격 adult 보존
-          if ((!r.adult || !r.adult.zones || !r.adult.zones.length) && remote.adult && remote.adult.zones && remote.adult.zones.length) {
+          if ((!r.adult || !r.adult.zones || !r.adult.zones.length) && remote.adult?.zones?.length) {
             mergeMap[r.date].adult = remote.adult;
           }
-          // youth/young absentNames: 로컬에 없으면 원격 것 보존
           for (const g of ['youth', 'young']) {
-            if (r[g] && (!r[g].absentNames || !r[g].absentNames.length) && remote[g] && remote[g].absentNames && remote[g].absentNames.length) {
+            if (r[g] && !r[g].absentNames?.length && remote[g]?.absentNames?.length) {
               mergeMap[r.date][g].absentNames = remote[g].absentNames;
             }
           }
@@ -1590,23 +1578,23 @@ async function syncHistoryToGitHub(manual = false, overwrite = false) {
       merged = Object.values(mergeMap).sort((a, b) => a.date.localeCompare(b.date));
     }
 
-    // 한글 포함 Base64 인코딩 (TextEncoder 방식, 안정적)
+    // Base64 인코딩
     const jsonStr = JSON.stringify(merged, null, 2);
     const bytes = new TextEncoder().encode(jsonStr);
     let binary = '';
     bytes.forEach(b => binary += String.fromCharCode(b));
     const content = btoa(binary);
-    const body = {
-      message: `sync: history update ${new Date().toISOString().slice(0, 10)}`,
-      content,
-      sha  // 기존 파일 SHA 반드시 포함
-    };
 
-    // PUT: Worker 경유 (토큰 서버측 보관)
+    // PUT: Worker 경유 — sha는 Worker가 최신 값으로 직접 조회
     const putRes = await fetch(`${WORKER_URL}/github-write`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body)
+      body: JSON.stringify({
+        file: 'history.json',
+        message: `sync: history update ${new Date().toISOString().slice(0, 10)}`,
+        content
+        // sha 생략 → Worker가 최신 sha를 직접 가져와 충돌 방지
+      })
     });
     if (!putRes.ok) {
       const errBody = await putRes.json().catch(() => ({}));
@@ -1615,11 +1603,9 @@ async function syncHistoryToGitHub(manual = false, overwrite = false) {
 
     const now = new Date().toLocaleString('ko-KR', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
     localStorage.setItem('githubLastSync', now);
-    updateGitSyncStatus(`✅ 동기화 완료: ${now}`);
-    if (manual) toast('✅ GitHub 동기화 완료');
+    updateGitSyncStatus(`✅ ${now}`);
   } catch(e) {
     updateGitSyncStatus(`❌ ${e.message}`);
-    if (manual) toast('❌ ' + e.message);
     console.error('GitHub sync error', e);
   }
 }
