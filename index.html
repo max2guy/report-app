@@ -266,6 +266,15 @@ textarea { resize: vertical; min-height: 60px; }
 .zone-head-leader { font-size: 12px; font-weight: 600; color: var(--navy); }
 .zone-head-absent { font-size: 11px; color: #c53030; font-weight: 700; margin-left: 6px; }
 .zone-head-btns { display: flex; gap: 4px; flex-shrink: 0; }
+.card-head-btns { display: flex; gap: 4px; flex-shrink: 0; margin-left: auto; }
+.card-head-btn {
+  font-size: 10px; padding: 3px 7px; border-radius: 5px; border: 1px solid;
+  cursor: pointer; background: rgba(255,255,255,0.12); color: white;
+  touch-action: manipulation; font-family: inherit;
+}
+.card-head-btn-add     { border-color: rgba(104,211,145,0.8); }
+.card-head-btn-present { border-color: rgba(144,205,244,0.8); }
+.card-head-btn-absent  { border-color: rgba(254,178,178,0.8); }
 .zone-btn-all {
   font-size: 10px; padding: 3px 7px; border-radius: 5px; border: 1px solid;
   cursor: pointer; background: none; touch-action: manipulation;
@@ -637,6 +646,11 @@ textarea { resize: vertical; min-height: 60px; }
         <span class="card-header-icon">🎓</span>
         <h2>중고등부 출석 현황</h2>
         <span class="badge" id="youthBadge">0명</span>
+        <span class="card-head-btns">
+          <button class="card-head-btn card-head-btn-add"     onclick="toggleGroupAddRow('youth')">인원추가</button>
+          <button class="card-head-btn card-head-btn-present" onclick="setAllYouth('present')">전원출석</button>
+          <button class="card-head-btn card-head-btn-absent"  onclick="setAllYouth('absent')">전원결석</button>
+        </span>
       </div>
       <div class="card-body">
         <div class="summary-bar">
@@ -653,14 +667,11 @@ textarea { resize: vertical; min-height: 60px; }
             <div class="lbl">전체</div>
           </div>
         </div>
-        <div class="member-actions" style="margin-bottom:12px">
-          <button class="btn-sm btn-present" onclick="setAllYouth('present')">전원 출석</button>
-          <button class="btn-sm btn-absent" onclick="setAllYouth('absent')">전원 결석</button>
-        </div>
         <div class="member-grid" id="youthGrid"></div>
-        <div class="add-member-row">
-          <input type="text" id="addYouthInput" placeholder="이름 추가" style="font-size:14px">
-          <button class="btn-add-submit" onclick="addMember('youth')">+</button>
+        <div class="zone-add-row" id="youthAddRow">
+          <input type="text" id="addYouthInput" placeholder="이름 입력" style="flex:1;font-size:13px;padding:6px 10px;border:1px solid var(--border);border-radius:8px">
+          <button onclick="addMember('youth')" style="padding:6px 14px;background:var(--blue);color:white;border:none;border-radius:8px;font-size:13px;cursor:pointer">추가</button>
+          <button onclick="toggleGroupAddRow('youth')" style="padding:6px 10px;background:none;border:1px solid var(--border);border-radius:8px;font-size:13px;cursor:pointer">취소</button>
         </div>
       </div>
     </div>
@@ -682,6 +693,11 @@ textarea { resize: vertical; min-height: 60px; }
         <span class="card-header-icon">🙏</span>
         <h2>청년부 출석 현황</h2>
         <span class="badge" id="youngBadge">0명</span>
+        <span class="card-head-btns">
+          <button class="card-head-btn card-head-btn-add"     onclick="toggleGroupAddRow('young')">인원추가</button>
+          <button class="card-head-btn card-head-btn-present" onclick="setAllYoung('present')">전원출석</button>
+          <button class="card-head-btn card-head-btn-absent"  onclick="setAllYoung('absent')">전원결석</button>
+        </span>
       </div>
       <div class="card-body">
         <div class="summary-bar">
@@ -698,14 +714,11 @@ textarea { resize: vertical; min-height: 60px; }
             <div class="lbl">전체</div>
           </div>
         </div>
-        <div class="member-actions" style="margin-bottom:8px">
-          <button class="btn-sm btn-present" onclick="setAllYoung('present')">전원 출석</button>
-          <button class="btn-sm btn-absent" onclick="setAllYoung('absent')">전원 결석</button>
-        </div>
         <div class="member-grid" id="youngGrid"></div>
-        <div class="add-member-row">
-          <input type="text" id="addYoungInput" placeholder="이름 추가" style="font-size:14px">
-          <button class="btn-add-submit" onclick="addMember('young')">+</button>
+        <div class="zone-add-row" id="youngAddRow">
+          <input type="text" id="addYoungInput" placeholder="이름 입력" style="flex:1;font-size:13px;padding:6px 10px;border:1px solid var(--border);border-radius:8px">
+          <button onclick="addMember('young')" style="padding:6px 14px;background:var(--blue);color:white;border:none;border-radius:8px;font-size:13px;cursor:pointer">추가</button>
+          <button onclick="toggleGroupAddRow('young')" style="padding:6px 10px;background:none;border:1px solid var(--border);border-radius:8px;font-size:13px;cursor:pointer">취소</button>
         </div>
       </div>
     </div>
@@ -1740,10 +1753,13 @@ function addMember(group) {
   const input = document.getElementById(inputId);
   const name = input.value.trim();
   if (!name) return;
-  state[group === 'youth' ? 'youth' : 'young'].members.push({ name, status: 'present' });
+  state[group].members.push({ name, status: 'present' });
   input.value = '';
   group === 'youth' ? renderYouthGrid() : renderYoungGrid();
-  toast(`${name} 추가됨`);
+  scheduleSilentSave();
+  toast(`✅ ${name} 추가됨`);
+  // 추가 후 입력창 닫기
+  document.getElementById(`${group}AddRow`)?.classList.remove('open');
 }
 
 // ───────────────────────────────
@@ -1869,6 +1885,12 @@ function toggleZoneAcc(zi) {
   const chevron = document.getElementById(`zoneChevron${zi}`);
   const isOpen = body.classList.toggle('open');
   chevron.classList.toggle('open', isOpen);
+}
+
+function toggleGroupAddRow(group) {
+  const row = document.getElementById(`${group}AddRow`);
+  const isOpen = row.classList.toggle('open');
+  if (isOpen) setTimeout(() => document.getElementById(`add${group.charAt(0).toUpperCase()+group.slice(1)}Input`)?.focus(), 50);
 }
 
 function toggleZoneAddRow(zi) {
