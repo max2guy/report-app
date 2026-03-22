@@ -320,6 +320,8 @@ const INSTR_URL  = RAW_BASE + '/instructions.json';
 const NOTIF_URL  = RAW_BASE + '/notifications.json';
 let viewerLastNotifId = localStorage.getItem('viewerLastNotifId') || '';
 let viewerUnread = 0;
+// 지시사항 인메모리 캐시 — raw URL CDN 캐시(~5분) 때문에 삭제/추가 즉시 UI에 반영하기 위해 사용
+let _instrList = JSON.parse(localStorage.getItem('viewerInstrCache') || '[]');
 
 function openInbox() {
   document.getElementById('inboxOverlay').classList.add('open');
@@ -361,18 +363,24 @@ async function loadInboxData() {
     }
   } catch(e) {}
 
-  // 지시사항 목록 로드 (raw URL — 인증 불필요)
-  try {
-    const res = await fetch(INSTR_URL + '?t=' + Date.now());
-    if (res.ok) { renderInstrList(await res.json()); }
-  } catch(e) {}
+  // 지시사항: 캐시를 즉시 표시 후 백그라운드에서 네트워크 갱신
+  renderInstrList(); // 캐시 즉시 표시
+  fetch(INSTR_URL + '?t=' + Date.now())
+    .then(r => r.ok ? r.json() : null)
+    .then(data => { if (Array.isArray(data)) renderInstrList(data); })
+    .catch(() => {});
 }
 
 function renderInstrList(list) {
+  // list가 주어지면 캐시 갱신, 아니면 캐시에서 읽기
+  if (list !== undefined) {
+    _instrList = list;
+    localStorage.setItem('viewerInstrCache', JSON.stringify(_instrList));
+  }
   const el = document.getElementById('instrList');
   if (!el) return;
-  if (!list || !list.length) { el.innerHTML = '<div class="inbox-empty">없음</div>'; return; }
-  el.innerHTML = list.slice().reverse().map(i => `
+  if (!_instrList.length) { el.innerHTML = '<div class="inbox-empty">없음</div>'; return; }
+  el.innerHTML = _instrList.slice().reverse().map(i => `
     <div class="inbox-item">
       <div class="inbox-item-meta">
         <span>${i.date}</span>
@@ -385,20 +393,22 @@ function renderInstrList(list) {
 const WORKER_URL = 'https://nas-proxy.max2guy.workers.dev';
 
 async function deleteInstruction(id) {
+  // 1. 캐시에서 즉시 제거 → UI 즉시 반영 (raw URL CDN 캐시 관계없이)
+  const before = _instrList.slice();
+  const filtered = _instrList.filter(i => i.id !== id);
+  renderInstrList(filtered);
   try {
-    // GET: raw URL (인증 불필요)
-    const getRes = await fetch(INSTR_URL + '?t=' + Date.now());
-    if (!getRes.ok) throw new Error('조회 실패');
-    let list = await getRes.json();
-    list = list.filter(i => i.id !== id);
-    // sha는 Worker가 자동으로 처리
-    const content = btoa(String.fromCharCode(...new TextEncoder().encode(JSON.stringify(list, null, 2))));
+    // 2. GitHub에 삭제된 목록 저장 (sha는 Worker 자동 처리)
+    const content = btoa(String.fromCharCode(...new TextEncoder().encode(JSON.stringify(filtered, null, 2))));
     const putRes = await fetch(`${WORKER_URL}/github-write`, { method:'POST', headers:{'Content-Type':'application/json'},
       body: JSON.stringify({ file:'instructions.json', message:'delete instruction', content }) });
-    if (!putRes.ok) throw new Error('삭제 실패');
+    if (!putRes.ok) throw new Error('삭제 실패 ' + putRes.status);
     toast('🗑️ 삭제 완료');
-    renderInstrList(list);
-  } catch(e) { toast('❌ ' + e.message); }
+  } catch(e) {
+    // 실패 시 롤백
+    renderInstrList(before);
+    toast('❌ ' + e.message);
+  }
 }
 
 async function sendInstruction() {
@@ -418,10 +428,10 @@ async function sendInstruction() {
     if (!putRes.ok) { const err = await putRes.json().catch(()=>({message:'전송 실패'})); throw new Error(err.message); }
     document.getElementById('instrText').value = '';
     toast('✅ 지시사항 전송 완료');
+    renderInstrList(list); // 캐시 갱신 + UI 반영
     getTargetFCMToken('reportApp').then(tok => {
       if(tok) sendFCMPush(tok, '📋 새 지시사항', text.substring(0,60));
     });
-    renderInstrList(list);
   } catch(e) { toast('❌ 전송 실패: ' + e.message); }
 }
 
@@ -651,7 +661,7 @@ window.addEventListener('load', () => {
 
 <script>
 const DATA_URL = RAW_BASE + '/history.json';
-const VIEWER_VERSION = '0.4.9';
+const VIEWER_VERSION = '0.5.0';
 let allData = [];
 let activeTab = 'youth';
 

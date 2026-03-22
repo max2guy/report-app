@@ -918,7 +918,7 @@ textarea { resize: vertical; min-height: 60px; }
 // ───────────────────────────────
 // APP VERSION
 // ───────────────────────────────
-const APP_VERSION = '0.4.9';
+const APP_VERSION = '0.5.0';
 
 // ───────────────────────────────
 // 출결 통계
@@ -2878,26 +2878,26 @@ function deleteStaffInstr(id) {
 
 let _fcmJustReceived = false;
 async function fetchInstructions(fromFCM = false) {
-  // FCM 수신 직후엔 GitHub 반영 대기 후 재시도
-  const delays = fromFCM ? [2000, 4000] : [0];
+  // FCM 수신 직후엔 GitHub CDN 반영 대기 후 재시도
+  const delays = fromFCM ? [2000, 5000] : [0];
+  const repo = (localStorage.getItem('githubRepo') || 'max2guy/report-app').trim();
+  const rawUrl = `https://raw.githubusercontent.com/${repo}/main/instructions.json`;
   for (const delay of delays) {
     if (delay) await new Promise(r => setTimeout(r, delay));
     try {
-      const res = await fetch('https://api.github.com/repos/max2guy/report-app/contents/instructions.json', {
-        headers: { 'Accept': 'application/vnd.github+json' }, cache: 'no-store'
-      });
+      // raw URL 사용 — rate limit 없음, 인증 불필요
+      const res = await fetch(rawUrl + '?t=' + Date.now(), { cache: 'no-store' });
       if (!res.ok) continue;
-      const info = await res.json();
       let list;
-      try {
-        list = JSON.parse(new TextDecoder('utf-8').decode(Uint8Array.from(atob(info.content.replace(/\n/g,'')), c => c.charCodeAt(0))));
-      } catch(parseErr) {
+      try { list = await res.json(); } catch(parseErr) {
         console.warn('지시사항 JSON 파싱 실패:', parseErr.message);
         continue;
       }
-      if (!Array.isArray(list) || !list.length) continue;
+      if (!Array.isArray(list)) continue;
+      // 목록이 비어 있어도 캐시·UI 갱신 (삭제 반영)
       localStorage.setItem('cachedInstructions', JSON.stringify(list));
       renderStaffInstrList();
+      if (!list.length) return;
       const latest = list[list.length - 1];
       if (latest.id !== lastInstrId) {
         lastInstrId = latest.id;
