@@ -158,13 +158,13 @@ body::-webkit-scrollbar{display:none}
 .ma-meta{font-size:10px;color:var(--muted);width:44px;text-align:right;flex-shrink:0}
 
 /* CONSECUTIVE ABSENT */
-.consec-list{display:flex;flex-wrap:wrap;gap:5px}
+.consec-list{display:flex;flex-direction:column;gap:4px}
 .consec-row{
-  display:inline-flex;align-items:center;gap:5px;
-  background:#fff8f8;border:1px solid #fecaca;border-radius:20px;padding:3px 10px 3px 8px;
+  display:flex;align-items:center;justify-content:space-between;
+  background:#fff8f8;border:1px solid #fecaca;border-radius:8px;padding:5px 10px;
 }
-.consec-name{font-size:12px;font-weight:600;color:#c53030}
-.consec-badge{background:#e53e3e;color:#fff;border-radius:12px;padding:1px 6px;font-size:10px;font-weight:700}
+.consec-name{font-size:12px;font-weight:600;color:#9b2c2c}
+.consec-badge{color:#fff;border-radius:10px;padding:1px 8px;font-size:11px;font-weight:700;flex-shrink:0}
 
 /* HISTORY LIST */
 .history-row{
@@ -738,11 +738,21 @@ function calcAdultConsec(data) {
     .sort((a, b) => b[1] - a[1])
     .map(([name, weeks]) => ({ name, weeks }));
 }
+function consecBadgeColor(weeks, maxWeeks) {
+  // 2주=노랑, maxWeeks=빨강 그라데이션
+  const ratio = maxWeeks > 2 ? Math.min((weeks - 2) / (maxWeeks - 2), 1) : 1;
+  const hue   = Math.round(48 * (1 - ratio));      // 48=노랑 → 0=빨강
+  const sat   = Math.round(88 + ratio * 10);
+  const light = Math.round(52 - ratio * 14);
+  return `hsl(${hue},${sat}%,${light}%)`;
+}
 function renderConsecBlock(list) {
   if (!list.length) return `<div style="font-size:12px;color:var(--muted)">연속 결석자 없음</div>`;
-  return `<div class="consec-list">${list.map(({name, weeks}) =>
-    `<div class="consec-row"><span class="consec-name">${name}</span><span class="consec-badge">${weeks}주 연속</span></div>`
-  ).join('')}</div>`;
+  const maxWeeks = list[0].weeks; // 이미 내림차순 정렬됨
+  return `<div class="consec-list">${list.map(({name, weeks}) => {
+    const bg = consecBadgeColor(weeks, maxWeeks);
+    return `<div class="consec-row"><span class="consec-name">${name}</span><span class="consec-badge" style="background:${bg}">${weeks}주</span></div>`;
+  }).join('')}</div>`;
 }
 
 
