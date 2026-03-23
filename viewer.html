@@ -881,11 +881,12 @@ function renderAdultPanel() {
     <div class="card">
       <div class="card-title">📅 월별 결석 분석</div>
       <div class="monthly-analysis">${months.map(m => {
-        const w = Math.round(m.absent / maxMonthAbsent * 100);
+        const maxAvg = Math.max(...months.map(x => x.avg), 1);
+        const w = Math.round(m.avg / maxAvg * 100);
         return `<div class="ma-row">
           <div class="ma-label">${m.label}</div>
-          <div class="ma-bar-bg"><div class="ma-bar ma-bar-adult" style="width:${Math.max(w,10)}%">${m.absent}명</div></div>
-          <div class="ma-meta">주평균 ${m.avg}명</div>
+          <div class="ma-bar-bg"><div class="ma-bar ma-bar-adult" style="width:${Math.max(w,10)}%">주평균 ${m.avg}명</div></div>
+          <div class="ma-meta">누적 ${m.absent}명</div>
         </div>`;
       }).join('')}</div>
     </div>
