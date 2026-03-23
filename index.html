@@ -492,8 +492,24 @@ textarea { resize: vertical; min-height: 60px; }
   .member-grid { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); }
 }
 
-/* ── TABLET / iPad (768px+) — 세로 사이드바 네비게이션 ── */
-@media (min-width: 768px) {
+/* ── 넓은 폰 세로 (480px-767px): Galaxy S Ultra, iPhone Pro Max ── */
+@media (min-width: 480px) and (max-width: 767px) {
+  .main { padding-left: 20px; padding-right: 20px; }
+}
+
+/* ── 폰 가로 (600px+, 높이 499px 이하): Galaxy S 가로, iPhone 가로 ── */
+/* 사이드바 없이 콘텐츠만 2열 그리드 적용 */
+@media (min-width: 600px) and (max-height: 499px) {
+  .main { padding-left: 20px; padding-right: 20px; max-width: none; }
+  #tab0 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; align-items: start; }
+  #tab1, #tab2 { display: grid; grid-template-columns: 3fr 2fr; gap: 12px; align-items: start; }
+  #tab3 { display: grid; grid-template-columns: 3fr 2fr; gap: 12px; align-items: start; }
+  #tab3 > .btn { grid-column: 1 / -1; }
+  #tab4 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; align-items: start; }
+}
+
+/* ── TABLET / iPad (768px+, 높이 500px 이상) — 폰 가로 제외, 세로 사이드바 ── */
+@media (min-width: 768px) and (min-height: 500px) {
   /* 헤더: 사이드바 인지하여 왼쪽 88px 확보 + 태블릿에서 높이 축소 */
   .header {
     padding: calc(var(--safe-top) + 10px) 40px 10px calc(88px + 20px);
@@ -1013,7 +1029,7 @@ textarea { resize: vertical; min-height: 60px; }
 // ───────────────────────────────
 // APP VERSION
 // ───────────────────────────────
-const APP_VERSION = '0.8.1';
+const APP_VERSION = '0.8.2';
 
 // ───────────────────────────────
 // 출결 통계
