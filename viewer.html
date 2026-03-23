@@ -251,6 +251,37 @@ body::-webkit-scrollbar{display:none}
   opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap;
 }
 .toast.show{opacity:1}
+
+/* ── TABLET / iPad (768px+) ── */
+@media (min-width: 768px) {
+  /* 컨텐츠 영역 확장 */
+  .content { padding: var(--sp) 48px calc(16px + var(--safe-bottom)); max-width: 960px; }
+
+  /* 헤더 탭 여유 */
+  .h-tab { font-size: 13px; padding: 7px 20px; }
+
+  /* 패널: 2열 그리드 */
+  .tab-panel.active {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    align-items: start;
+  }
+  /* 첫 카드(오늘 요약) → 전체폭 */
+  .tab-panel.active > .card:first-child { grid-column: 1 / -1; }
+  /* 마지막 카드(전체 기록) → 전체폭 */
+  .tab-panel.active > .card:last-child  { grid-column: 1 / -1; }
+
+  /* 이름 칩: 8열 균등 */
+  .name-chips { grid-template-columns: repeat(8, 1fr); }
+
+  /* 연속 결석: 6열 */
+  .consec-list { grid-template-columns: repeat(6, 1fr); }
+
+  /* 월별 바 차트: 높이 확보 */
+  .ma-bar-bg { height: 22px; }
+  .chart-bar-bg { height: 20px; }
+}
 </style>
 </head>
 <body>
