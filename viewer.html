@@ -107,12 +107,12 @@ body::-webkit-scrollbar{display:none}
 /* ABSENT NAMES */
 .absent-block{margin-top:6px;padding-top:6px;border-top:1px solid var(--border)}
 .absent-block-title{font-size:10px;color:var(--muted);margin-bottom:4px;font-weight:500}
-/* auto-fill: 셀 최소 60px 보장 → 3글자 이름도 한 줄, 좁은 폰에서 5열로 자동 조정 */
-.name-chips{display:grid;grid-template-columns:repeat(auto-fill,minmax(60px,1fr));gap:5px}
+/* flex-wrap: 칩이 자연 너비로 배치되고 공간 부족 시 자동 줄바꿈 */
+.name-chips{display:flex;flex-wrap:wrap;gap:5px}
 .name-chip{
   background:#fff5f5;color:#c53030;border:1px solid #fecaca;
-  border-radius:20px;padding:2px 6px;font-size:12px;font-weight:500;
-  text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  border-radius:20px;padding:3px 10px;font-size:12px;font-weight:500;
+  white-space:nowrap;
 }
 .name-chip.none{background:#f0fff4;color:#276749;border-color:#9ae6b4}
 
@@ -298,7 +298,7 @@ body::-webkit-scrollbar{display:none}
   .tab-panel.active > .card:nth-child(2),
   .tab-panel.active > .card:nth-child(3) { align-self: stretch; }
 
-  .name-chips { grid-template-columns: repeat(8, 1fr); }
+  /* .name-chips: flex-wrap 방식으로 자동 조정 (grid override 불필요) */
   .consec-list { grid-template-columns: repeat(3, 1fr); } /* 세로: 3열 */
   .ma-bar-bg { height: 22px; }
   .chart-bar-bg { height: 20px; }
@@ -343,8 +343,7 @@ body::-webkit-scrollbar{display:none}
   /* 패널 내부 카드: 단일 컬럼 (패널이 이미 나란히 배치되므로) */
   .tab-panel > .card { width: 100%; }
 
-  /* 이름 칩: 4열로 조정 (패널 폭이 좁아지므로) */
-  .name-chips { grid-template-columns: repeat(4, 1fr); }
+  /* .name-chips: flex-wrap 방식으로 패널 폭에 맞게 자동 조정 */
   .consec-list { grid-template-columns: repeat(3, 1fr); }
 
   /* 탭 버튼: 현재 선택 표시용으로만 사용 */
@@ -745,7 +744,7 @@ window.addEventListener('load', () => {
 
 <script>
 const DATA_URL = RAW_BASE + '/history.json';
-const VIEWER_VERSION = '0.8.4';
+const VIEWER_VERSION = '0.8.5';
 let allData = [];
 let activeTab = 'youth';
 
