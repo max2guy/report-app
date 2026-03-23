@@ -13,6 +13,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-messaging-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js"></script>
 <title>사역 현황 — 연천장로교회</title>
 <style>
 :root {
@@ -316,14 +317,11 @@ body::-webkit-scrollbar{display:none}
 
 <script>
 const RAW_BASE   = 'https://raw.githubusercontent.com/max2guy/report-app/main';
-const INSTR_URL  = RAW_BASE + '/instructions.json';
-const NOTIF_URL  = RAW_BASE + '/notifications.json';
 let viewerLastNotifId = localStorage.getItem('viewerLastNotifId') || '';
 let viewerUnread = 0;
-// 지시사항 인메모리 캐시 — raw URL CDN 캐시(~5분) 때문에 삭제/추가 즉시 UI에 반영하기 위해 사용
-let _instrList = JSON.parse(localStorage.getItem('viewerInstrCache') || '[]');
-// 마지막 write 시각 — write 후 5분간 background fetch 결과 무시 (CDN 스테일 방지)
-let _instrLastWrite = 0;
+// 지시사항·알림 인메모리 캐시 — Firebase RTDB real-time listener가 갱신
+let _instrList = [];
+let _notifList = [];
 
 function openInbox() {
   document.getElementById('inboxOverlay').classList.add('open');
@@ -340,48 +338,30 @@ function closeInbox(e) {
   }
 }
 
-async function loadInboxData() {
-  // 보고서 알림 로드
-  try {
-    const res = await fetch(NOTIF_URL + '?t=' + Date.now());
-    if (res.ok) {
-      const list = await res.json();
-      const el = document.getElementById('notifList');
-      if (!list.length) { el.innerHTML = '<div class="inbox-empty">없음</div>'; }
-      else {
-        const lastSeenIdx = list.findIndex(x => x.id === viewerLastNotifId);
-        el.innerHTML = list.slice().reverse().map(n => {
-          const idx = list.indexOf(n);
-          // lastSeenIdx가 -1이면 한 번도 안 본 것 → 전체 unread
-          // 그 외엔 lastSeenIdx보다 뒤(최신)에 있는 항목만 unread
-          const isUnread = lastSeenIdx === -1 || idx > lastSeenIdx;
-          return `
-          <div class="inbox-item ${isUnread ? 'unread' : ''}">
-            <div class="inbox-item-meta"><span>${n.date}</span><span>${n.reporter || ''}</span></div>
-            <div class="inbox-item-text">📄 ${n.title}</div>
-          </div>`;
-        }).join('');
-      }
-    }
-  } catch(e) {}
-
-  // 지시사항: 캐시를 즉시 표시 후 백그라운드에서 네트워크 갱신
-  renderInstrList(); // 캐시 즉시 표시
-  fetch(INSTR_URL + '?t=' + Date.now())
-    .then(r => r.ok ? r.json() : null)
-    .then(data => {
-      // write 후 5분 이내면 CDN이 아직 스테일할 수 있으므로 무시
-      if (Array.isArray(data) && Date.now() - _instrLastWrite > 5 * 60 * 1000) renderInstrList(data);
-    })
-    .catch(() => {});
+function loadInboxData() {
+  // Firebase RTDB 리스너가 이미 _instrList, _notifList를 실시간 유지
+  // 인박스를 열 때 즉시 현재 캐시 렌더링
+  renderNotifList();
+  renderInstrList();
 }
 
-function renderInstrList(list) {
-  // list가 주어지면 캐시 갱신, 아니면 캐시에서 읽기
-  if (list !== undefined) {
-    _instrList = list;
-    localStorage.setItem('viewerInstrCache', JSON.stringify(_instrList));
-  }
+function renderNotifList() {
+  const el = document.getElementById('notifList');
+  if (!el) return;
+  if (!_notifList.length) { el.innerHTML = '<div class="inbox-empty">없음</div>'; return; }
+  const lastSeenIdx = _notifList.findIndex(x => x.id === viewerLastNotifId);
+  el.innerHTML = _notifList.slice().reverse().map(n => {
+    const idx = _notifList.indexOf(n);
+    const isUnread = lastSeenIdx === -1 || idx > lastSeenIdx;
+    return `
+    <div class="inbox-item ${isUnread ? 'unread' : ''}">
+      <div class="inbox-item-meta"><span>${n.date}</span><span>${n.reporter || ''}</span></div>
+      <div class="inbox-item-text">📄 ${n.title}</div>
+    </div>`;
+  }).join('');
+}
+
+function renderInstrList() {
   const el = document.getElementById('instrList');
   if (!el) return;
   if (!_instrList.length) { el.innerHTML = '<div class="inbox-empty">없음</div>'; return; }
@@ -389,31 +369,19 @@ function renderInstrList(list) {
     <div class="inbox-item">
       <div class="inbox-item-meta">
         <span>${i.date}</span>
-        <button onclick="deleteInstruction('${i.id}')" style="background:none;border:none;cursor:pointer;font-size:14px;color:#e53e3e;padding:0">🗑️</button>
+        <button onclick="deleteInstruction('${i._key}')" style="background:none;border:none;cursor:pointer;font-size:14px;color:#e53e3e;padding:0">🗑️</button>
       </div>
       <div class="inbox-item-text">${i.text.replace(/\n/g,'<br>')}</div>
     </div>`).join('');
 }
 
-const WORKER_URL = 'https://nas-proxy.max2guy.workers.dev';
-
-async function deleteInstruction(id) {
-  // 1. 캐시에서 즉시 제거 → UI 즉시 반영 (raw URL CDN 캐시 관계없이)
-  const before = _instrList.slice();
-  const filtered = _instrList.filter(i => i.id !== id);
-  renderInstrList(filtered);
+async function deleteInstruction(key) {
+  // Firebase RTDB에서 즉시 삭제 → onValue 리스너가 자동으로 UI 갱신
   try {
-    // 2. GitHub에 삭제된 목록 저장 (sha는 Worker 자동 처리)
-    const content = btoa(String.fromCharCode(...new TextEncoder().encode(JSON.stringify(filtered, null, 2))));
-    const putRes = await fetch(`${WORKER_URL}/github-write`, { method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ file:'instructions.json', message:'delete instruction', content }) });
-    if (!putRes.ok) throw new Error('삭제 실패 ' + putRes.status);
-    _instrLastWrite = Date.now();
+    await db.ref('instructions/' + key).remove();
     toast('🗑️ 삭제 완료');
   } catch(e) {
-    // 실패 시 롤백
-    renderInstrList(before);
-    toast('❌ ' + e.message);
+    toast('❌ 삭제 실패: ' + e.message);
   }
 }
 
@@ -422,47 +390,62 @@ async function sendInstruction() {
   if (!text) { toast('내용을 입력하세요'); return; }
   try {
     toast('⏳ 전송 중...');
-    // GET: raw URL (인증 불필요)
-    let list = [];
-    try { const r = await fetch(INSTR_URL + '?t=' + Date.now()); if (r.ok) list = await r.json(); } catch(_) {}
     const now = new Date();
-    list.push({ id: now.toISOString(), date: now.toLocaleString('ko-KR',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}), text });
-    const content = btoa(String.fromCharCode(...new TextEncoder().encode(JSON.stringify(list, null, 2))));
-    // PUT: Worker 프록시 (sha는 Worker가 자동 처리)
-    const putRes = await fetch(`${WORKER_URL}/github-write`, { method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ file:'instructions.json', message:`instruction: ${now.toISOString().slice(0,10)}`, content }) });
-    if (!putRes.ok) { const err = await putRes.json().catch(()=>({message:'전송 실패'})); throw new Error(err.message); }
+    const item = {
+      id:   now.toISOString(),
+      date: now.toLocaleString('ko-KR', {month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit'}),
+      text
+    };
+    // Firebase RTDB에 push → onValue 리스너가 자동으로 UI 갱신
+    await db.ref('instructions').push(item);
     document.getElementById('instrText').value = '';
-    _instrLastWrite = Date.now();
     toast('✅ 지시사항 전송 완료');
-    renderInstrList(list); // 캐시 갱신 + UI 반영
     getTargetFCMToken('reportApp').then(tok => {
-      if(tok) sendFCMPush(tok, '📋 새 지시사항', text.substring(0,60));
+      if(tok) sendFCMPush(tok, '📋 새 지시사항', text.substring(0, 60));
     });
   } catch(e) { toast('❌ 전송 실패: ' + e.message); }
 }
 
-// 보고서 알림 폴링
-async function pollNotifications() {
-  try {
-    const res = await fetch(NOTIF_URL + '?t=' + Date.now());
-    if (!res.ok) return;
-    const list = await res.json();
-    if (!list.length) return;
-    const latest = list[list.length - 1];
-    const savedId = localStorage.getItem('viewerLastNotifId') || '';
-    if (latest.id !== savedId) {
-      viewerUnread++;
-      const badge = document.getElementById('viewerInboxBadge');
-      if (badge) { badge.style.display='flex'; badge.textContent = viewerUnread; }
-      toast('📄 새 보고서가 도착했습니다');
-      if (Notification.permission === 'granted') {
-        new Notification('📄 새 보고서 도착', { body: latest.title, icon:'./icon-192.png' });
+// Firebase RTDB 실시간 리스너 시작
+function startRTDBListeners() {
+  // 지시사항 리스너
+  db.ref('instructions').on('value', snap => {
+    const data = snap.val() || {};
+    _instrList = Object.entries(data)
+      .map(([k, v]) => ({ ...v, _key: k }))
+      .sort((a, b) => a.id.localeCompare(b.id));
+    renderInstrList();
+  });
+
+  // 보고서 알림 리스너
+  db.ref('notifications').on('value', snap => {
+    const data = snap.val() || {};
+    const list = Object.entries(data)
+      .map(([k, v]) => ({ ...v, _key: k }))
+      .sort((a, b) => a.id.localeCompare(b.id));
+
+    // 새 알림 감지
+    if (list.length) {
+      const latest = list[list.length - 1];
+      if (latest.id !== viewerLastNotifId) {
+        viewerUnread++;
+        const badge = document.getElementById('viewerInboxBadge');
+        if (badge) { badge.style.display = 'flex'; badge.textContent = viewerUnread; }
+        toast('📄 새 보고서가 도착했습니다');
+        if (Notification.permission === 'granted') {
+          new Notification('📄 새 보고서 도착', { body: latest.title, icon: './notification-icon.png' });
+        }
+        viewerLastNotifId = latest.id;
+        localStorage.setItem('viewerLastNotifId', latest.id);
       }
-      viewerLastNotifId = latest.id;
-      localStorage.setItem('viewerLastNotifId', latest.id);
     }
-  } catch(e) {}
+
+    _notifList = list;
+    // 인박스가 열려 있으면 즉시 렌더링
+    if (document.getElementById('inboxOverlay')?.classList.contains('open')) {
+      renderNotifList();
+    }
+  });
 }
 
 /* ── FCM 공통 설정 ── */
@@ -472,6 +455,9 @@ const FCM_FB_CONFIG = {
   messagingSenderId:"43861878423",
   appId:"1:43861878423:web:777c02383009f9121cebd2"
 };
+if (!firebase.apps.length) firebase.initializeApp(FCM_FB_CONFIG);
+// Database Reference
+const db = firebase.database();
 const FCM_VAPID = "BPTJTVQPoEC0m4fg9KgVY7dkCQfy1fQgJVnDG8OIysKxZ5f0jQm1wfgaxre3J0lNYdxG5fOs6ZurD3JgtKwSf9k";
 const FCM_SA_EMAIL = "firebase-adminsdk-fbsvc@yeoncheon-church.iam.gserviceaccount.com";
 const FCM_SA_KEY = `-----BEGIN PRIVATE KEY-----
@@ -562,23 +548,11 @@ async function sendFCMPush(targetToken, title, body) {
   } catch(e){ console.warn('FCM push failed',e); }
 }
 
-/* ── FCM: 토큰 GitHub 저장 ── */
-async function saveFCMTokenToGitHub(role, fcmToken) {
+/* ── FCM: 토큰 DB 저장 ── */
+async function saveFCMTokenToDB(role, fcmToken) {
   if(!fcmToken) return false;
-  const rawUrl = RAW_BASE + '/fcm-tokens.json';
   try {
-    // GET: raw URL (인증 불필요)
-    let tokens = {};
-    try { const r = await fetch(rawUrl + '?t=' + Date.now()); if(r.ok) tokens = await r.json(); } catch(_){}
-    if(tokens[role]===fcmToken) return true; // 이미 최신 — 저장 불필요
-    tokens[role]=fcmToken;
-    const bytes = new TextEncoder().encode(JSON.stringify(tokens,null,2));
-    let bin = ''; bytes.forEach(b => bin += String.fromCharCode(b));
-    const content = btoa(bin);
-    // PUT: Worker 프록시 (sha는 Worker가 자동 처리)
-    const res = await fetch(`${WORKER_URL}/github-write`, {method:'POST', headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({file:'fcm-tokens.json', message:`fcm: update ${role} token`, content})});
-    if(!res.ok) { console.warn('FCM token save HTTP error', res.status); return false; }
+    await db.ref(`fcm-tokens/${role}`).set(fcmToken);
     return true;
   } catch(e){ console.warn('FCM token save failed', e); return false; }
 }
@@ -586,10 +560,8 @@ async function saveFCMTokenToGitHub(role, fcmToken) {
 /* ── FCM: 상대방 토큰 조회 ── */
 async function getTargetFCMToken(role) {
   try {
-    const res = await fetch(RAW_BASE + '/fcm-tokens.json?t=' + Date.now());
-    if(!res.ok) return null;
-    const tokens = await res.json();
-    return tokens[role] || null;
+    const snap = await db.ref(`fcm-tokens/${role}`).get();
+    return snap.val() || null;
   } catch(e){ return null; }
 }
 
@@ -609,14 +581,13 @@ async function initFCM(manual = false) {
   }
   if(manual) toast('🔔 알림 등록 중...');
   try {
-    if(!firebase.apps.length) firebase.initializeApp(FCM_FB_CONFIG);
     const messaging = firebase.messaging();
     const reg = await navigator.serviceWorker.ready;
     const token = await messaging.getToken({vapidKey:FCM_VAPID, serviceWorkerRegistration:reg});
     if(!token) throw new Error('토큰 발급 실패');
 
     localStorage.setItem('fcmToken_viewerApp', token);
-    const saveOk = await saveFCMTokenToGitHub('viewerApp', token);
+    const saveOk = await saveFCMTokenToDB('viewerApp', token);
     if(saveOk) {
       if(manual) toast('✅ 알림 등록 완료');
     } else {
@@ -657,10 +628,9 @@ function updateFCMStatusUI() {
   }
 }
 
-// 알림 권한 + 폴링 시작 — Firebase 스크립트 로드 완료 후 실행
+// 알림 권한 + Firebase RTDB 리스너 시작
 window.addEventListener('load', () => {
-  pollNotifications();
-  setInterval(pollNotifications, 30 * 1000); // 30초 주기
+  startRTDBListeners(); // 지시사항 + 보고서 알림 실시간 리스너
   updateFCMStatusUI();
   initFCM(); // 자동 초기화 시도
 });
@@ -668,7 +638,7 @@ window.addEventListener('load', () => {
 
 <script>
 const DATA_URL = RAW_BASE + '/history.json';
-const VIEWER_VERSION = '0.5.1';
+const VIEWER_VERSION = '0.6.0';
 let allData = [];
 let activeTab = 'youth';
 
