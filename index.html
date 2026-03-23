@@ -494,15 +494,18 @@ textarea { resize: vertical; min-height: 60px; }
 
 /* ── TABLET / iPad (768px+) — 세로 사이드바 네비게이션 ── */
 @media (min-width: 768px) {
-  /* 헤더: 사이드바 인지하여 왼쪽 88px 확보 */
+  /* 헤더: 사이드바 인지하여 왼쪽 88px 확보 + 태블릿에서 높이 축소 */
   .header {
-    padding: calc(var(--safe-top) + 14px) 40px 14px calc(88px + 20px);
+    padding: calc(var(--safe-top) + 10px) 40px 10px calc(88px + 20px);
   }
+  .header-title h1 { font-size: 16px; }
+  .header-title p  { font-size: 11px; }
 
-  /* 탭바 → 세로 사이드바 */
+  /* 탭바 → 세로 사이드바 (헤더 높이에 맞춰 top 조정) */
   .tabs {
     right: auto;
     width: 88px;
+    top: calc(var(--safe-top) + 57px);
     bottom: 0;
     flex-direction: column;
     overflow-y: auto;
@@ -535,9 +538,9 @@ textarea { resize: vertical; min-height: 60px; }
     background: rgba(255,255,255,0.12);
   }
 
-  /* 메인: 사이드바(88px) + 좌우 여백(40px) / 탭바 세로화로 padding-top 축소 */
+  /* 메인: 사이드바(88px) + 좌우 여백(40px) / 헤더 높이 축소 반영 */
   .main {
-    padding: calc(var(--safe-top) + 80px) 40px calc(90px + var(--safe-bottom)) calc(88px + 40px);
+    padding: calc(var(--safe-top) + 68px) 40px calc(90px + var(--safe-bottom)) calc(88px + 40px);
     max-width: 1200px;
   }
 
@@ -1010,7 +1013,7 @@ textarea { resize: vertical; min-height: 60px; }
 // ───────────────────────────────
 // APP VERSION
 // ───────────────────────────────
-const APP_VERSION = '0.8.0';
+const APP_VERSION = '0.8.1';
 
 // ───────────────────────────────
 // 출결 통계

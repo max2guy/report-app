@@ -277,7 +277,7 @@ body::-webkit-scrollbar{display:none}
   .tab-panel.active > .card:nth-child(3) { align-self: stretch; }
 
   .name-chips { grid-template-columns: repeat(8, 1fr); }
-  .consec-list { grid-template-columns: repeat(6, 1fr); }
+  .consec-list { grid-template-columns: repeat(3, 1fr); }
   .ma-bar-bg { height: 22px; }
   .chart-bar-bg { height: 20px; }
 }
@@ -717,7 +717,7 @@ window.addEventListener('load', () => {
 
 <script>
 const DATA_URL = RAW_BASE + '/history.json';
-const VIEWER_VERSION = '0.8.0';
+const VIEWER_VERSION = '0.8.1';
 let allData = [];
 let activeTab = 'youth';
 
