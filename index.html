@@ -12,6 +12,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-messaging-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js"></script>
@@ -70,6 +71,8 @@ body::-webkit-scrollbar { display: none; }
   transition: background 0.2s;
 }
 .btn-icon:hover { background: rgba(255,255,255,0.25); }
+.btn-icon svg { width: 18px; height: 18px; stroke-width: 2; display: block; }
+.tab svg { width: 14px; height: 14px; stroke-width: 2; flex-shrink: 0; }
 /* TABS */
 .tabs {
   position: fixed; top: calc(var(--safe-top) + 57px); left: 0; right: 0; z-index: 99;
@@ -677,23 +680,23 @@ textarea { resize: vertical; min-height: 60px; }
     <p id="headerDate">날짜를 선택하세요</p>
   </div>
   <div class="header-actions">
-    <button class="btn-icon" id="btnInstall" onclick="installPWA()" title="앱 설치" style="display:none">📲</button>
-    <button class="btn-icon" onclick="forceRefresh()" title="강제 새로고침">🔄</button>
+    <button class="btn-icon" id="btnInstall" onclick="installPWA()" title="앱 설치" style="display:none"><i data-lucide="download"></i></button>
+    <button class="btn-icon" onclick="forceRefresh()" title="강제 새로고침"><i data-lucide="refresh-cw"></i></button>
     <div style="position:relative;display:inline-flex">
-      <button class="btn-icon" onclick="openStaffInbox()">💬</button>
+      <button class="btn-icon" onclick="openStaffInbox()"><i data-lucide="message-circle"></i></button>
       <span id="staffInboxBadge" style="display:none;position:absolute;top:-4px;right:-4px;background:#e53e3e;color:#fff;border-radius:50%;width:16px;height:16px;font-size:9px;font-weight:700;align-items:center;justify-content:center">0</span>
     </div>
-    <button class="btn-icon" onclick="openSettings()" title="설정">⚙️</button>
+    <button class="btn-icon" onclick="openSettings()" title="설정"><i data-lucide="settings"></i></button>
   </div>
 </header>
 
 <!-- TABS -->
 <nav class="tabs">
-  <button class="tab active" onclick="switchTab(0)">📋 기본</button>
-  <button class="tab" onclick="switchTab(1)">🎓 중고등부</button>
-  <button class="tab" onclick="switchTab(2)">🙏 청년부</button>
-  <button class="tab" onclick="switchTab(3)">⛪ 교구</button>
-  <button class="tab" onclick="switchTab(4)">📝 내용</button>
+  <button class="tab active" onclick="switchTab(0)"><i data-lucide="clipboard-list"></i> 기본</button>
+  <button class="tab" onclick="switchTab(1)"><i data-lucide="graduation-cap"></i> 중고등부</button>
+  <button class="tab" onclick="switchTab(2)"><i data-lucide="users"></i> 청년부</button>
+  <button class="tab" onclick="switchTab(3)"><i data-lucide="church"></i> 교구</button>
+  <button class="tab" onclick="switchTab(4)"><i data-lucide="file-text"></i> 내용</button>
 </nav>
 
 <!-- MAIN -->
@@ -1030,7 +1033,7 @@ textarea { resize: vertical; min-height: 60px; }
 // ───────────────────────────────
 // APP VERSION
 // ───────────────────────────────
-const APP_VERSION = '0.9.0';
+const APP_VERSION = '0.9.1';
 
 // ───────────────────────────────
 // 출결 통계
@@ -3197,6 +3200,7 @@ window.addEventListener('load', () => {
 
 // START
 document.getElementById('headerVersion').textContent = 'v' + APP_VERSION;
+lucide.createIcons();
 init();
 </script>
 </body>
