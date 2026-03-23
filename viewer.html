@@ -322,6 +322,8 @@ let viewerLastNotifId = localStorage.getItem('viewerLastNotifId') || '';
 let viewerUnread = 0;
 // 지시사항 인메모리 캐시 — raw URL CDN 캐시(~5분) 때문에 삭제/추가 즉시 UI에 반영하기 위해 사용
 let _instrList = JSON.parse(localStorage.getItem('viewerInstrCache') || '[]');
+// 마지막 write 시각 — write 후 5분간 background fetch 결과 무시 (CDN 스테일 방지)
+let _instrLastWrite = 0;
 
 function openInbox() {
   document.getElementById('inboxOverlay').classList.add('open');
@@ -367,7 +369,10 @@ async function loadInboxData() {
   renderInstrList(); // 캐시 즉시 표시
   fetch(INSTR_URL + '?t=' + Date.now())
     .then(r => r.ok ? r.json() : null)
-    .then(data => { if (Array.isArray(data)) renderInstrList(data); })
+    .then(data => {
+      // write 후 5분 이내면 CDN이 아직 스테일할 수 있으므로 무시
+      if (Array.isArray(data) && Date.now() - _instrLastWrite > 5 * 60 * 1000) renderInstrList(data);
+    })
     .catch(() => {});
 }
 
@@ -403,6 +408,7 @@ async function deleteInstruction(id) {
     const putRes = await fetch(`${WORKER_URL}/github-write`, { method:'POST', headers:{'Content-Type':'application/json'},
       body: JSON.stringify({ file:'instructions.json', message:'delete instruction', content }) });
     if (!putRes.ok) throw new Error('삭제 실패 ' + putRes.status);
+    _instrLastWrite = Date.now();
     toast('🗑️ 삭제 완료');
   } catch(e) {
     // 실패 시 롤백
@@ -427,6 +433,7 @@ async function sendInstruction() {
       body: JSON.stringify({ file:'instructions.json', message:`instruction: ${now.toISOString().slice(0,10)}`, content }) });
     if (!putRes.ok) { const err = await putRes.json().catch(()=>({message:'전송 실패'})); throw new Error(err.message); }
     document.getElementById('instrText').value = '';
+    _instrLastWrite = Date.now();
     toast('✅ 지시사항 전송 완료');
     renderInstrList(list); // 캐시 갱신 + UI 반영
     getTargetFCMToken('reportApp').then(tok => {

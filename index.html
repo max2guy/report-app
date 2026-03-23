@@ -2850,6 +2850,7 @@ function openStaffInbox() {
   localStorage.setItem('lastInstrId', lastInstrId);
   renderStaffInstrList();
   document.getElementById('staffInboxModal').classList.add('open');
+  fetchInstructions(); // 열 때마다 최신 데이터 갱신
 }
 
 function renderStaffInstrList() {

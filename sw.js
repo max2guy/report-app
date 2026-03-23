@@ -12,11 +12,11 @@ messaging.onBackgroundMessage(payload => {
   const title = payload.data?.title || payload.notification?.title || '알림';
   const body  = payload.data?.body  || payload.notification?.body  || '';
   self.registration.showNotification(title, {
-    body, icon: './icon-192.png', badge: './icon-192.png', tag: 'church-report'
+    body, icon: './notification-icon.png', badge: './notification-badge.png', tag: 'church-report'
   });
 });
 
-const CACHE_NAME = 'report-app-v67';
+const CACHE_NAME = 'report-app-v69';
 // 동적 데이터 파일은 제외 — 설치 실패 방지
 const APP_SHELL = [
   './',
@@ -25,6 +25,8 @@ const APP_SHELL = [
   './icon.svg',
   './icon-192.png',
   './icon-512.png',
+  './notification-icon.png',
+  './notification-badge.png',
 ];
 
 // 설치: 핵심 앱 셸만 캐시

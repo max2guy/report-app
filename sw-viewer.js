@@ -12,12 +12,12 @@ messaging.onBackgroundMessage(payload => {
   const title = payload.data?.title || payload.notification?.title || '알림';
   const body  = payload.data?.body  || payload.notification?.body  || '';
   self.registration.showNotification(title, {
-    body, icon: './icon-192.png', badge: './icon-192.png', tag: 'church-viewer'
+    body, icon: './notification-icon.png', badge: './notification-badge.png', tag: 'church-viewer'
   });
 });
 
-const CACHE = 'viewer-v46';
-const SHELL = ['./viewer.html', './viewer-manifest.json', './icon-192.png', './icon-512.png'];
+const CACHE = 'viewer-v48';
+const SHELL = ['./viewer.html', './viewer-manifest.json', './icon-192.png', './icon-512.png', './notification-icon.png', './notification-badge.png'];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL)));
