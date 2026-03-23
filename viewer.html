@@ -120,7 +120,9 @@ body::-webkit-scrollbar{display:none}
 .zone-row{display:flex;align-items:flex-start;gap:6px;padding:5px 0;border-bottom:1px solid var(--border)}
 .zone-row:last-child{border-bottom:none}
 .zone-row-head{display:none}
-.zone-name{font-size:11px;font-weight:700;color:var(--navy);width:34px;flex-shrink:0;padding-top:3px}
+.zone-name{display:flex;flex-direction:column;align-items:flex-start;width:42px;flex-shrink:0;gap:1px}
+.zone-num{font-size:11px;font-weight:700;color:var(--navy)}
+.zone-leader-name{font-size:10px;color:var(--muted);white-space:nowrap}
 .zone-names-wrap{flex:1;display:flex;flex-wrap:wrap;gap:4px}
 .zone-count{font-size:10px;color:#c53030;font-weight:700;flex-shrink:0;padding-top:4px;white-space:nowrap}
 .district-title{
@@ -842,6 +844,13 @@ function renderGroupPanel(group) {
     </div>`;
 }
 
+/* ── 구역장 이름 맵 (1~12구역) ── */
+const ZONE_LEADER_MAP = {
+  '1구역':'이명숙','2구역':'민옥화','3구역':'임미자','4구역':'임혜진',
+  '5구역':'오민자','6구역':'김순이','7구역':'이정순','8구역':'김영숙',
+  '9구역':'양경순','10구역':'조옥희','11구역':'최숙녀','12구역':'유은희'
+};
+
 /* ── 장년 패널 ── */
 function renderAdultPanel() {
   const el = document.getElementById('panel-adult');
@@ -856,7 +865,7 @@ function renderAdultPanel() {
   const buildZoneRows = list =>
     list.length
       ? list.map(z => `<div class="zone-row">
-          <span class="zone-name">${z.zone}</span>
+          <div class="zone-name"><span class="zone-num">${z.zone}</span><span class="zone-leader-name">${ZONE_LEADER_MAP[z.zone]||''}</span></div>
           <div class="zone-names-wrap">${z.names.map(n => `<span class="name-chip">${n}</span>`).join('')}</div>
           <span class="zone-count">${z.names.length}명</span>
         </div>`).join('')
