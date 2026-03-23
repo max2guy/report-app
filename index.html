@@ -52,7 +52,7 @@ body::-webkit-scrollbar { display: none; }
 * { scrollbar-width: none; }
 /* HEADER */
 .header {
-  position: sticky; top: 0; z-index: 100;
+  position: fixed; top: 0; left: 0; right: 0; z-index: 100;
   background: linear-gradient(135deg, var(--navy), var(--navy2));
   padding: calc(var(--safe-top) + 14px) 20px 14px;
   display: flex; align-items: center; justify-content: space-between;
@@ -72,7 +72,7 @@ body::-webkit-scrollbar { display: none; }
 .btn-icon:hover { background: rgba(255,255,255,0.25); }
 /* TABS */
 .tabs {
-  position: sticky; top: calc(var(--safe-top) + 66px); z-index: 99;
+  position: fixed; top: calc(var(--safe-top) + 66px); left: 0; right: 0; z-index: 99;
   background: var(--navy);
   display: flex; overflow-x: hidden; gap: 0;
   scrollbar-width: none; border-bottom: 1px solid rgba(255,255,255,0.1);
@@ -86,7 +86,7 @@ body::-webkit-scrollbar { display: none; }
 }
 .tab.active { color: var(--gold); border-bottom-color: var(--gold); }
 /* MAIN */
-.main { padding: 12px 12px calc(90px + var(--safe-bottom)); max-width: 680px; margin: 0 auto; }
+.main { padding: calc(var(--safe-top) + 116px) 12px calc(90px + var(--safe-bottom)); max-width: 680px; margin: 0 auto; }
 /* SECTION */
 .section { display: none; }
 .section.active { display: block; }
@@ -461,6 +461,7 @@ textarea { resize: vertical; min-height: 60px; }
 }
 .stats-detail {
   width: 42px; font-size: 10px; color: var(--text-muted); flex-shrink: 0; text-align: right;
+  white-space: normal; line-height: 1.3;
 }
 .stats-empty {
   text-align: center; padding: 20px 0; font-size: 13px; color: var(--text-muted);
@@ -919,7 +920,7 @@ textarea { resize: vertical; min-height: 60px; }
 // ───────────────────────────────
 // APP VERSION
 // ───────────────────────────────
-const APP_VERSION = '0.6.1';
+const APP_VERSION = '0.7.0';
 
 // ───────────────────────────────
 // 출결 통계
@@ -1080,7 +1081,7 @@ function renderMonthlyStats(chart) {
       const pct = d.total > 0 ? Math.round(d.present / d.total * 100) : 0;
       const barClass = pct < 60 ? 'bar-low' : pct < 80 ? 'bar-mid' : '';
       const avgPresent = Math.round(d.present / d.count);
-      const avgTotal   = Math.round(d.total / d.count);
+      const currentRoster = statsGroup === 'young' ? state.young.members.length : Math.round(d.total / d.count);
       html += `
         <div class="stats-row">
           <div class="stats-label">${m}월</div>
@@ -1088,7 +1089,7 @@ function renderMonthlyStats(chart) {
             <div class="stats-bar ${barClass}" style="width:${pct}%"></div>
           </div>
           <div class="stats-pct">${pct}%</div>
-          <div class="stats-detail">평균 ${avgPresent}/${avgTotal}명</div>
+          <div class="stats-detail">평균 ${avgPresent}/${currentRoster}명</div>
         </div>`;
     });
     html += '<div class="stats-divider"></div>';
@@ -1141,7 +1142,7 @@ function renderAdultMonthlyStats(chart) {
             <div class="stats-bar ${barClass}" style="width:${barPct}%"></div>
           </div>
           <div class="stats-pct">${avg}명</div>
-          <div class="stats-detail">주평균 결석</div>
+          <div class="stats-detail">주평균<br>결석</div>
         </div>`;
     });
     html += '<div class="stats-divider"></div>';
@@ -1201,7 +1202,7 @@ function renderYearlyStats(chart) {
     const pct = d.total > 0 ? Math.round(d.present / d.total * 100) : 0;
     const barClass = pct < 60 ? 'bar-low' : pct < 80 ? 'bar-mid' : '';
     const avgPresent = Math.round(d.present / d.count);
-    const avgTotal   = Math.round(d.total / d.count);
+    const currentRoster = statsGroup === 'young' ? state.young.members.length : Math.round(d.total / d.count);
     html += `
       <div class="stats-row">
         <div class="stats-label">${yr.slice(2)}년</div>
@@ -1209,7 +1210,7 @@ function renderYearlyStats(chart) {
           <div class="stats-bar ${barClass}" style="width:${pct}%"></div>
         </div>
         <div class="stats-pct">${pct}%</div>
-        <div class="stats-detail">평균 ${avgPresent}/${avgTotal}명</div>
+        <div class="stats-detail">평균 ${avgPresent}/${currentRoster}명</div>
       </div>`;
   });
 
@@ -1666,7 +1667,7 @@ function renderYouthGrid() {
   state.youth.members.forEach((m, i) => {
     const chip = document.createElement('div');
     chip.className = `member-chip ${m.status}`;
-    chip.innerHTML = `<div class="status-dot"></div>${m.name}`;
+    chip.innerHTML = m.name;
     chip.onclick = () => toggleYouth(i);
     attachLongPressDelete(chip, () => {
       if (confirm(`${m.name}을(를) 명단에서 삭제할까요?`)) {
@@ -1687,7 +1688,7 @@ function renderYoungGrid() {
   state.young.members.forEach((m, i) => {
     const chip = document.createElement('div');
     chip.className = `member-chip ${m.status}`;
-    chip.innerHTML = `<div class="status-dot"></div>${m.name}`;
+    chip.innerHTML = m.name;
     chip.onclick = () => toggleYoung(i);
     attachLongPressDelete(chip, () => {
       if (confirm(`${m.name}을(를) 명단에서 삭제할까요?`)) {
@@ -2051,7 +2052,7 @@ function renderSMSItem(id, zoneLabel, leaderName, phone, msg, sent) {
         ${sent
           ? `<span class="sms-sent-badge">✓ 전송완료</span>`
           : phone
-            ? `<button class="btn btn-gold" style="padding:7px 18px;font-size:13px" onclick="sendQueueSMSById('${id}','${phone}')">💬 전송</button>`
+            ? `<button class="btn btn-share" style="padding:7px 18px;font-size:13px" onclick="sendQueueSMSById('${id}','${phone}')">📨 전송</button>`
             : `<span style="font-size:12px;color:#975a16">⚙️ 설정에서 번호 입력 필요</span>`
         }
       </div>
