@@ -2870,11 +2870,28 @@ function renderStaffInstrList() {
     </div>`).join('');
 }
 
-function deleteStaffInstr(id) {
+async function deleteStaffInstr(id) {
   const saved = JSON.parse(localStorage.getItem('cachedInstructions') || '[]');
   const updated = saved.filter(i => i.id !== id);
   localStorage.setItem('cachedInstructions', JSON.stringify(updated));
   renderStaffInstrList();
+
+  try {
+    const bytes = new TextEncoder().encode(JSON.stringify(updated, null, 2));
+    let bin = ''; bytes.forEach(b => bin += String.fromCharCode(b));
+    const content = btoa(bin);
+    const putRes = await fetch(`${WORKER_URL}/github-write`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ file: 'instructions.json', message: 'delete instruction', content })
+    });
+    if (!putRes.ok) throw new Error('삭제 실패 ' + putRes.status);
+    toast('🗑️ 삭제 완료');
+  } catch(e) {
+    localStorage.setItem('cachedInstructions', JSON.stringify(saved));
+    renderStaffInstrList();
+    toast('❌ ' + e.message);
+  }
 }
 
 let _fcmJustReceived = false;
@@ -3057,24 +3074,22 @@ async function sendFCMPush(targetToken, title, body) {
 /* ── FCM: 토큰 GitHub 저장 ── */
 async function saveFCMTokenToGitHub(role, fcmToken) {
   if(!fcmToken) return;
-  const repo = localStorage.getItem('githubRepo') || 'max2guy/report-app';
-  const apiBase = `https://api.github.com/repos/${repo}/contents/fcm-tokens.json`;
+  const repo = (localStorage.getItem('githubRepo') || 'max2guy/report-app').trim();
+  const rawUrl = `https://raw.githubusercontent.com/${repo}/main/fcm-tokens.json`;
   try {
-    // GET: 공개 레포 무인증
-    const infoRes = await fetch(apiBase, {headers:{'Accept':'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28'}});
-    let sha=null, tokens={};
-    if(infoRes.ok){
-      const info=await infoRes.json(); sha=info.sha;
-      try{tokens=JSON.parse(decodeURIComponent(escape(atob(info.content.replace(/\n/g,'')))));} catch(_){}
-    }
-    if(tokens[role]===fcmToken) return; // 변경없으면 skip
+    // GET: raw URL (인증 불필요, rate limit 없음)
+    let tokens = {};
+    try { const r = await fetch(rawUrl + '?t=' + Date.now(), { cache: 'no-store' }); if(r.ok) tokens = await r.json(); } catch(_){}
+    if(tokens[role]===fcmToken) return; // 이미 최신 — 저장 불필요
     tokens[role]=fcmToken;
-    const content=btoa(unescape(encodeURIComponent(JSON.stringify(tokens,null,2))));
-    const body={file:'fcm-tokens.json', message:`fcm: update ${role} token`, content};
-    if(sha) body.sha=sha;
-    // PUT: Worker 프록시로 (토큰 서버측 보관)
-    await fetch(`${WORKER_URL}/github-write`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)});
-  } catch(e){ console.warn('FCM token save failed',e); }
+    const bytes = new TextEncoder().encode(JSON.stringify(tokens,null,2));
+    let bin = ''; bytes.forEach(b => bin += String.fromCharCode(b));
+    const content = btoa(bin);
+    // PUT: Worker 프록시 (sha는 Worker가 자동 처리)
+    const res = await fetch(`${WORKER_URL}/github-write`, {method:'POST', headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({file:'fcm-tokens.json', message:`fcm: update ${role} token`, content})});
+    if(!res.ok) console.warn('FCM token save HTTP error', res.status);
+  } catch(e){ console.warn('FCM token save failed', e); }
 }
 
 /* ── FCM: 상대방 토큰 조회 ── */
