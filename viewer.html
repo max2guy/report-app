@@ -724,16 +724,19 @@ function updateFCMStatusUI() {
   if(!btn) return;
   const perm = ('Notification' in window) ? Notification.permission : 'unsupported';
   const hasToken = !!localStorage.getItem('fcmToken_viewerApp');
+  const bellIcon = '<i data-lucide="bell"></i>';
+  const bellOffIcon = '<i data-lucide="bell-off"></i>';
   if(perm === 'granted' && hasToken) {
-    btn.textContent = '🔔'; btn.title = '알림 등록됨';
+    btn.innerHTML = bellIcon; btn.title = '알림 등록됨';
     btn.style.opacity = '1';
   } else if(perm === 'denied') {
-    btn.textContent = '🔕'; btn.title = '알림 권한 거부됨';
+    btn.innerHTML = bellOffIcon; btn.title = '알림 권한 거부됨';
     btn.style.opacity = '0.6';
   } else {
-    btn.textContent = '🔔'; btn.title = '알림 미등록 — 탭해서 등록';
+    btn.innerHTML = bellIcon; btn.title = '알림 미등록 — 탭해서 등록';
     btn.style.opacity = '0.5';
   }
+  lucide.createIcons({ nodes: [btn] });
 }
 
 // 알림 권한 + Firebase RTDB 리스너 시작
@@ -746,7 +749,7 @@ window.addEventListener('load', () => {
 
 <script>
 const DATA_URL = RAW_BASE + '/history.json';
-const VIEWER_VERSION = '0.9.1';
+const VIEWER_VERSION = '0.9.2';
 let allData = [];
 let activeTab = 'youth';
 
