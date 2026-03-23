@@ -492,44 +492,92 @@ textarea { resize: vertical; min-height: 60px; }
   .member-grid { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); }
 }
 
-/* ── TABLET / iPad (768px+) ── */
+/* ── TABLET / iPad (768px+) — 세로 사이드바 네비게이션 ── */
 @media (min-width: 768px) {
-  /* 헤더·탭바 */
-  .header { padding: calc(var(--safe-top) + 16px) 48px 16px; }
-  .tabs { padding: 0 16px; }
-  .tab { font-size: 13px; padding: 10px 10px; }
-
-  /* 메인 영역 */
-  .main {
-    padding: calc(var(--safe-top) + 116px) 48px calc(90px + var(--safe-bottom));
-    max-width: 1100px;
+  /* 헤더: 사이드바 인지하여 왼쪽 88px 확보 */
+  .header {
+    padding: calc(var(--safe-top) + 14px) 40px 14px calc(88px + 20px);
   }
 
-  /* 액션바 좌우 패딩 맞춤 */
-  .action-bar { padding-left: 48px; padding-right: 48px; }
+  /* 탭바 → 세로 사이드바 */
+  .tabs {
+    right: auto;
+    width: 88px;
+    bottom: 0;
+    flex-direction: column;
+    overflow-y: auto;
+    overflow-x: hidden;
+    border-bottom: none;
+    border-right: 1px solid rgba(255,255,255,0.2);
+    padding: 6px 0;
+  }
+  /* 탭 아이템: 세로 정렬 */
+  .tab {
+    flex: none;
+    width: 100%;
+    padding: 14px 4px;
+    font-size: 11px;
+    white-space: normal;
+    word-break: keep-all;
+    text-align: center;
+    line-height: 1.5;
+    border-bottom: none;
+    border-left: 3px solid transparent;
+    min-height: 54px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+  .tab.active {
+    border-bottom-color: transparent;
+    border-left-color: var(--gold);
+    background: rgba(255,255,255,0.12);
+  }
 
-  /* 탭0 (기본정보/통계): 2열 */
+  /* 메인: 사이드바(88px) + 좌우 여백(40px) / 탭바 세로화로 padding-top 축소 */
+  .main {
+    padding: calc(var(--safe-top) + 80px) 40px calc(90px + var(--safe-bottom)) calc(88px + 40px);
+    max-width: 1200px;
+  }
+
+  /* 액션바: 사이드바 오른쪽에서 시작 */
+  .action-bar { left: 88px; padding-left: 40px; padding-right: 40px; }
+
+  /* ── 탭별 그리드 레이아웃 ── */
+
+  /* 탭0 (기본정보·통계): 2열 균등 */
   #tab0 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; align-items: start; }
 
-  /* 탭1 (중고등부) · 탭2 (청년부): 멤버카드(좌 3fr) + 특기사항(우 2fr) */
-  #tab1, #tab2 { display: grid; grid-template-columns: 3fr 2fr; gap: 14px; align-items: start; }
+  /* 탭1(중고등부) · 탭2(청년부): 멤버카드(좌 3fr) ＋ 특기사항(우 2fr) */
+  #tab1, #tab2 {
+    display: grid;
+    grid-template-columns: 3fr 2fr;
+    gap: 14px;
+    align-items: start;
+  }
 
-  /* 탭3 (장년): 구역(좌 3fr) + 특이사항(우 2fr) | SMS버튼 전체폭 하단 */
-  #tab3 { display: grid; grid-template-columns: 3fr 2fr; gap: 14px; align-items: start; }
+  /* 탭3(장년): 구역현황(좌 3fr) ＋ 특이사항(우 2fr) | SMS버튼 하단 전체폭 */
+  #tab3 {
+    display: grid;
+    grid-template-columns: 3fr 2fr;
+    gap: 14px;
+    align-items: start;
+  }
   #tab3 > .card:first-child { grid-column: 1; grid-row: 1; }
   #tab3 > .card:last-child  { grid-column: 2; grid-row: 1; }
   #tab3 > .btn              { grid-column: 1 / -1; grid-row: 2; }
 
-  /* 탭4 (기타 내용): 3열 균등 */
+  /* 탭4(기타 내용): 3열 균등 */
   #tab4 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; align-items: start; }
 
-  /* 멤버 그리드: 컬럼 더 촘촘 */
+  /* 멤버 그리드: 더 촘촘하게 */
   .member-grid { grid-template-columns: repeat(auto-fill, minmax(95px, 1fr)); }
 
   /* 구역 그리드: 2열 */
   .zone-grid { grid-template-columns: repeat(2, 1fr); }
 
-  /* 통계 숫자·레이블 여유 확보 */
+  /* 통계 여유 확보 */
   .stats-pct    { width: 44px; }
   .stats-detail { width: 52px; }
 }
@@ -962,7 +1010,7 @@ textarea { resize: vertical; min-height: 60px; }
 // ───────────────────────────────
 // APP VERSION
 // ───────────────────────────────
-const APP_VERSION = '0.7.0';
+const APP_VERSION = '0.8.0';
 
 // ───────────────────────────────
 // 출결 통계

@@ -252,35 +252,67 @@ body::-webkit-scrollbar{display:none}
 }
 .toast.show{opacity:1}
 
-/* ── TABLET / iPad (768px+) ── */
+/* ── TABLET / iPad (768px+) — 2열 카드 그리드 ── */
 @media (min-width: 768px) {
-  /* 컨텐츠 영역 확장 */
-  .content { padding: var(--sp) 48px calc(16px + var(--safe-bottom)); max-width: 960px; }
-
-  /* 헤더 탭 여유 */
+  .content { padding: var(--sp) 40px calc(16px + var(--safe-bottom)); max-width: 960px; }
   .h-tab { font-size: 13px; padding: 7px 20px; }
 
-  /* 패널: 2열 그리드 */
+  /* 활성 패널: 카드 2열 */
   .tab-panel.active {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 12px;
     align-items: start;
   }
-  /* 첫 카드(오늘 요약) → 전체폭 */
   .tab-panel.active > .card:first-child { grid-column: 1 / -1; }
-  /* 마지막 카드(전체 기록) → 전체폭 */
   .tab-panel.active > .card:last-child  { grid-column: 1 / -1; }
 
-  /* 이름 칩: 8열 균등 */
   .name-chips { grid-template-columns: repeat(8, 1fr); }
-
-  /* 연속 결석: 6열 */
   .consec-list { grid-template-columns: repeat(6, 1fr); }
-
-  /* 월별 바 차트: 높이 확보 */
   .ma-bar-bg { height: 22px; }
   .chart-bar-bg { height: 20px; }
+}
+
+/* ── WIDE TABLET / iPad 가로 · Pro (1100px+) — 3패널 동시 표시 ── */
+@media (min-width: 1100px) {
+  .content {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 16px;
+    max-width: 1600px;
+    align-items: start;
+    padding: var(--sp) 40px calc(16px + var(--safe-bottom));
+  }
+
+  /* 3패널 모두 표시 */
+  .tab-panel { display: block !important; }
+  .tab-panel.active { display: block !important; }
+
+  /* 패널 제목 (::before 로 자동 삽입) */
+  .tab-panel[data-label]::before {
+    content: attr(data-label);
+    display: block;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--navy);
+    padding-bottom: 10px;
+    margin-bottom: 8px;
+    border-bottom: 2px solid var(--blue);
+  }
+
+  /* 로딩 스피너: 3열 전체폭 */
+  #loadingSpinner { grid-column: 1 / -1; }
+
+  /* 패널 내부 카드: 단일 컬럼 (패널이 이미 나란히 배치되므로) */
+  .tab-panel > .card { width: 100%; }
+
+  /* 이름 칩: 4열로 조정 (패널 폭이 좁아지므로) */
+  .name-chips { grid-template-columns: repeat(4, 1fr); }
+  .consec-list { grid-template-columns: repeat(3, 1fr); }
+
+  /* 탭 버튼: 현재 선택 표시용으로만 사용 */
+  .header-tabs { opacity: 0.7; }
+  .h-tab.active { opacity: 1; }
 }
 </style>
 </head>
@@ -311,9 +343,9 @@ body::-webkit-scrollbar{display:none}
 </div>
 
 <div class="content">
-  <div id="panel-youth" class="tab-panel active"></div>
-  <div id="panel-young" class="tab-panel"></div>
-  <div id="panel-adult" class="tab-panel"></div>
+  <div id="panel-youth" class="tab-panel active" data-label="🎓 중고등부"></div>
+  <div id="panel-young" class="tab-panel" data-label="🙏 청년부"></div>
+  <div id="panel-adult" class="tab-panel" data-label="⛪ 장년"></div>
   <div id="loadingSpinner"><div class="spinner"></div></div>
 </div>
 
@@ -676,7 +708,7 @@ window.addEventListener('load', () => {
 
 <script>
 const DATA_URL = RAW_BASE + '/history.json';
-const VIEWER_VERSION = '0.7.0';
+const VIEWER_VERSION = '0.8.0';
 let allData = [];
 let activeTab = 'youth';
 
