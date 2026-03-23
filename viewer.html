@@ -255,17 +255,26 @@ body::-webkit-scrollbar{display:none}
 /* ── TABLET / iPad (768px+) — 2열 카드 그리드 ── */
 @media (min-width: 768px) {
   .content { padding: var(--sp) 40px calc(16px + var(--safe-bottom)); max-width: 960px; }
-  .h-tab { font-size: 13px; padding: 7px 20px; }
+  /* 탭 버튼: 밑줄 스타일로 (흰 박스 제거) */
+  .header-tabs { gap: 0; background: none; padding: 0; border-radius: 0; border-top: 1px solid rgba(255,255,255,0.1); }
+  .h-tab { flex: 1; font-size: 13px; padding: 10px 8px; border-radius: 0; border-bottom: 3px solid transparent; }
+  .h-tab.active { background: rgba(255,255,255,0.08); color: white; border-bottom-color: var(--gold); }
 
-  /* 활성 패널: 카드 2열 */
+  /* 활성 패널: 카드 2열 그리드 */
   .tab-panel.active {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 12px;
     align-items: start;
   }
-  .tab-panel.active > .card:first-child { grid-column: 1 / -1; }
-  .tab-panel.active > .card:last-child  { grid-column: 1 / -1; }
+  /* 요약(1번)·월별분석(4번)·기록(마지막) → 전체폭 */
+  .tab-panel.active > .card:first-child  { grid-column: 1 / -1; }
+  .tab-panel.active > .card:nth-child(4) { grid-column: 1 / -1; }
+  .tab-panel.active > .card:last-child   { grid-column: 1 / -1; }
+
+  /* 연속결석(2번)·8주추이(3번): 같은 높이로 */
+  .tab-panel.active > .card:nth-child(2),
+  .tab-panel.active > .card:nth-child(3) { align-self: stretch; }
 
   .name-chips { grid-template-columns: repeat(8, 1fr); }
   .consec-list { grid-template-columns: repeat(6, 1fr); }
