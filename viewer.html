@@ -107,11 +107,12 @@ body::-webkit-scrollbar{display:none}
 /* ABSENT NAMES */
 .absent-block{margin-top:6px;padding-top:6px;border-top:1px solid var(--border)}
 .absent-block-title{font-size:10px;color:var(--muted);margin-bottom:4px;font-weight:500}
-.name-chips{display:grid;grid-template-columns:repeat(6,1fr);gap:5px}
+/* auto-fill: 셀 최소 60px 보장 → 3글자 이름도 한 줄, 좁은 폰에서 5열로 자동 조정 */
+.name-chips{display:grid;grid-template-columns:repeat(auto-fill,minmax(60px,1fr));gap:5px}
 .name-chip{
   background:#fff5f5;color:#c53030;border:1px solid #fecaca;
-  border-radius:20px;padding:2px 4px;font-size:12px;font-weight:500;
-  text-align:center;
+  border-radius:20px;padding:2px 6px;font-size:12px;font-weight:500;
+  text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
 }
 .name-chip.none{background:#f0fff4;color:#276749;border-color:#9ae6b4}
 
@@ -256,7 +257,7 @@ body::-webkit-scrollbar{display:none}
 /* ── 넓은 폰 세로 (480px-767px): Galaxy S Ultra, Pixel Pro, iPhone Pro Max ── */
 @media (min-width: 480px) and (max-width: 767px) {
   .content { padding: var(--sp) 24px calc(16px + var(--safe-bottom)); }
-  .name-chips { grid-template-columns: repeat(8, 1fr); }
+  /* 480px+: auto-fill 유지 (기본값), 명시적 override 불필요 */
 }
 
 /* ── 폰 가로 (600px+, 높이 499px 이하): Galaxy S 가로, iPhone Pro 가로 ── */
@@ -744,7 +745,7 @@ window.addEventListener('load', () => {
 
 <script>
 const DATA_URL = RAW_BASE + '/history.json';
-const VIEWER_VERSION = '0.8.3';
+const VIEWER_VERSION = '0.8.4';
 let allData = [];
 let activeTab = 'youth';
 
