@@ -16,7 +16,7 @@ messaging.onBackgroundMessage(payload => {
   });
 });
 
-const CACHE_NAME = 'report-app-v72';
+const CACHE_NAME = 'report-app-v73';
 // 동적 데이터 파일은 제외 — 설치 실패 방지
 const APP_SHELL = [
   './',
