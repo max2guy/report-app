@@ -1065,10 +1065,29 @@ async function loadHistorySeed() {
         // 기존 날짜: adult/absentNames 등 부족한 필드만 시드로 보완
         const local = reportHistory[idx];
         let updated = false;
-        if (entry.adult && entry.adult.zones && entry.adult.zones.length &&
-            (!local.adult || !local.adult.zones || !local.adult.zones.length)) {
-          local.adult = entry.adult;
-          updated = true;
+        if (entry.adult && entry.adult.zones && entry.adult.zones.length) {
+          if (!local.adult || !local.adult.zones || !local.adult.zones.length) {
+            local.adult = entry.adult;
+            updated = true;
+          } else {
+            // 구역별 이름 합집합 (수동 수정본 보존)
+            const zoneMap = {};
+            local.adult.zones.forEach(z => { zoneMap[z.zone] = new Set(z.names); });
+            entry.adult.zones.forEach(z => {
+              if (!zoneMap[z.zone]) zoneMap[z.zone] = new Set();
+              z.names.forEach(n => zoneMap[z.zone].add(n));
+            });
+            const mergedZones = Object.entries(zoneMap)
+              .map(([zone, names]) => ({ zone, names: [...names] }))
+              .filter(z => z.names.length)
+              .sort((a, b) => a.zone.localeCompare(b.zone));
+            const totalAbsent = mergedZones.reduce((s, z) => s + z.names.length, 0);
+            const newAdult = { absent: totalAbsent, zones: mergedZones };
+            if (JSON.stringify(newAdult) !== JSON.stringify(local.adult)) {
+              local.adult = newAdult;
+              updated = true;
+            }
+          }
         }
         for (const g of ['youth', 'young']) {
           if (entry[g] && entry[g].absentNames && entry[g].absentNames.length &&
@@ -1667,8 +1686,24 @@ async function syncHistoryToGitHub(overwrite = false) {
         if (mergeMap[r.date]) {
           const remote = mergeMap[r.date];
           mergeMap[r.date] = { ...remote, ...r };
-          if ((!r.adult || !r.adult.zones || !r.adult.zones.length) && remote.adult?.zones?.length) {
-            mergeMap[r.date].adult = remote.adult;
+          // adult zones: 구역별 이름 합집합 (수동 수정본 보존)
+          if (remote.adult?.zones?.length) {
+            if (!r.adult?.zones?.length) {
+              mergeMap[r.date].adult = remote.adult;
+            } else {
+              const zoneMap = {};
+              remote.adult.zones.forEach(z => { zoneMap[z.zone] = new Set(z.names); });
+              r.adult.zones.forEach(z => {
+                if (!zoneMap[z.zone]) zoneMap[z.zone] = new Set();
+                z.names.forEach(n => zoneMap[z.zone].add(n));
+              });
+              const mergedZones = Object.entries(zoneMap)
+                .map(([zone, names]) => ({ zone, names: [...names] }))
+                .filter(z => z.names.length)
+                .sort((a, b) => a.zone.localeCompare(b.zone));
+              const totalAbsent = mergedZones.reduce((s, z) => s + z.names.length, 0);
+              mergeMap[r.date].adult = { absent: totalAbsent, zones: mergedZones };
+            }
           }
           for (const g of ['youth', 'young']) {
             if (r[g] && !r[g].absentNames?.length && remote[g]?.absentNames?.length) {
