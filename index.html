@@ -1718,6 +1718,14 @@ async function syncHistoryToGitHub(overwrite = false) {
             if (r[g] && !r[g].absentNames?.length && remote[g]?.absentNames?.length) {
               mergeMap[r.date][g].absentNames = remote[g].absentNames;
             }
+            // absentCorrection: 서버에서 강제 제외 지정된 이름은 로컬 데이터로도 복원 불가
+            const correction = new Set(remote[g]?.absentCorrection || []);
+            if (correction.size && mergeMap[r.date][g]?.absentNames) {
+              mergeMap[r.date][g].absentNames =
+                mergeMap[r.date][g].absentNames.filter(n => !correction.has(n));
+              // correction 목록도 유지
+              mergeMap[r.date][g].absentCorrection = [...correction];
+            }
           }
         } else {
           mergeMap[r.date] = r;

@@ -862,7 +862,9 @@ function adultMonthSummary(data) {
 function calcConsecAbsent(data, group) {
   const streak = {};
   data.forEach(row => {
-    const names = new Set((row[group] || {}).absentNames || []);
+    const correction = new Set((row[group] || {}).absentCorrection || []);
+    const raw  = ((row[group] || {}).absentNames || []).filter(n => !correction.has(n));
+    const names = new Set(raw);
     const all   = new Set([...Object.keys(streak), ...names]);
     all.forEach(n => {
       streak[n] = names.has(n) ? (streak[n] || 0) + 1 : 0;
@@ -929,7 +931,8 @@ function renderGroupPanel(group) {
   const latest = allData[allData.length - 1];
   const gData  = latest[group] || {};
   const rate   = gData.total ? Math.round(gData.present / gData.total * 100) : 0;
-  const absent = gData.absentNames || [];
+  const correction = new Set(gData.absentCorrection || []);
+  const absent = (gData.absentNames || []).filter(n => !correction.has(n));
   const recent = allData.slice(-8);
   const months = monthSummary(allData, group);
   const consec = calcConsecAbsent(allData, group);
