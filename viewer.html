@@ -1100,9 +1100,6 @@ function renderMemoPanel() {
     { icon: '💬', label: '종합 의견 및 건의사항', key: 'generalOpinion' }
   ];
 
-  const hasAny = items.some(i => latest[i.key] && latest[i.key].trim());
-  if (!hasAny) { el.innerHTML = ''; return; }
-
   el.innerHTML = items.map(({ icon, label, key }) => {
     const val = (latest[key] || '').trim();
     return `<div class="card">
