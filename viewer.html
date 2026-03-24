@@ -351,6 +351,44 @@ body::-webkit-scrollbar{display:none}
 
   /* 3패널 모드: 패널 제목(::before)이 이미 표시 → 탭바 중복, 숨김 */
   .header-tabs { display: none; }
+
+  /* 하단 메모 패널: 3열 전체폭 */
+  .memo-panel {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 16px;
+  }
+}
+
+/* 메모 패널: 모바일 기본 */
+.memo-panel {
+  margin-top: 4px;
+}
+.memo-panel .card { width: 100%; }
+.memo-card-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 6px;
+}
+.memo-card-icon {
+  font-size: 14px;
+  margin-right: 4px;
+}
+.memo-card-body {
+  font-size: 13px;
+  color: var(--text);
+  line-height: 1.6;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.memo-empty {
+  font-size: 12px;
+  color: var(--muted);
+  font-style: italic;
 }
 </style>
 </head>
@@ -385,6 +423,7 @@ body::-webkit-scrollbar{display:none}
   <div id="panel-young" class="tab-panel" data-label="🙏 청년부"></div>
   <div id="panel-adult" class="tab-panel" data-label="⛪ 장년"></div>
   <div id="loadingSpinner"><div class="spinner"></div></div>
+  <div id="panel-memo" class="memo-panel"></div>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -1050,10 +1089,36 @@ function switchTab(tab) {
 }
 
 /* ── RENDER ── */
+function renderMemoPanel() {
+  const el = document.getElementById('panel-memo');
+  const latest = allData.length ? allData[allData.length - 1] : null;
+  if (!latest) { el.innerHTML = ''; return; }
+
+  const items = [
+    { icon: '📋', label: '차주 사역계획', key: 'nextWeekPlan' },
+    { icon: '🙏', label: '기도제목',      key: 'prayer' },
+    { icon: '💬', label: '종합 의견 및 건의사항', key: 'generalOpinion' }
+  ];
+
+  const hasAny = items.some(i => latest[i.key] && latest[i.key].trim());
+  if (!hasAny) { el.innerHTML = ''; return; }
+
+  el.innerHTML = items.map(({ icon, label, key }) => {
+    const val = (latest[key] || '').trim();
+    return `<div class="card">
+      <div class="memo-card-title"><span class="memo-card-icon">${icon}</span>${label}</div>
+      ${val
+        ? `<div class="memo-card-body">${val.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>`
+        : `<div class="memo-empty">내용 없음</div>`}
+    </div>`;
+  }).join('');
+}
+
 function render() {
   renderGroupPanel('youth');
   renderGroupPanel('young');
   renderAdultPanel();
+  renderMemoPanel();
 }
 
 /* ── LOAD ── */

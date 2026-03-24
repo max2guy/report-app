@@ -1096,6 +1096,12 @@ async function loadHistorySeed() {
             updated = true;
           }
         }
+        for (const f of ['nextWeekPlan', 'prayer', 'generalOpinion']) {
+          if (entry[f] && !local[f]) {
+            local[f] = entry[f];
+            updated = true;
+          }
+        }
         if (updated) changed = true;
       }
     });
@@ -1134,7 +1140,10 @@ function saveToHistory() {
       total:        state.young.members.length,
       absentNames:  state.young.members.filter(m => m.status === 'absent').map(m => m.name)
     },
-    adult: { absent: adultAbsent, zones: adultZones }
+    adult: { absent: adultAbsent, zones: adultZones },
+    nextWeekPlan:  state.nextWeekPlan  || '',
+    prayer:        state.prayer        || '',
+    generalOpinion: state.generalOpinion || ''
   };
   reportHistory = reportHistory.filter(h => h.date !== state.date);
   reportHistory.push(entry);
