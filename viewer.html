@@ -313,30 +313,13 @@ body::-webkit-scrollbar{display:none}
 /* min-height: 500px 으로 폰 가로(≈430px 이하) 제외 */
 @media (min-width: 768px) and (max-width: 1099px) and (orientation: landscape) and (min-height: 500px) {
   .consec-list { grid-template-columns: repeat(4, 1fr); } /* 태블릿 가로: 4열 */
-
-  /* 좌우 2분할: 탭 패널(좌) + 메모 패널(우) */
-  .content {
-    display: grid;
-    grid-template-columns: 1fr 260px;
-    gap: 12px;
-    max-width: 1100px;
-  }
-  #panel-youth, #panel-young, #panel-adult, #loadingSpinner {
-    grid-column: 1;
-    grid-row: 1;
-  }
-  #panel-memo {
-    grid-column: 2;
-    grid-row: 1;
-    margin-top: 0;
-  }
 }
 
 /* ── WIDE TABLET / iPad 가로 · Pro (1100px+) — 3패널 동시 표시 ── */
 @media (min-width: 1100px) {
   .content {
     display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
+    grid-template-columns: 1fr 1fr 1.5fr;
     gap: 16px;
     max-width: 1600px;
     align-items: start;
@@ -371,133 +354,8 @@ body::-webkit-scrollbar{display:none}
   /* 3패널 모드: 패널 제목(::before)이 이미 표시 → 탭바 중복, 숨김 */
   .header-tabs { display: none; }
 
-  /* 메모 패널: 하단 전체폭 3분할 — 공간 넓게 */
-  .memo-panel {
-    grid-column: 1 / -1;
-    display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
-    gap: 16px;
-    margin-top: 4px;
-  }
-  .memo-panel .card {
-    min-height: 160px;
-    display: flex;
-    flex-direction: column;
-    padding: 16px 18px;
-  }
-  .memo-card-title {
-    font-size: 13px;
-    margin-bottom: 10px;
-  }
-  .memo-card-body {
-    font-size: 14px;
-    line-height: 1.7;
-    flex: 1;
-  }
-  .memo-empty {
-    font-size: 13px;
-    flex: 1;
-    display: flex;
-    align-items: center;
-  }
 }
 
-/* 부서별 특이사항 패널 */
-.note-panel {
-  margin-top: 4px;
-}
-.note-panel .card { width: 100%; }
-.note-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
-  margin-top: 4px;
-}
-.note-item {
-  background: #f7f9fc;
-  border-radius: 8px;
-  padding: 8px 10px;
-}
-.note-item-label {
-  font-size: 10px;
-  font-weight: 700;
-  color: var(--blue);
-  margin-bottom: 4px;
-}
-.note-item-body {
-  font-size: 12px;
-  color: var(--text);
-  line-height: 1.5;
-  white-space: pre-wrap;
-  word-break: break-word;
-}
-.note-item-empty {
-  font-size: 11px;
-  color: var(--muted);
-  font-style: italic;
-}
-
-/* 1100px+: 특이사항 패널 레이아웃 */
-@media (min-width: 1100px) {
-  .note-panel {
-    grid-column: 1 / -1;
-    display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
-    gap: 16px;
-    margin-top: 0;
-  }
-  .note-panel .card {
-    min-height: 120px;
-    display: flex;
-    flex-direction: column;
-    padding: 14px 16px;
-  }
-  .note-grid {
-    grid-template-columns: 1fr;
-    gap: 6px;
-    flex: 1;
-  }
-  .note-item-body { font-size: 13px; }
-}
-
-/* 태블릿 가로: 특이사항 패널 우측 배치 */
-@media (min-width: 768px) and (max-width: 1099px) and (orientation: landscape) and (min-height: 500px) {
-  .note-panel {
-    grid-column: 2;
-    grid-row: 2;
-    margin-top: 0;
-  }
-}
-
-/* 메모 패널: 모바일 기본 */
-.memo-panel {
-  margin-top: 4px;
-}
-.memo-panel .card { width: 100%; }
-.memo-card-title {
-  font-size: 11px;
-  font-weight: 700;
-  color: var(--muted);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  margin-bottom: 6px;
-}
-.memo-card-icon {
-  font-size: 14px;
-  margin-right: 4px;
-}
-.memo-card-body {
-  font-size: 13px;
-  color: var(--text);
-  line-height: 1.6;
-  white-space: pre-wrap;
-  word-break: break-word;
-}
-.memo-empty {
-  font-size: 12px;
-  color: var(--muted);
-  font-style: italic;
-}
 </style>
 </head>
 <body>
@@ -531,8 +389,6 @@ body::-webkit-scrollbar{display:none}
   <div id="panel-young" class="tab-panel" data-label="🙏 청년부"></div>
   <div id="panel-adult" class="tab-panel" data-label="⛪ 장년"></div>
   <div id="loadingSpinner"><div class="spinner"></div></div>
-  <div id="panel-note" class="note-panel"></div>
-  <div id="panel-memo" class="memo-panel"></div>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -1202,73 +1058,10 @@ function switchTab(tab) {
 }
 
 /* ── RENDER ── */
-function renderNotePanel() {
-  const el = document.getElementById('panel-note');
-  const latest = allData.length ? allData[allData.length - 1] : null;
-  if (!latest) { el.innerHTML = ''; return; }
-
-  const depts = [
-    { label: '🎓 중고등부', key: 'youthNote' },
-    { label: '🙏 청년부',   key: 'youngNote' },
-    { label: '⛪ 장년',     key: 'adultNote' },
-  ];
-
-  // 1100px+: 3카드 각각 / 모바일·태블릿: 1카드 안에 그리드
-  const isWide = window.innerWidth >= 1100;
-  if (isWide) {
-    el.innerHTML = depts.map(({ label, key }) => {
-      const val = (latest[key] || '').trim();
-      return `<div class="card">
-        <div class="memo-card-title"><span class="memo-card-icon">📌</span>부서별 특이사항 · ${label}</div>
-        ${val ? `<div class="memo-card-body">${val.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>`
-               : `<div class="memo-empty">내용 없음</div>`}
-      </div>`;
-    }).join('');
-  } else {
-    const hasAny = depts.some(d => (latest[d.key] || '').trim());
-    if (!hasAny) { el.innerHTML = ''; return; }
-    el.innerHTML = `<div class="card">
-      <div class="memo-card-title"><span class="memo-card-icon">📌</span>부서별 특이사항</div>
-      <div class="note-grid">${depts.map(({ label, key }) => {
-        const val = (latest[key] || '').trim();
-        return `<div class="note-item">
-          <div class="note-item-label">${label}</div>
-          ${val ? `<div class="note-item-body">${val.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>`
-                : `<div class="note-item-empty">없음</div>`}
-        </div>`;
-      }).join('')}</div>
-    </div>`;
-  }
-}
-
-function renderMemoPanel() {
-  const el = document.getElementById('panel-memo');
-  const latest = allData.length ? allData[allData.length - 1] : null;
-  if (!latest) { el.innerHTML = ''; return; }
-
-  const items = [
-    { icon: '📋', label: '차주 사역계획', key: 'nextWeekPlan' },
-    { icon: '🙏', label: '기도제목',      key: 'prayer' },
-    { icon: '💬', label: '종합 의견 및 건의사항', key: 'generalOpinion' }
-  ];
-
-  el.innerHTML = items.map(({ icon, label, key }) => {
-    const val = (latest[key] || '').trim();
-    return `<div class="card">
-      <div class="memo-card-title"><span class="memo-card-icon">${icon}</span>${label}</div>
-      ${val
-        ? `<div class="memo-card-body">${val.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>`
-        : `<div class="memo-empty">내용 없음</div>`}
-    </div>`;
-  }).join('');
-}
-
 function render() {
   renderGroupPanel('youth');
   renderGroupPanel('young');
   renderAdultPanel();
-  renderNotePanel();
-  renderMemoPanel();
 }
 
 /* ── LOAD ── */
