@@ -77,7 +77,7 @@ body::-webkit-scrollbar{display:none}
 .tab-panel{display:none}
 .tab-panel.active{
   display:grid;
-  grid-template-columns:repeat(auto-fit,minmax(320px,1fr));
+  grid-template-columns:repeat(auto-fit,minmax(375px,1fr));
   gap:20px;
   align-items:start;
 }
@@ -782,7 +782,7 @@ window.addEventListener('load', () => {
 
 <script>
 const DATA_URL = RAW_BASE + '/history.json';
-const VIEWER_VERSION = '0.9.5';
+const VIEWER_VERSION = '0.9.6';
 let allData = [];
 let activeTab = 'youth';
 
