@@ -369,12 +369,13 @@ body::-webkit-scrollbar{display:none}
   /* 3패널 모드: 패널 제목(::before)이 이미 표시 → 탭바 중복, 숨김 */
   .header-tabs { display: none; }
 
-  /* 하단 메모 패널: 3열 전체폭 */
+  /* 메모 패널: 첫 번째 컬럼(중고등부) 하단 — 빈 공간 채움 */
   .memo-panel {
-    grid-column: 1 / -1;
-    display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
-    gap: 16px;
+    grid-column: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 0;
   }
 }
 
