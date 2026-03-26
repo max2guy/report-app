@@ -16,7 +16,22 @@ messaging.onBackgroundMessage(payload => {
   });
 });
 
-const CACHE_NAME = 'report-app-v96';
+/* 알림 클릭 → 앱 열기 */
+self.addEventListener('notificationclick', e => {
+  e.notification.close();
+  e.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(list => {
+      for (const c of list) {
+        if (c.url.includes('/index.html') || c.url.endsWith('/')) {
+          return c.focus();
+        }
+      }
+      return self.clients.openWindow('./');
+    })
+  );
+});
+
+const CACHE_NAME = 'report-app-v98';
 // 동적 데이터 파일은 제외 — 설치 실패 방지
 const APP_SHELL = [
   './',

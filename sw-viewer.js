@@ -16,7 +16,22 @@ messaging.onBackgroundMessage(payload => {
   });
 });
 
-const CACHE = 'viewer-v116';
+/* 알림 클릭 → 뷰어 앱 열기 */
+self.addEventListener('notificationclick', e => {
+  e.notification.close();
+  e.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(list => {
+      for (const c of list) {
+        if (c.url.includes('/viewer.html')) {
+          return c.focus();
+        }
+      }
+      return self.clients.openWindow('./viewer.html');
+    })
+  );
+});
+
+const CACHE = 'viewer-v118';
 const SHELL = ['./viewer.html', './viewer-manifest.json', './icon-192.png', './icon-512.png', './notification-icon.png', './notification-badge.png'];
 
 self.addEventListener('install', e => {
