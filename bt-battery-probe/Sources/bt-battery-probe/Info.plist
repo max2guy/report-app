@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>NSBluetoothAlwaysUsageDescription</key>
+    <string>BT Battery Probe reads battery levels from Bluetooth devices via BLE GATT Battery Service (0x180F) for Phase 1 feasibility validation.</string>
+    <key>NSBluetoothPeripheralUsageDescription</key>
+    <string>BT Battery Probe reads battery levels from Bluetooth devices via BLE GATT Battery Service (0x180F) for Phase 1 feasibility validation.</string>
+</dict>
+</plist>

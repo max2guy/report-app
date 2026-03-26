@@ -16,7 +16,11 @@ let package = Package(
             linkerSettings: [
                 .linkedFramework("IOKit"),
                 .linkedFramework("IOBluetooth"),
-                .linkedFramework("CoreBluetooth")
+                .linkedFramework("CoreBluetooth"),
+                .unsafeFlags(["-Xlinker", "-sectcreate",
+                              "-Xlinker", "__TEXT",
+                              "-Xlinker", "__info_plist",
+                              "-Xlinker", "Sources/bt-battery-probe/Info.plist"])
             ]
         )
     ]
