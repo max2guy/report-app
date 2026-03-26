@@ -75,19 +75,13 @@ body::-webkit-scrollbar{display:none}
   max-width:520px;margin:0 auto;
 }
 .tab-panel{display:none}
-.tab-panel.active{
-  display:grid;
-  grid-template-columns:repeat(auto-fit,minmax(375px,1fr));
-  gap:20px;
-  align-items:start;
-}
-/* grid 환경에서 카드 margin-bottom 제거 (gap으로 대체) */
-.tab-panel.active > .card{margin-bottom:0;height:100%}
+/* 모바일 기본: 단순 블록 쌓기 */
+.tab-panel.active{display:block}
 
 /* CARD */
 .card{
   background:var(--card);border-radius:12px;
-  padding:16px 18px;margin-bottom:7px;
+  padding:16px 18px;margin-bottom:16px;
   box-shadow:0 2px 8px rgba(15,32,68,.07);
   display:flex;flex-direction:column;
 }
@@ -266,10 +260,7 @@ body::-webkit-scrollbar{display:none}
 }
 .toast.show{opacity:1}
 
-/* ── 초소형 폰 (380px 이하): 단일 열 강제 ── */
-@media (max-width: 380px) {
-  .tab-panel.active { grid-template-columns: 1fr; }
-}
+/* ── 초소형 폰 (380px 이하): 별도 조정 없음 (기본 block 쌓기) ── */
 
 /* ── 넓은 폰 세로 (480px-767px): Galaxy S Ultra, Pixel Pro, iPhone Pro Max ── */
 @media (min-width: 480px) and (max-width: 767px) {
@@ -310,14 +301,17 @@ body::-webkit-scrollbar{display:none}
   .tab-panel.active {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 12px;
+    gap: 20px;
     align-items: start;
   }
+  /* 그리드 환경에서 카드 margin-bottom 제거 (gap으로 대체) */
+  .tab-panel.active > .card { margin-bottom: 0; }
+
   /* 요약(1번) → 전체폭 row1 */
   .tab-panel.active > .card:first-child  { grid-column: 1 / -1; grid-row: 1; }
   /* 연속결석(2번) → 좌열 row2 */
   .tab-panel.active > .card:nth-child(2) { grid-column: 1; grid-row: 2; }
-  /* 최근8주추이(3번) → 우열 row2~3 (연속결석+월별평균 높이 전체 커버) */
+  /* 최근8주추이(3번) → 우열 row2~3 (2행 span, content에 맞는 자연 높이) */
   .tab-panel.active > .card:nth-child(3) { grid-column: 2; grid-row: 2 / 4; }
   /* 월별평균출석률(4번) → 좌열 row3 (연속결석 아래 빈 공간 채움) */
   .tab-panel.active > .card:nth-child(4) { grid-column: 1; grid-row: 3; }
@@ -782,7 +776,7 @@ window.addEventListener('load', () => {
 
 <script>
 const DATA_URL = RAW_BASE + '/history.json';
-const VIEWER_VERSION = '0.9.6';
+const VIEWER_VERSION = '0.9.7';
 let allData = [];
 let activeTab = 'youth';
 
