@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 01-01-PLAN.md
-last_updated: "2026-03-26T22:06:46.483Z"
+stopped_at: Completed 01-02-PLAN.md
+last_updated: "2026-03-26T22:20:45.022Z"
 last_activity: 2026-03-26
 progress:
   total_phases: 4
   completed_phases: 0
   total_plans: 3
-  completed_plans: 1
+  completed_plans: 2
   percent: 0
 ---
 
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-03-26)
 ## Current Position
 
 Phase: 01 (feasibility-validation) — EXECUTING
-Plan: 2 of 3
+Plan: 3 of 3
 Status: Ready to execute
 Last activity: 2026-03-26
 
@@ -53,6 +53,7 @@ Progress: [░░░░░░░░░░] 0%
 
 *Updated after each plan completion*
 | Phase 01 P01 | 3 | 1 tasks | 7 files |
+| Phase 01-feasibility-validation P02 | 11 | 1 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -64,6 +65,8 @@ Recent decisions affecting current work:
 - Phase 1 is a go/no-go gate: if target keyboard does not expose battery via any standard API, project scope narrows
 - [Phase 01]: Used ParsableCommand.main() instead of @main in main.swift — Swift compiler disallows @main in file named main.swift
 - [Phase 01]: FEAS-01 initial result: 0/3 IOKit-visible devices expose BatteryPercent; keyboard not visible in IORegistry
+- [Phase 01-feasibility-validation]: FEAS-03 result: 0 peripherals expose Battery Service 0x180F — keyboard uses proprietary LED battery indicator, D-05 scope expansion applies
+- [Phase 01-feasibility-validation]: [Phase 01]: Info.plist NSBluetoothAlwaysUsageDescription embedded via -sectcreate linker flag — required for macOS TCC Bluetooth access in CLI tools
 
 ### Pending Todos
 
@@ -76,6 +79,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-26T22:06:46.480Z
-Stopped at: Completed 01-01-PLAN.md
+Last session: 2026-03-26T22:20:45.020Z
+Stopped at: Completed 01-02-PLAN.md
 Resume file: None
