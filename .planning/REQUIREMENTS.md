@@ -9,7 +9,7 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Feasibility Validation
 
-- [ ] **FEAS-01**: `ioreg` 명령으로 연결된 블루투스 장치의 배터리 레벨 노출 여부를 확인할 수 있다
+- [x] **FEAS-01**: `ioreg` 명령으로 연결된 블루투스 장치의 배터리 레벨 노출 여부를 확인할 수 있다
 - [ ] **FEAS-02**: App Sandbox 환경에서 IOKit을 통한 배터리 레벨 읽기가 가능한지 확인한다
 - [ ] **FEAS-03**: BLE GATT Battery Service (0x180F)를 통한 배터리 읽기 가능 여부를 확인한다
 
@@ -82,7 +82,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| FEAS-01 | Phase 1 | Pending |
+| FEAS-01 | Phase 1 | Complete |
 | FEAS-02 | Phase 1 | Pending |
 | FEAS-03 | Phase 1 | Pending |
 | DISC-01 | Phase 2 | Pending |

@@ -31,7 +31,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 **Plans**: 3 plans
 
 Plans:
-- [ ] 01-01-PLAN.md — Swift package scaffold + IOKit battery probe (FEAS-01)
+- [x] 01-01-PLAN.md — Swift package scaffold + IOKit battery probe (FEAS-01)
 - [ ] 01-02-PLAN.md — BLE GATT 0x180F battery probe (FEAS-03)
 - [ ] 01-03-PLAN.md — App Sandbox test + Phase 1 findings report (FEAS-02, D-09 distribution decision)
 
