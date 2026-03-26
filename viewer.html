@@ -311,6 +311,23 @@ body::-webkit-scrollbar{display:none}
 /* min-height: 500px 으로 폰 가로(≈430px 이하) 제외 */
 @media (min-width: 768px) and (max-width: 1099px) and (orientation: landscape) and (min-height: 500px) {
   .consec-list { grid-template-columns: repeat(4, 1fr); } /* 태블릿 가로: 4열 */
+
+  /* 좌우 2분할: 탭 패널(좌) + 메모 패널(우) */
+  .content {
+    display: grid;
+    grid-template-columns: 1fr 260px;
+    gap: 12px;
+    max-width: 1100px;
+  }
+  #panel-youth, #panel-young, #panel-adult, #loadingSpinner {
+    grid-column: 1;
+    grid-row: 1;
+  }
+  #panel-memo {
+    grid-column: 2;
+    grid-row: 1;
+    margin-top: 0;
+  }
 }
 
 /* ── WIDE TABLET / iPad 가로 · Pro (1100px+) — 3패널 동시 표시 ── */
