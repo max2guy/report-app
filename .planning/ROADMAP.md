@@ -28,7 +28,12 @@ Decimal phases appear between their surrounding integers in numeric order.
   2. A Swift CLI prototype can read battery level from IOKit IORegistry for a connected device
   3. App Sandbox compatibility with IOKit battery reads is confirmed or a distribution workaround is documented
   4. BLE GATT Battery Service (0x180F) scan results are documented for connected devices
-**Plans**: TBD
+**Plans**: 3 plans
+
+Plans:
+- [ ] 01-01-PLAN.md — Swift package scaffold + IOKit battery probe (FEAS-01)
+- [ ] 01-02-PLAN.md — BLE GATT 0x180F battery probe (FEAS-03)
+- [ ] 01-03-PLAN.md — App Sandbox test + Phase 1 findings report (FEAS-02, D-09 distribution decision)
 
 ### Phase 2: Menu Bar App + IOKit Integration
 **Goal**: Users can see their Bluetooth devices and battery levels in a fully functional menu bar app using IOKit
@@ -73,7 +78,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Feasibility Validation | 0/0 | Not started | - |
+| 1. Feasibility Validation | 0/3 | Planned | - |
 | 2. Menu Bar App + IOKit Integration | 0/0 | Not started | - |
 | 3. BLE Extension + Device Management | 0/0 | Not started | - |
 | 4. Polish + App Lifecycle | 0/0 | Not started | - |
