@@ -326,11 +326,11 @@ body::-webkit-scrollbar{display:none}
     padding: var(--sp) 40px calc(16px + var(--safe-bottom));
   }
 
-  /* 3패널 모두 표시 — flex 컬럼으로 내부 카드 stretch 가능 */
+  /* 3패널 모두 표시 — flex 컬럼으로 마지막 카드가 남은 공간 채움 */
   .tab-panel { display: flex !important; flex-direction: column; }
   .tab-panel.active { display: flex !important; flex-direction: column; }
-  /* 8주 추이 카드(3번째)가 flex-grow로 빈 공간 채움 → 중고등부·청년부 높이 동기화 */
-  .tab-panel > .card:nth-child(3) { flex-grow: 1; }
+  /* 마지막 카드(전체 주일 기록)가 남은 높이 채움 → 청년부·중고등부 높이 자연스럽게 동기화 */
+  .tab-panel > .card:last-child { flex-grow: 1; }
 
   /* 패널 제목 (::before 로 자동 삽입) */
   .tab-panel[data-label]::before {
@@ -1065,11 +1065,14 @@ function equalizeGroupPanels() {
   const youth = document.getElementById('panel-youth');
   const young = document.getElementById('panel-young');
   if (!youth || !young) return;
+  // min-height 초기화 후 자연 높이 측정
   youth.style.minHeight = '';
   young.style.minHeight = '';
-  const maxH = Math.max(youth.offsetHeight, young.offsetHeight);
-  youth.style.minHeight = maxH + 'px';
-  young.style.minHeight = maxH + 'px';
+  requestAnimationFrame(() => {
+    const maxH = Math.max(youth.offsetHeight, young.offsetHeight);
+    youth.style.minHeight = maxH + 'px';
+    young.style.minHeight = maxH + 'px';
+  });
 }
 
 /* ── RENDER ── */
