@@ -72,16 +72,23 @@ body::-webkit-scrollbar{display:none}
 /* CONTENT */
 .content{
   padding:var(--sp) var(--sp) calc(16px + var(--safe-bottom));
-  max-width:520px;margin:0 auto;
+  max-width:960px;margin:0 auto;
 }
 .tab-panel{display:none}
-/* 모바일 기본: 단순 블록 쌓기 */
-.tab-panel.active{display:block}
+.tab-panel.active{
+  display:grid;
+  grid-template-columns:repeat(auto-fit, minmax(300px, 1fr));
+  gap:20px;
+  align-items:start;
+}
 
 /* CARD */
 .card{
   background:var(--card);border-radius:12px;
-  padding:16px 18px;margin-bottom:16px;
+  padding:16px 18px;
+  margin:0;
+  width:100%;
+  box-sizing:border-box;
   box-shadow:0 2px 8px rgba(15,32,68,.07);
   display:flex;flex-direction:column;
 }
@@ -110,7 +117,7 @@ body::-webkit-scrollbar{display:none}
 .rate-low{background:#fff5f5;color:#c53030}
 
 /* ABSENT NAMES */
-.absent-block{margin-top:10px;padding-top:10px;border-top:1px solid var(--border);margin-bottom:0}
+.absent-block{margin-top:10px;padding-top:10px;border-top:1px solid var(--border);margin-bottom:0;flex-grow:1}
 .absent-block-title{font-size:11px;color:var(--muted);margin-bottom:6px;font-weight:500}
 /* flex-wrap: 칩이 자연 너비로 배치되고 공간 부족 시 자동 줄바꿈 */
 .name-chips{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:0}
@@ -260,82 +267,20 @@ body::-webkit-scrollbar{display:none}
 }
 .toast.show{opacity:1}
 
-/* ── 초소형 폰 (380px 이하): 별도 조정 없음 (기본 block 쌓기) ── */
-
-/* ── 넓은 폰 세로 (480px-767px): Galaxy S Ultra, Pixel Pro, iPhone Pro Max ── */
-@media (min-width: 480px) and (max-width: 767px) {
+/* ── 480px+: 좌우 패딩 확보 ── */
+@media (min-width: 480px) {
   .content { padding: var(--sp) 24px calc(16px + var(--safe-bottom)); }
-  /* 480px+: auto-fill 유지 (기본값), 명시적 override 불필요 */
 }
 
-/* ── 폰 가로 (600px+, 높이 499px 이하): Galaxy S 가로, iPhone Pro 가로 ── */
-/* 넓은 화면이지만 짧음 → 탭 레이아웃 없이 2열 카드만 적용 */
-@media (min-width: 600px) and (max-height: 499px) {
-  .content { padding: var(--sp) 20px calc(12px + var(--safe-bottom)); }
-  .tab-panel.active {
-    display: grid; grid-template-columns: 1fr 1fr;
-    gap: 10px; align-items: start;
-  }
-  .tab-panel.active > .card:first-child  { grid-column: 1 / -1; grid-row: 1; }
-  .tab-panel.active > .card:nth-child(2) { grid-column: 1; grid-row: 2; }
-  .tab-panel.active > .card:nth-child(3) { grid-column: 2; grid-row: 2 / 4; }
-  .tab-panel.active > .card:nth-child(4) { grid-column: 1; grid-row: 3; }
-  .tab-panel.active > .card:last-child   { grid-column: 1 / -1; grid-row: 4; }
-  .tab-panel.active > .card.consec-large { grid-column: 1 / -1; grid-row: 2; }
-  .tab-panel.active > .card.consec-large ~ .card:nth-child(3) { grid-column: 1; grid-row: 3; }
-  .tab-panel.active > .card.consec-large ~ .card:nth-child(4) { grid-column: 2; grid-row: 3; }
-  .tab-panel.active > .card.consec-large ~ .card:last-child   { grid-column: 1 / -1; grid-row: 4; }
-  .name-chips  { grid-template-columns: repeat(6, 1fr); }
-  .consec-list { grid-template-columns: repeat(4, 1fr); }
-}
-
-/* ── TABLET / iPad (768px+, 높이 500px 이상) — 폰 가로 제외, 2열 카드 그리드 ── */
-@media (min-width: 768px) and (min-height: 500px) {
-  .content { padding: var(--sp) 40px calc(16px + var(--safe-bottom)); max-width: 960px; }
-  /* 탭 버튼: 밑줄 스타일로 (흰 박스 제거) */
+/* ── 768px+: 탭 밑줄 스타일 + 패딩 확대 ── */
+@media (min-width: 768px) {
+  .content { padding: var(--sp) 40px calc(16px + var(--safe-bottom)); }
   .header-tabs { gap: 0; background: none; padding: 0; border-radius: 0; border-top: 1px solid rgba(255,255,255,0.1); }
   .h-tab { flex: 1; font-size: 13px; padding: 10px 8px; border-radius: 0; border-bottom: 3px solid transparent; }
   .h-tab.active { background: rgba(255,255,255,0.08); color: white; border-bottom-color: var(--gold); }
-
-  /* 활성 패널: 카드 2열 그리드 */
-  .tab-panel.active {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 20px;
-    align-items: start;
-  }
-  /* 그리드 환경에서 카드 margin-bottom 제거 (gap으로 대체) */
-  .tab-panel.active > .card { margin-bottom: 0; }
-
-  /* 요약(1번) → 전체폭 row1 */
-  .tab-panel.active > .card:first-child  { grid-column: 1 / -1; grid-row: 1; }
-  /* 연속결석(2번) → 좌열 row2 */
-  .tab-panel.active > .card:nth-child(2) { grid-column: 1; grid-row: 2; }
-  /* 최근8주추이(3번) → 우열 row2~3 (2행 span, content에 맞는 자연 높이) */
-  .tab-panel.active > .card:nth-child(3) { grid-column: 2; grid-row: 2 / 4; }
-  /* 월별평균출석률(4번) → 좌열 row3 (연속결석 아래 빈 공간 채움) */
-  .tab-panel.active > .card:nth-child(4) { grid-column: 1; grid-row: 3; }
-  /* 전체주일기록(마지막) → 전체폭 row4 */
-  .tab-panel.active > .card:last-child   { grid-column: 1 / -1; grid-row: 4; }
-
-  /* 연속결석 칩: 기본 3열 */
-  .consec-list { grid-template-columns: repeat(3, 1fr); }
-
-  /* 연속결석 인원 6명+ → 전체폭(row2 1/-1), 칩 자동 확장 */
-  .tab-panel.active > .card.consec-large { grid-column: 1 / -1; grid-row: 2; }
-  .card.consec-large .consec-list { grid-template-columns: repeat(auto-fill, minmax(88px, 1fr)); }
-  /* consec-large일 때: 최근8주추이(3번) → 좌열 row3, 월별평균(4번) → 우열 row3, 전체기록 → row4 */
-  .tab-panel.active > .card.consec-large ~ .card:nth-child(3) { grid-column: 1; grid-row: 3; }
-  .tab-panel.active > .card.consec-large ~ .card:nth-child(4) { grid-column: 2; grid-row: 3; }
-  .tab-panel.active > .card.consec-large ~ .card:last-child   { grid-column: 1 / -1; grid-row: 4; }
   .ma-bar-bg { height: 22px; }
   .chart-bar-bg { height: 20px; }
-}
-
-/* ── 태블릿 가로 소형 (768px~1099px, min-height 500px) — iPad 9.7" 가로 등 ── */
-/* min-height: 500px 으로 폰 가로(≈430px 이하) 제외 */
-@media (min-width: 768px) and (max-width: 1099px) and (orientation: landscape) and (min-height: 500px) {
-  .consec-list { grid-template-columns: repeat(4, 1fr); } /* 태블릿 가로: 4열 */
+  .consec-list { grid-template-columns: repeat(auto-fill, minmax(88px, 1fr)); }
 }
 
 /* ── WIDE TABLET / iPad 가로 · Pro (1100px+) — 3패널 동시 표시 ── */
@@ -351,7 +296,11 @@ body::-webkit-scrollbar{display:none}
 
   /* 3패널 모두 표시 */
   .tab-panel { display: block !important; }
-  .tab-panel.active { display: block !important; }
+  .tab-panel.active {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: 16px !important;
+  }
 
   /* 패널 제목 (::before 로 자동 삽입) */
   .tab-panel[data-label]::before {
@@ -368,15 +317,11 @@ body::-webkit-scrollbar{display:none}
   /* 로딩 스피너: 3열 전체폭 */
   #loadingSpinner { grid-column: 1 / -1; }
 
-  /* 패널 내부 카드: 단일 컬럼 (패널이 이미 나란히 배치되므로) */
-  .tab-panel > .card { width: 100%; height: auto; margin-bottom: 7px; }
-
-  /* .name-chips: flex-wrap 방식으로 패널 폭에 맞게 자동 조정 */
+  .tab-panel > .card { width: 100%; height: auto; margin: 0; }
   .consec-list { grid-template-columns: repeat(3, 1fr); }
 
-  /* 3패널 모드: 패널 제목(::before)이 이미 표시 → 탭바 중복, 숨김 */
+  /* 3패널 모드: 탭바 숨김 */
   .header-tabs { display: none; }
-
 }
 
 </style>
@@ -776,7 +721,7 @@ window.addEventListener('load', () => {
 
 <script>
 const DATA_URL = RAW_BASE + '/history.json';
-const VIEWER_VERSION = '0.9.7';
+const VIEWER_VERSION = '0.9.9';
 let allData = [];
 let activeTab = 'youth';
 
