@@ -369,13 +369,34 @@ body::-webkit-scrollbar{display:none}
   /* 3패널 모드: 패널 제목(::before)이 이미 표시 → 탭바 중복, 숨김 */
   .header-tabs { display: none; }
 
-  /* 메모 패널: 첫 번째 컬럼(중고등부) 하단 — 빈 공간 채움 */
+  /* 메모 패널: 하단 전체폭 3분할 — 공간 넓게 */
   .memo-panel {
-    grid-column: 1;
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 16px;
+    margin-top: 4px;
+  }
+  .memo-panel .card {
+    min-height: 160px;
     display: flex;
     flex-direction: column;
-    gap: 8px;
-    margin-top: 0;
+    padding: 16px 18px;
+  }
+  .memo-card-title {
+    font-size: 13px;
+    margin-bottom: 10px;
+  }
+  .memo-card-body {
+    font-size: 14px;
+    line-height: 1.7;
+    flex: 1;
+  }
+  .memo-empty {
+    font-size: 13px;
+    flex: 1;
+    display: flex;
+    align-items: center;
   }
 }
 
