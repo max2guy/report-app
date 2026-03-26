@@ -326,11 +326,9 @@ body::-webkit-scrollbar{display:none}
     padding: var(--sp) 40px calc(16px + var(--safe-bottom));
   }
 
-  /* 3패널 모두 표시 — flex 컬럼으로 마지막 카드가 남은 공간 채움 */
-  .tab-panel { display: flex !important; flex-direction: column; }
-  .tab-panel.active { display: flex !important; flex-direction: column; }
-  /* 마지막 카드(전체 주일 기록)가 남은 높이 채움 → 청년부·중고등부 높이 자연스럽게 동기화 */
-  .tab-panel > .card:last-child { flex-grow: 1; }
+  /* 3패널 모두 표시 */
+  .tab-panel { display: block !important; }
+  .tab-panel.active { display: block !important; }
 
   /* 패널 제목 (::before 로 자동 삽입) */
   .tab-panel[data-label]::before {
@@ -1059,19 +1057,21 @@ function switchTab(tab) {
   if (hdr.classList.contains('compact')) title.textContent = TAB_NAMES[tab];
 }
 
-/* ── 중고등부·청년부 패널 높이 동기화 (1100px+ 모드) ── */
-function equalizeGroupPanels() {
+/* ── 중고등부·청년부 카드별 1:1 높이 동기화 (1100px+) ── */
+/* 대응하는 카드끼리 min-height를 맞춰 위에서부터 라인이 내려오도록 */
+function alignPanelCards() {
   if (window.innerWidth < 1100) return;
-  const youth = document.getElementById('panel-youth');
-  const young = document.getElementById('panel-young');
-  if (!youth || !young) return;
-  // min-height 초기화 후 자연 높이 측정
-  youth.style.minHeight = '';
-  young.style.minHeight = '';
+  const yCards = document.querySelectorAll('#panel-youth > .card');
+  const oCards = document.querySelectorAll('#panel-young > .card');
+  // 이전 min-height 초기화
+  [...yCards, ...oCards].forEach(c => { c.style.minHeight = ''; });
   requestAnimationFrame(() => {
-    const maxH = Math.max(youth.offsetHeight, young.offsetHeight);
-    youth.style.minHeight = maxH + 'px';
-    young.style.minHeight = maxH + 'px';
+    const len = Math.min(yCards.length, oCards.length);
+    for (let i = 0; i < len; i++) {
+      const h = Math.max(yCards[i].offsetHeight, oCards[i].offsetHeight);
+      yCards[i].style.minHeight = h + 'px';
+      oCards[i].style.minHeight = h + 'px';
+    }
   });
 }
 
@@ -1080,7 +1080,7 @@ function render() {
   renderGroupPanel('youth');
   renderGroupPanel('young');
   renderAdultPanel();
-  equalizeGroupPanels();
+  alignPanelCards();
 }
 
 /* ── LOAD ── */
@@ -1110,8 +1110,8 @@ const vEl = document.getElementById('viewerVerLabel');
 if (vEl) vEl.textContent = `v${VIEWER_VERSION}`;
 lucide.createIcons();
 
-/* ── 창 크기 변경 시 패널 높이 재동기화 ── */
-window.addEventListener('resize', () => equalizeGroupPanels());
+/* ── 창 크기 변경 시 카드 라인 재동기화 ── */
+window.addEventListener('resize', () => alignPanelCards());
 
 /* ── SWIPE ── */
 const TABS = ['youth','young','adult'];
