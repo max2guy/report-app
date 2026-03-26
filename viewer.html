@@ -271,9 +271,15 @@ body::-webkit-scrollbar{display:none}
     display: grid; grid-template-columns: 1fr 1fr;
     gap: 10px; align-items: start;
   }
-  .tab-panel.active > .card:first-child  { grid-column: 1 / -1; }
-  .tab-panel.active > .card:last-child   { grid-column: 1 / -1; }
-  .tab-panel.active > .card:nth-child(3) { grid-row: span 2; }
+  .tab-panel.active > .card:first-child  { grid-column: 1 / -1; grid-row: 1; }
+  .tab-panel.active > .card:nth-child(2) { grid-column: 1; grid-row: 2; }
+  .tab-panel.active > .card:nth-child(3) { grid-column: 2; grid-row: 2 / 4; }
+  .tab-panel.active > .card:nth-child(4) { grid-column: 1; grid-row: 3; }
+  .tab-panel.active > .card:last-child   { grid-column: 1 / -1; grid-row: 4; }
+  .tab-panel.active > .card.consec-large { grid-column: 1 / -1; grid-row: 2; }
+  .tab-panel.active > .card.consec-large ~ .card:nth-child(3) { grid-column: 1; grid-row: 3; }
+  .tab-panel.active > .card.consec-large ~ .card:nth-child(4) { grid-column: 2; grid-row: 3; }
+  .tab-panel.active > .card.consec-large ~ .card:last-child   { grid-column: 1 / -1; grid-row: 4; }
   .name-chips  { grid-template-columns: repeat(6, 1fr); }
   .consec-list { grid-template-columns: repeat(4, 1fr); }
 }
@@ -293,21 +299,27 @@ body::-webkit-scrollbar{display:none}
     gap: 12px;
     align-items: start;
   }
-  /* 요약(1번)·기록(마지막) → 전체폭 */
-  .tab-panel.active > .card:first-child  { grid-column: 1 / -1; }
-  .tab-panel.active > .card:last-child   { grid-column: 1 / -1; }
+  /* 요약(1번) → 전체폭 row1 */
+  .tab-panel.active > .card:first-child  { grid-column: 1 / -1; grid-row: 1; }
+  /* 연속결석(2번) → 좌열 row2 */
+  .tab-panel.active > .card:nth-child(2) { grid-column: 1; grid-row: 2; }
+  /* 최근8주추이(3번) → 우열 row2~3 (연속결석+월별평균 높이 전체 커버) */
+  .tab-panel.active > .card:nth-child(3) { grid-column: 2; grid-row: 2 / 4; }
+  /* 월별평균출석률(4번) → 좌열 row3 (연속결석 아래 빈 공간 채움) */
+  .tab-panel.active > .card:nth-child(4) { grid-column: 1; grid-row: 3; }
+  /* 전체주일기록(마지막) → 전체폭 row4 */
+  .tab-panel.active > .card:last-child   { grid-column: 1 / -1; grid-row: 4; }
 
-  /* 최근8주추이(3번): 2행 span → 연속결석 아래에 월별평균출석률이 자연 배치됨 */
-  .tab-panel.active > .card:nth-child(3) { grid-row: span 2; }
+  /* 연속결석 칩: 기본 3열 */
+  .consec-list { grid-template-columns: repeat(3, 1fr); }
 
-  /* 연속결석·8주추이: 기본 나란히, align-items:start로 자연 높이 */
-  .consec-list { grid-template-columns: repeat(3, 1fr); } /* 세로: 3열 */
-
-  /* 연속결석 인원 6명+ → 전체폭, 칩 자동 확장 */
-  .tab-panel.active > .card.consec-large { grid-column: 1 / -1; }
+  /* 연속결석 인원 6명+ → 전체폭(row2 1/-1), 칩 자동 확장 */
+  .tab-panel.active > .card.consec-large { grid-column: 1 / -1; grid-row: 2; }
   .card.consec-large .consec-list { grid-template-columns: repeat(auto-fill, minmax(88px, 1fr)); }
-  /* consec-large일 때 최근8주추이 row-span 해제 */
-  .tab-panel.active > .card.consec-large ~ .card:nth-child(3) { grid-row: auto; }
+  /* consec-large일 때: 최근8주추이(3번) → 좌열 row3, 월별평균(4번) → 우열 row3, 전체기록 → row4 */
+  .tab-panel.active > .card.consec-large ~ .card:nth-child(3) { grid-column: 1; grid-row: 3; }
+  .tab-panel.active > .card.consec-large ~ .card:nth-child(4) { grid-column: 2; grid-row: 3; }
+  .tab-panel.active > .card.consec-large ~ .card:last-child   { grid-column: 1 / -1; grid-row: 4; }
   .ma-bar-bg { height: 22px; }
   .chart-bar-bg { height: 20px; }
 }
