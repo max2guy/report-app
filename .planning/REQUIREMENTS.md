@@ -68,12 +68,12 @@ Explicitly excluded. Documented to prevent scope creep.
 
 | Feature | Reason |
 |---------|--------|
-| 배터리 충전 제어 | 읽기 전용 모니터링만 — 하드웨어 레벨 접근 위험 |
+| 배터리 충전 제어 | 읽기 전용 모니터링만 -- 하드웨어 레벨 접근 위험 |
 | Windows/Linux 지원 | macOS 네이티브 API(IOKit/CoreBluetooth) 전용 |
 | 블루투스 연결 관리 | 별도 영역 (ToothFairy/AirBuddy 등 기존 앱 존재) |
 | 오디오 라우팅/전환 | 배터리 모니터링과 무관 |
 | 클라우드 동기화/계정 | 로컬 전용 유틸리티 |
-| 분석/텔레메트리 | 프라이버시 — 네트워크 호출 없음 |
+| 분석/텔레메트리 | 프라이버시 -- 네트워크 호출 없음 |
 | 구독 결제 모델 | 유틸리티 앱은 무료 또는 일회 구매 |
 
 ## Traceability
@@ -85,29 +85,29 @@ Which phases cover which requirements. Updated during roadmap creation.
 | FEAS-01 | Phase 1 | Pending |
 | FEAS-02 | Phase 1 | Pending |
 | FEAS-03 | Phase 1 | Pending |
-| DISC-01 | - | Pending |
-| DISC-02 | - | Pending |
-| DISC-03 | - | Pending |
-| BATT-01 | - | Pending |
-| BATT-02 | - | Pending |
-| BATT-03 | - | Pending |
-| BATT-04 | - | Pending |
-| UI-01 | - | Pending |
-| UI-02 | - | Pending |
-| UI-03 | - | Pending |
-| UI-04 | - | Pending |
-| MGMT-01 | - | Pending |
-| MGMT-02 | - | Pending |
-| MGMT-03 | - | Pending |
-| LIFE-01 | - | Pending |
-| LIFE-02 | - | Pending |
-| LIFE-03 | - | Pending |
+| DISC-01 | Phase 2 | Pending |
+| DISC-02 | Phase 2 | Pending |
+| DISC-03 | Phase 2 | Pending |
+| BATT-01 | Phase 2 | Pending |
+| BATT-02 | Phase 3 | Pending |
+| BATT-03 | Phase 3 | Pending |
+| BATT-04 | Phase 2 | Pending |
+| UI-01 | Phase 2 | Pending |
+| UI-02 | Phase 4 | Pending |
+| UI-03 | Phase 2 | Pending |
+| UI-04 | Phase 2 | Pending |
+| MGMT-01 | Phase 3 | Pending |
+| MGMT-02 | Phase 3 | Pending |
+| MGMT-03 | Phase 3 | Pending |
+| LIFE-01 | Phase 4 | Pending |
+| LIFE-02 | Phase 2 | Pending |
+| LIFE-03 | Phase 4 | Pending |
 
 **Coverage:**
 - v1 requirements: 20 total
-- Mapped to phases: 3
-- Unmapped: 17 ⚠️
+- Mapped to phases: 20
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-03-27*
-*Last updated: 2026-03-27 after initial definition*
+*Last updated: 2026-03-27 after roadmap creation*
