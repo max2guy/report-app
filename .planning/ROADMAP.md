@@ -50,7 +50,7 @@ Plans:
 Plans:
 - [x] 02-01-PLAN.md — Swift Package scaffold + data models + BatteryService (IOKit) + BluetoothService (DISC-01, DISC-02, DISC-03, BATT-01, BATT-04)
 - [x] 02-02-PLAN.md — AppDelegate + StatusBarController (NSStatusItem) + SwiftUI popover views (UI-01, UI-03, UI-04, LIFE-02)
-- [ ] 02-03-PLAN.md — Info.plist + entitlements + build script + human verification checkpoint (LIFE-02)
+- [x] 02-03-PLAN.md — Info.plist + entitlements + build script + human verification checkpoint (LIFE-02)
 
 ### Phase 3: BLE Extension + Device Management
 **Goal**: Users can monitor additional devices via BLE and choose which devices to track
