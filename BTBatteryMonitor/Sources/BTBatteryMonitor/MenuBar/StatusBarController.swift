@@ -59,10 +59,11 @@ final class StatusBarController {
         let withBattery = devices.filter { $0.batteryPercent != nil }
 
         if withBattery.isEmpty {
-            // No devices with battery data — neutral state
-            button.image = NSImage(systemSymbolName: "bluetooth",
+            // No devices with battery data — show "BT" text so item is always identifiable
+            button.image = NSImage(systemSymbolName: "battery.0",
                                    accessibilityDescription: "BT Battery Monitor — 배터리 상태 표시")
-            button.title = ""
+            button.title = "BT"
+            button.imagePosition = .imageLeft
             return
         }
 
