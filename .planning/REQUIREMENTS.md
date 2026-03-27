@@ -28,10 +28,10 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Menu Bar UI
 
-- [ ] **UI-01**: macOS 메뉴바에 배터리 아이콘과 퍼센트(%)를 표시한다
+- [x] **UI-01**: macOS 메뉴바에 배터리 아이콘과 퍼센트(%)를 표시한다
 - [ ] **UI-02**: 배터리 레벨에 따라 아이콘/텍스트 색상을 변경한다 (녹색: 70%+, 노랑: 30-70%, 빨강: 30% 미만)
-- [ ] **UI-03**: 메뉴바 클릭 시 전체 장치 배터리 상세 팝오버를 표시한다
-- [ ] **UI-04**: 팝오버에 각 장치의 이름, 타입 아이콘, 배터리 레벨, 연결 상태를 표시한다
+- [x] **UI-03**: 메뉴바 클릭 시 전체 장치 배터리 상세 팝오버를 표시한다
+- [x] **UI-04**: 팝오버에 각 장치의 이름, 타입 아이콘, 배터리 레벨, 연결 상태를 표시한다
 
 ### Device Management
 
@@ -42,7 +42,7 @@ Requirements for initial release. Each maps to roadmap phases.
 ### App Lifecycle
 
 - [ ] **LIFE-01**: macOS 로그인 시 자동으로 앱이 실행된다 (SMAppService)
-- [ ] **LIFE-02**: Dock에 아이콘이 표시되지 않는 메뉴바 전용 앱으로 동작한다
+- [x] **LIFE-02**: Dock에 아이콘이 표시되지 않는 메뉴바 전용 앱으로 동작한다
 - [ ] **LIFE-03**: macOS sleep/wake 시 블루투스 상태를 올바르게 복구한다
 
 ## v2 Requirements
@@ -92,15 +92,15 @@ Which phases cover which requirements. Updated during roadmap creation.
 | BATT-02 | Phase 3 | Pending |
 | BATT-03 | Phase 3 | Pending |
 | BATT-04 | Phase 2 | Complete |
-| UI-01 | Phase 2 | Pending |
+| UI-01 | Phase 2 | Complete |
 | UI-02 | Phase 4 | Pending |
-| UI-03 | Phase 2 | Pending |
-| UI-04 | Phase 2 | Pending |
+| UI-03 | Phase 2 | Complete |
+| UI-04 | Phase 2 | Complete |
 | MGMT-01 | Phase 3 | Pending |
 | MGMT-02 | Phase 3 | Pending |
 | MGMT-03 | Phase 3 | Pending |
 | LIFE-01 | Phase 4 | Pending |
-| LIFE-02 | Phase 2 | Pending |
+| LIFE-02 | Phase 2 | Complete |
 | LIFE-03 | Phase 4 | Pending |
 
 **Coverage:**

@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 02-01-PLAN.md — Swift Package + service layer complete
-last_updated: "2026-03-27T03:45:49.308Z"
+stopped_at: Completed 02-02-PLAN.md — menu bar UI layer complete
+last_updated: "2026-03-27T03:52:18.397Z"
 last_activity: 2026-03-27
 progress:
   total_phases: 4
   completed_phases: 1
   total_plans: 6
-  completed_plans: 4
+  completed_plans: 5
   percent: 0
 ---
 
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-03-26)
 ## Current Position
 
 Phase: 02 (menu-bar-app-iokit-integration) — EXECUTING
-Plan: 2 of 3
+Plan: 3 of 3
 Status: Ready to execute
 Last activity: 2026-03-27
 
@@ -56,6 +56,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 01-feasibility-validation P02 | 11 | 1 tasks | 3 files |
 | Phase 01-feasibility-validation P03 | 10 | 3 tasks | 3 files |
 | Phase 02 P01 | 4 | 2 tasks | 7 files |
+| Phase 02 P02 | 10 | 2 tasks | 8 files |
 
 ## Accumulated Context
 
@@ -75,6 +76,8 @@ Recent decisions affecting current work:
 - [Phase 02]: IOKit probe ported verbatim from Phase 1 IOKitProbe.swift (D-06)
 - [Phase 02]: BluetoothService uses @MainActor + Task.detached to keep IOKit reads off main thread
 - [Phase 02]: BluetoothDevice Comparable nil-last sort implements D-03/D-04 battery-ascending order
+- [Phase 02]: AppDelegate not @MainActor — BluetoothService init deferred to applicationDidFinishLaunching to avoid actor isolation error
+- [Phase 02]: AppKit+SwiftUI hybrid: NSHostingController<PopoverView> as NSPopover.contentViewController with @EnvironmentObject BluetoothService
 
 ### Pending Todos
 
@@ -87,6 +90,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-27T03:45:49.305Z
-Stopped at: Completed 02-01-PLAN.md — Swift Package + service layer complete
+Last session: 2026-03-27T03:52:18.393Z
+Stopped at: Completed 02-02-PLAN.md — menu bar UI layer complete
 Resume file: None
