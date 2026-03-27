@@ -12,7 +12,7 @@ BT Battery Monitor delivers a macOS menu bar app for real-time Bluetooth device 
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 1: Feasibility Validation** - Prove battery reading is technically viable before building the app
+- [x] **Phase 1: Feasibility Validation** - Prove battery reading is technically viable before building the app (completed 2026-03-27)
 - [ ] **Phase 2: Menu Bar App + IOKit Integration** - Working menu bar app showing device battery levels via IOKit
 - [ ] **Phase 3: BLE Extension + Device Management** - Extend battery coverage with CoreBluetooth and add user device controls
 - [ ] **Phase 4: Polish + App Lifecycle** - Color-coded battery indicators, auto-launch, and sleep/wake resilience
@@ -33,10 +33,10 @@ Decimal phases appear between their surrounding integers in numeric order.
 Plans:
 - [x] 01-01-PLAN.md — Swift package scaffold + IOKit battery probe (FEAS-01)
 - [x] 01-02-PLAN.md — BLE GATT 0x180F battery probe (FEAS-03)
-- [ ] 01-03-PLAN.md — App Sandbox test + Phase 1 findings report (FEAS-02, D-09 distribution decision)
+- [x] 01-03-PLAN.md — App Sandbox test + Phase 1 findings report (FEAS-02, D-09 distribution decision)
 
 ### Phase 2: Menu Bar App + IOKit Integration
-**Goal**: Users can see their Bluetooth devices and battery levels in a fully functional menu bar app using IOKit
+**Goal**: Users can see their Bluetooth devices and battery levels in a fully functional menu bar app using IOKit — targeting Bluetooth mice, headsets, trackpads, and other devices that expose standard battery data (D-05: keyboard scope excluded — uses proprietary FN+B indicator, not standard HID/BLE battery profile)
 **Depends on**: Phase 1
 **Requirements**: DISC-01, DISC-02, DISC-03, BATT-01, BATT-04, UI-01, UI-03, UI-04, LIFE-02
 **Success Criteria** (what must be TRUE):
@@ -78,7 +78,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Feasibility Validation | 0/3 | Planned | - |
+| 1. Feasibility Validation | 3/3 | Complete   | 2026-03-27 |
 | 2. Menu Bar App + IOKit Integration | 0/0 | Not started | - |
 | 3. BLE Extension + Device Management | 0/0 | Not started | - |
 | 4. Polish + App Lifecycle | 0/0 | Not started | - |
