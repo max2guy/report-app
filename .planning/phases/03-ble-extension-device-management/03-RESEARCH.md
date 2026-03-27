@@ -372,13 +372,35 @@ final class SettingsController {
 
 **How to avoid:** `schedulePolling(interval:)` 내에서 `pollingTimer?.invalidate()` 먼저 호출 후 새 타이머 생성.
 
-### Pitfall 7: Keychron K3 및 유사 키보드의 BLE Battery Service 부재
+### Pitfall 7: Keychron K3 HID 배터리는 IOHIDManager Input Report 방식으로 읽어야 함
 
-**What goes wrong:** BLEService가 Keychron K3에서 배터리 데이터를 반환하지 않아 사용자가 버그로 오해.
+**Phase 2 이후 신규 발견 (2026-03-27 실증):**
 
-**Why it happens:** Phase 1 FEAS-03에서 실증: Keychron K3는 표준 BLE GATT Battery Service(0x180F)를 구현하지 않음. 독점 FN+B LED 방식 사용. IOKit HID battery도 미지원. **이 키보드는 현재 어떤 API로도 배터리 데이터 없음**.
+Keychron K3는 BLE GATT 0x180F를 구현하지 않지만, **HID UsagePage=6 Usage=0x20 (Battery Strength) ReportID=3** 으로 배터리를 노출한다. Linux에서 `/sys/class/power_supply/hid-<mac>-battery/capacity`로 읽히는 것과 동일한 데이터 소스다.
 
-**How to avoid:** BATT-04(Phase 2 구현됨): 배터리 데이터 없는 장치는 "배터리 정보 없음"으로 표시. 이는 이미 처리됨. Phase 3에서 추가 조치 불필요. BLE Layer 2는 AirPods, Bluetooth 마우스/헤드폰 등 0x180F를 지원하는 장치에 유효.
+**실증된 IOKit 쿼리 결과:**
+```
+IOHIDDevice: Product="Keychron K3", Transport=Bluetooth
+Elements: UsagePage=6, Usage=0x20, ReportID=3, Min=0, Max=100, Size=8bit, Type=Input
+IOHIDDeviceCopyMatchingElements(usagePage:6, usage:0x20) → 1 element ✅
+IOHIDDeviceGetValue → 0% (초기 캐시값, 아직 Input Report 미수신)
+```
+
+**Why GetValue returns 0%:**
+`IOHIDDeviceGetValue`는 IOKit 레지스트리에 캐시된 마지막 값을 반환한다. K3는 연결 시 또는 배터리 레벨이 변할 때만 Input Report를 전송한다. IOHIDManager가 연결 전에 열려있지 않으면 초기 보고를 놓친다.
+
+**Correct approach for Phase 3:**
+`BatteryService.probeHIDGenericDevice()` 메서드 추가:
+```swift
+// UsagePage=6, Usage=0x20 (Battery Strength) 원소를 가진 모든 HID 장치 탐색
+// IOHIDDeviceCopyMatchingElements로 배터리 원소 찾기
+// IOHIDDeviceGetValue로 캐시값 읽기 (0이 아닐 때만 유효)
+// + IOHIDDeviceRegisterInputValueCallback을 통해 실시간 갱신
+```
+
+**현재 한계:** `IOHIDDeviceOpen(kIOHIDOptionsTypeNone)` → `kIOReturnExclusiveAccess` (키보드 드라이버 점유). 그러나 `IOHIDManagerOpen` → `0x0` 성공, `GetValue` 호출 가능. 실시간 값을 받으려면 RunLoop 스케줄링 필요.
+
+**Phase 3 계획에 미치는 영향:** `BatteryService`에 `probeHIDGenericDevice()` 레이어 추가. IOKit `AppleDeviceManagementHIDEventService` (기존) + HID Generic UsagePage=6 (신규) 두 경로를 병합.
 
 ---
 
