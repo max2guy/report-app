@@ -117,6 +117,13 @@ None - no external service configuration required.
 - Contract: `BluetoothService.startMonitoring()` called from AppDelegate in Plan 02-03
 - No blockers
 
+## Self-Check: PASSED
+
+- All 6 source files created and verified to exist
+- Both task commits confirmed: 4404b68 (Task 1), 29ebd56 (Task 2)
+- swift build exits 0
+- All acceptance criteria verified with grep
+
 ---
 *Phase: 02-menu-bar-app-iokit-integration*
 *Completed: 2026-03-27*

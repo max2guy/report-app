@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <!-- LIFE-02: no Dock icon — menu bar only app -->
+    <key>LSUIElement</key>
+    <true/>
+
+    <!-- Bundle identity -->
+    <key>CFBundleIdentifier</key>
+    <string>com.btbatterymonitor.app</string>
+    <key>CFBundleName</key>
+    <string>BT Battery Monitor</string>
+    <key>CFBundleDisplayName</key>
+    <string>BT Battery Monitor</string>
+    <key>CFBundleVersion</key>
+    <string>1</string>
+    <key>CFBundleShortVersionString</key>
+    <string>1.0</string>
+    <key>CFBundlePackageType</key>
+    <string>APPL</string>
+    <key>CFBundleExecutable</key>
+    <string>BTBatteryMonitor</string>
+    <key>LSMinimumSystemVersion</key>
+    <string>13.0</string>
+
+    <!-- Bluetooth TCC permission (Pitfall 2 guard) -->
+    <key>NSBluetoothAlwaysUsageDescription</key>
+    <string>블루투스 장치 배터리 모니터링에 사용됩니다.</string>
+</dict>
+</plist>

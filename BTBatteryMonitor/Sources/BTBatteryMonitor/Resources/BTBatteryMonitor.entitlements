@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <!-- D-08: App Sandbox + Hardened Runtime (FEAS-02 confirmed working on macOS 26) -->
+    <key>com.apple.security.app-sandbox</key>
+    <true/>
+    <!-- Required for IOKit IORegistry BT battery reads + IOBluetoothDevice.pairedDevices() -->
+    <key>com.apple.security.device.bluetooth</key>
+    <true/>
+</dict>
+</plist>
