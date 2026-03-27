@@ -12,6 +12,7 @@ let package = Package(
                 .linkedFramework("IOKit"),
                 .linkedFramework("IOBluetooth"),
                 .linkedFramework("AppKit"),
+                .linkedFramework("SwiftUI"),
             ]
         ),
     ]
