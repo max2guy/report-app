@@ -61,8 +61,12 @@ Plans:
   2. Battery levels refresh automatically at a configurable interval (default 5 minutes)
   3. User can toggle individual devices on/off for monitoring, and the selection persists across app restarts
   4. User can change the polling interval from a settings view
-**Plans**: TBD
-**UI hint**: yes
+**Plans**: 3 plans
+
+Plans:
+- [ ] 03-01-PLAN.md — BLEService + HID Generic battery layer + PollingInterval + DevicePreferences + BluetoothDevice.isMonitored + BluetoothService orchestration (BATT-02, BATT-03, MGMT-02)
+- [ ] 03-02-PLAN.md — SettingsController (NSPanel) + SettingsView + HeaderView settings button + DeviceRowView monitoring toggle (MGMT-01, MGMT-03)
+- [ ] 03-03-PLAN.md — Final build verification + human verification checkpoint (all)
 
 ### Phase 4: Polish + App Lifecycle
 **Goal**: The app feels production-ready with visual battery indicators and seamless system integration
@@ -84,5 +88,5 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4
 |-------|----------------|--------|-----------|
 | 1. Feasibility Validation | 3/3 | Complete   | 2026-03-27 |
 | 2. Menu Bar App + IOKit Integration | 2/3 | In Progress|  |
-| 3. BLE Extension + Device Management | 0/0 | Not started | - |
+| 3. BLE Extension + Device Management | 0/3 | Not started | - |
 | 4. Polish + App Lifecycle | 0/0 | Not started | - |
