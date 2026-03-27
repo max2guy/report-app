@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: verifying
-stopped_at: Completed 01-03-PLAN.md — Phase 1 feasibility validation complete
-last_updated: "2026-03-27T02:14:21.188Z"
+status: executing
+stopped_at: Completed 02-01-PLAN.md — Swift Package + service layer complete
+last_updated: "2026-03-27T03:45:49.308Z"
 last_activity: 2026-03-27
 progress:
   total_phases: 4
   completed_phases: 1
-  total_plans: 3
-  completed_plans: 3
+  total_plans: 6
+  completed_plans: 4
   percent: 0
 ---
 
@@ -21,13 +21,13 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-26)
 
 **Core value:** 블루투스 장치의 배터리 잔량을 메뉴바에서 아이콘과 퍼센트로 한눈에 확인할 수 있어야 한다.
-**Current focus:** Phase 01 — feasibility-validation
+**Current focus:** Phase 02 — menu-bar-app-iokit-integration
 
 ## Current Position
 
-Phase: 2
-Plan: Not started
-Status: Phase complete — ready for verification
+Phase: 02 (menu-bar-app-iokit-integration) — EXECUTING
+Plan: 2 of 3
+Status: Ready to execute
 Last activity: 2026-03-27
 
 Progress: [░░░░░░░░░░] 0%
@@ -55,6 +55,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 01 P01 | 3 | 1 tasks | 7 files |
 | Phase 01-feasibility-validation P02 | 11 | 1 tasks | 3 files |
 | Phase 01-feasibility-validation P03 | 10 | 3 tasks | 3 files |
+| Phase 02 P01 | 4 | 2 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -71,6 +72,9 @@ Recent decisions affecting current work:
 - [Phase 01-feasibility-validation]: D-09: App Store distribution may be viable — IOKit accessible under App Sandbox on macOS 26 Tahoe (UNEXPECTED). Requires macOS 13/14 verification.
 - [Phase 01-feasibility-validation]: D-05 confirmed: keyboard uses proprietary FN+B battery indicator, not standard HID/BLE — Phase 2 scope expands to mice, headsets, trackpads, AirPods
 - [Phase 01-feasibility-validation]: Phase 1 gate: GO — FEAS-01/02/03 empirically tested, IOKit + CoreBluetooth API paths confirmed functional, proceed to Phase 2
+- [Phase 02]: IOKit probe ported verbatim from Phase 1 IOKitProbe.swift (D-06)
+- [Phase 02]: BluetoothService uses @MainActor + Task.detached to keep IOKit reads off main thread
+- [Phase 02]: BluetoothDevice Comparable nil-last sort implements D-03/D-04 battery-ascending order
 
 ### Pending Todos
 
@@ -83,6 +87,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-27T02:10:41.242Z
-Stopped at: Completed 01-03-PLAN.md — Phase 1 feasibility validation complete
+Last session: 2026-03-27T03:45:49.305Z
+Stopped at: Completed 02-01-PLAN.md — Swift Package + service layer complete
 Resume file: None

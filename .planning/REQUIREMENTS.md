@@ -15,16 +15,16 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Device Discovery
 
-- [ ] **DISC-01**: macOS에 연결된 모든 블루투스 장치 목록을 탐지하여 표시한다
-- [ ] **DISC-02**: 각 장치의 타입(키보드/마우스/헤드셋/기타)을 식별하여 적절한 아이콘으로 표시한다
-- [ ] **DISC-03**: 장치 연결/해제 상태 변화를 실시간으로 감지하여 UI에 반영한다
+- [x] **DISC-01**: macOS에 연결된 모든 블루투스 장치 목록을 탐지하여 표시한다
+- [x] **DISC-02**: 각 장치의 타입(키보드/마우스/헤드셋/기타)을 식별하여 적절한 아이콘으로 표시한다
+- [x] **DISC-03**: 장치 연결/해제 상태 변화를 실시간으로 감지하여 UI에 반영한다
 
 ### Battery Reading
 
-- [ ] **BATT-01**: IOKit IORegistry를 통해 장치의 배터리 레벨(%)을 읽는다
+- [x] **BATT-01**: IOKit IORegistry를 통해 장치의 배터리 레벨(%)을 읽는다
 - [ ] **BATT-02**: CoreBluetooth BLE GATT Battery Service(0x180F)를 통해 배터리 레벨을 읽는다
 - [ ] **BATT-03**: 설정 가능한 주기(기본 5분)로 배터리 레벨을 자동 갱신한다
-- [ ] **BATT-04**: 배터리 정보를 노출하지 않는 장치는 "배터리 정보 없음"으로 명확히 표시한다
+- [x] **BATT-04**: 배터리 정보를 노출하지 않는 장치는 "배터리 정보 없음"으로 명확히 표시한다
 
 ### Menu Bar UI
 
@@ -85,13 +85,13 @@ Which phases cover which requirements. Updated during roadmap creation.
 | FEAS-01 | Phase 1 | Complete |
 | FEAS-02 | Phase 1 | Complete |
 | FEAS-03 | Phase 1 | Complete |
-| DISC-01 | Phase 2 | Pending |
-| DISC-02 | Phase 2 | Pending |
-| DISC-03 | Phase 2 | Pending |
-| BATT-01 | Phase 2 | Pending |
+| DISC-01 | Phase 2 | Complete |
+| DISC-02 | Phase 2 | Complete |
+| DISC-03 | Phase 2 | Complete |
+| BATT-01 | Phase 2 | Complete |
 | BATT-02 | Phase 3 | Pending |
 | BATT-03 | Phase 3 | Pending |
-| BATT-04 | Phase 2 | Pending |
+| BATT-04 | Phase 2 | Complete |
 | UI-01 | Phase 2 | Pending |
 | UI-02 | Phase 4 | Pending |
 | UI-03 | Phase 2 | Pending |
