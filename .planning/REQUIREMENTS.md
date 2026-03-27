@@ -22,8 +22,8 @@ Requirements for initial release. Each maps to roadmap phases.
 ### Battery Reading
 
 - [x] **BATT-01**: IOKit IORegistry를 통해 장치의 배터리 레벨(%)을 읽는다
-- [ ] **BATT-02**: CoreBluetooth BLE GATT Battery Service(0x180F)를 통해 배터리 레벨을 읽는다
-- [ ] **BATT-03**: 설정 가능한 주기(기본 5분)로 배터리 레벨을 자동 갱신한다
+- [x] **BATT-02**: CoreBluetooth BLE GATT Battery Service(0x180F)를 통해 배터리 레벨을 읽는다
+- [x] **BATT-03**: 설정 가능한 주기(기본 5분)로 배터리 레벨을 자동 갱신한다
 - [x] **BATT-04**: 배터리 정보를 노출하지 않는 장치는 "배터리 정보 없음"으로 명확히 표시한다
 
 ### Menu Bar UI
@@ -36,7 +36,7 @@ Requirements for initial release. Each maps to roadmap phases.
 ### Device Management
 
 - [ ] **MGMT-01**: 사용자가 모니터링할 장치를 선택/해제할 수 있다
-- [ ] **MGMT-02**: 장치 선택 설정이 앱 재시작 후에도 유지된다 (UserDefaults)
+- [x] **MGMT-02**: 장치 선택 설정이 앱 재시작 후에도 유지된다 (UserDefaults)
 - [ ] **MGMT-03**: 사용자가 배터리 갱신 폴링 간격을 설정할 수 있다
 
 ### App Lifecycle
@@ -89,15 +89,15 @@ Which phases cover which requirements. Updated during roadmap creation.
 | DISC-02 | Phase 2 | Complete |
 | DISC-03 | Phase 2 | Complete |
 | BATT-01 | Phase 2 | Complete |
-| BATT-02 | Phase 3 | Pending |
-| BATT-03 | Phase 3 | Pending |
+| BATT-02 | Phase 3 | Complete |
+| BATT-03 | Phase 3 | Complete |
 | BATT-04 | Phase 2 | Complete |
 | UI-01 | Phase 2 | Complete |
 | UI-02 | Phase 4 | Pending |
 | UI-03 | Phase 2 | Complete |
 | UI-04 | Phase 2 | Complete |
 | MGMT-01 | Phase 3 | Pending |
-| MGMT-02 | Phase 3 | Pending |
+| MGMT-02 | Phase 3 | Complete |
 | MGMT-03 | Phase 3 | Pending |
 | LIFE-01 | Phase 4 | Pending |
 | LIFE-02 | Phase 2 | Complete |

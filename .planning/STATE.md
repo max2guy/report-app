@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 02-02-PLAN.md — menu bar UI layer complete
-last_updated: "2026-03-27T10:52:33.741Z"
+stopped_at: Completed 03-01-PLAN.md — BLE + HID Generic service layer complete
+last_updated: "2026-03-27T11:29:54.296Z"
 last_activity: 2026-03-27
 progress:
   total_phases: 4
   completed_phases: 2
-  total_plans: 6
-  completed_plans: 6
+  total_plans: 9
+  completed_plans: 7
   percent: 0
 ---
 
@@ -21,12 +21,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-26)
 
 **Core value:** 블루투스 장치의 배터리 잔량을 메뉴바에서 아이콘과 퍼센트로 한눈에 확인할 수 있어야 한다.
-**Current focus:** Phase 02 — menu-bar-app-iokit-integration
+**Current focus:** Phase 03 — ble-extension-device-management
 
 ## Current Position
 
-Phase: 3
-Plan: Not started
+Phase: 03 (ble-extension-device-management) — EXECUTING
+Plan: 2 of 3
 Status: Ready to execute
 Last activity: 2026-03-27
 
@@ -57,6 +57,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 01-feasibility-validation P03 | 10 | 3 tasks | 3 files |
 | Phase 02 P01 | 4 | 2 tasks | 7 files |
 | Phase 02 P02 | 10 | 2 tasks | 8 files |
+| Phase 03-ble-extension-device-management P01 | 4 | 2 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -78,6 +79,9 @@ Recent decisions affecting current work:
 - [Phase 02]: BluetoothDevice Comparable nil-last sort implements D-03/D-04 battery-ascending order
 - [Phase 02]: AppDelegate not @MainActor — BluetoothService init deferred to applicationDidFinishLaunching to avoid actor isolation error
 - [Phase 02]: AppKit+SwiftUI hybrid: NSHostingController<PopoverView> as NSPopover.contentViewController with @EnvironmentObject BluetoothService
+- [Phase 03]: BLEService captures @MainActor bleService before Task.detached to avoid Swift 5 actor isolation warning
+- [Phase 03]: IOHIDDeviceGetValue uses Unmanaged<IOHIDValue> with dummy initial value — Swift bridging requires non-optional pointer
+- [Phase 03]: 3-layer battery merge: IOKit > HID Generic > BLE GATT, IOKit takes priority on product name collision
 
 ### Pending Todos
 
@@ -90,6 +94,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-27T03:52:18.393Z
-Stopped at: Completed 02-02-PLAN.md — menu bar UI layer complete
+Last session: 2026-03-27T11:29:54.291Z
+Stopped at: Completed 03-01-PLAN.md — BLE + HID Generic service layer complete
 Resume file: None
