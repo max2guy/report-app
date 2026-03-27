@@ -2,7 +2,14 @@ import SwiftUI
 
 struct DeviceRowView: View {
     let device: BluetoothDevice
+    @EnvironmentObject var bluetoothService: BluetoothService
     @State private var isHovered = false
+    @State private var isMonitored: Bool
+
+    init(device: BluetoothDevice) {
+        self.device = device
+        self._isMonitored = State(initialValue: device.isMonitored)
+    }
 
     var body: some View {
         HStack(spacing: 0) {
@@ -27,15 +34,15 @@ struct DeviceRowView: View {
 
             // Battery area — normal vs no-battery
             if let pct = device.batteryPercent {
-                // Progress bar (80pt x 6pt capsule)
+                // Progress bar (60pt x 6pt capsule)
                 ProgressView(value: Double(pct), total: 100)
                     .progressViewStyle(.linear)
-                    .frame(width: 80, height: 6)
+                    .frame(width: 60, height: 6)
                     .tint(batteryColor(pct))
                     .clipShape(Capsule())
                     .accessibilityValue("\(pct)퍼센트")
 
-                Spacer().frame(width: 8)  // sm gap
+                Spacer().frame(width: 6)
 
                 // Battery percent label (12pt right-aligned)
                 Text("\(pct)%")
@@ -49,6 +56,21 @@ struct DeviceRowView: View {
                     .font(.caption)   // 11pt
                     .foregroundColor(Color(NSColor.secondaryLabelColor))
             }
+
+            Spacer().frame(width: 8)
+
+            // MGMT-01: 모니터링 토글
+            Toggle("", isOn: $isMonitored)
+                .toggleStyle(.switch)
+                .labelsHidden()
+                .scaleEffect(0.75)   // compact size for row
+                // macOS 13 compatible: single-param onChange closure
+                .onChange(of: isMonitored) { newValue in
+                    DevicePreferences.shared.setMonitored(device.name, newValue)
+                    // 즉시 popover 반영 — BluetoothService.devices 재빌드
+                    bluetoothService.refresh()
+                }
+                .accessibilityLabel("\(device.name) 모니터링 \(isMonitored ? "활성" : "비활성")")
         }
         .padding(.horizontal, 16)   // md inset
         .frame(minHeight: 44)        // HIG minimum touch target
@@ -56,10 +78,7 @@ struct DeviceRowView: View {
             ? Color(NSColor.controlBackgroundColor).opacity(0.5)
             : Color.clear)
         .onHover { isHovered = $0 }
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(device.batteryPercent != nil
-            ? "\(device.name), 배터리 \(device.batteryPercent!)%"
-            : "\(device.name), 배터리 정보 없음")
+        .accessibilityElement(children: .combine)
     }
 
     // Battery color thresholds per UI-SPEC + REQUIREMENTS.md UI-02
