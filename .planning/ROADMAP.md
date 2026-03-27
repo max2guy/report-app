@@ -45,8 +45,12 @@ Plans:
   3. Device connection/disconnection is reflected in the UI without restarting the app
   4. Devices that do not expose battery data show "battery info unavailable" instead of incorrect values
   5. The app runs as a menu-bar-only agent (no Dock icon)
-**Plans**: TBD
-**UI hint**: yes
+**Plans**: 3 plans
+
+Plans:
+- [ ] 02-01-PLAN.md — Swift Package scaffold + data models + BatteryService (IOKit) + BluetoothService (DISC-01, DISC-02, DISC-03, BATT-01, BATT-04)
+- [ ] 02-02-PLAN.md — AppDelegate + StatusBarController (NSStatusItem) + SwiftUI popover views (UI-01, UI-03, UI-04, LIFE-02)
+- [ ] 02-03-PLAN.md — Info.plist + entitlements + build script + human verification checkpoint (LIFE-02)
 
 ### Phase 3: BLE Extension + Device Management
 **Goal**: Users can monitor additional devices via BLE and choose which devices to track
@@ -79,6 +83,6 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Feasibility Validation | 3/3 | Complete   | 2026-03-27 |
-| 2. Menu Bar App + IOKit Integration | 0/0 | Not started | - |
+| 2. Menu Bar App + IOKit Integration | 0/3 | Not started | - |
 | 3. BLE Extension + Device Management | 0/0 | Not started | - |
 | 4. Polish + App Lifecycle | 0/0 | Not started | - |
