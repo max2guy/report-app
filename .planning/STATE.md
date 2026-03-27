@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 03-01-PLAN.md — BLE + HID Generic service layer complete
-last_updated: "2026-03-27T11:29:54.296Z"
+stopped_at: Completed 03-02-PLAN.md — Settings UI + device monitoring toggle complete
+last_updated: "2026-03-27T11:34:19.061Z"
 last_activity: 2026-03-27
 progress:
   total_phases: 4
   completed_phases: 2
   total_plans: 9
-  completed_plans: 7
+  completed_plans: 8
   percent: 0
 ---
 
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-03-26)
 ## Current Position
 
 Phase: 03 (ble-extension-device-management) — EXECUTING
-Plan: 2 of 3
+Plan: 3 of 3
 Status: Ready to execute
 Last activity: 2026-03-27
 
@@ -58,6 +58,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 02 P01 | 4 | 2 tasks | 7 files |
 | Phase 02 P02 | 10 | 2 tasks | 8 files |
 | Phase 03-ble-extension-device-management P01 | 4 | 2 tasks | 7 files |
+| Phase 03-ble-extension-device-management P02 | 3 | 2 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -82,6 +83,9 @@ Recent decisions affecting current work:
 - [Phase 03]: BLEService captures @MainActor bleService before Task.detached to avoid Swift 5 actor isolation warning
 - [Phase 03]: IOHIDDeviceGetValue uses Unmanaged<IOHIDValue> with dummy initial value — Swift bridging requires non-optional pointer
 - [Phase 03]: 3-layer battery merge: IOKit > HID Generic > BLE GATT, IOKit takes priority on product name collision
+- [Phase 03]: NSPanel + NSWindowDelegate for settings window — SettingsLink unreliable in LSUIElement apps
+- [Phase 03]: NotificationCenter 'OpenSettings' for HeaderView→AppDelegate decoupling
+- [Phase 03]: MainActor.assumeIsolated in applicationDidFinishLaunching — avoids @MainActor on AppDelegate conflicting with main.swift non-isolated init
 
 ### Pending Todos
 
@@ -94,6 +98,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-27T11:29:54.291Z
-Stopped at: Completed 03-01-PLAN.md — BLE + HID Generic service layer complete
+Last session: 2026-03-27T11:34:19.057Z
+Stopped at: Completed 03-02-PLAN.md — Settings UI + device monitoring toggle complete
 Resume file: None

@@ -65,7 +65,7 @@ Plans:
 
 Plans:
 - [x] 03-01-PLAN.md — BLEService + HID Generic battery layer + PollingInterval + DevicePreferences + BluetoothDevice.isMonitored + BluetoothService orchestration (BATT-02, BATT-03, MGMT-02)
-- [ ] 03-02-PLAN.md — SettingsController (NSPanel) + SettingsView + HeaderView settings button + DeviceRowView monitoring toggle (MGMT-01, MGMT-03)
+- [x] 03-02-PLAN.md — SettingsController (NSPanel) + SettingsView + HeaderView settings button + DeviceRowView monitoring toggle (MGMT-01, MGMT-03)
 - [ ] 03-03-PLAN.md — Final build verification + human verification checkpoint (all)
 
 ### Phase 4: Polish + App Lifecycle

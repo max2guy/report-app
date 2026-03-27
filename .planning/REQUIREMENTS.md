@@ -35,9 +35,9 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Device Management
 
-- [ ] **MGMT-01**: 사용자가 모니터링할 장치를 선택/해제할 수 있다
+- [x] **MGMT-01**: 사용자가 모니터링할 장치를 선택/해제할 수 있다
 - [x] **MGMT-02**: 장치 선택 설정이 앱 재시작 후에도 유지된다 (UserDefaults)
-- [ ] **MGMT-03**: 사용자가 배터리 갱신 폴링 간격을 설정할 수 있다
+- [x] **MGMT-03**: 사용자가 배터리 갱신 폴링 간격을 설정할 수 있다
 
 ### App Lifecycle
 
@@ -96,9 +96,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 | UI-02 | Phase 4 | Pending |
 | UI-03 | Phase 2 | Complete |
 | UI-04 | Phase 2 | Complete |
-| MGMT-01 | Phase 3 | Pending |
+| MGMT-01 | Phase 3 | Complete |
 | MGMT-02 | Phase 3 | Complete |
-| MGMT-03 | Phase 3 | Pending |
+| MGMT-03 | Phase 3 | Complete |
 | LIFE-01 | Phase 4 | Pending |
 | LIFE-02 | Phase 2 | Complete |
 | LIFE-03 | Phase 4 | Pending |
