@@ -7,13 +7,15 @@ struct BluetoothDevice: Identifiable {
     let type: DeviceType
     let batteryPercent: Int?  // nil = no battery data available (BATT-04)
     let isConnected: Bool
+    var isMonitored: Bool    // MGMT-01: 사용자 선택 반영. 기본값 true.
 
-    init(name: String, type: DeviceType, batteryPercent: Int?, isConnected: Bool) {
+    init(name: String, type: DeviceType, batteryPercent: Int?, isConnected: Bool, isMonitored: Bool = true) {
         self.id = UUID()
         self.name = name
         self.type = type
         self.batteryPercent = batteryPercent
         self.isConnected = isConnected
+        self.isMonitored = isMonitored
     }
 }
 
