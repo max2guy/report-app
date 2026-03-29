@@ -31,7 +31,19 @@ body{
   background:var(--bg);color:var(--text);
   font-size:clamp(13px,3.5vw,15px);line-height:1.5;
   scrollbar-width:none;
+  overscroll-behavior-y:none;
 }
+/* Pull-to-refresh 인디케이터 */
+#ptr-bar{
+  position:fixed;top:0;left:0;right:0;z-index:49;
+  display:flex;align-items:center;justify-content:center;
+  height:0;overflow:hidden;background:var(--navy2);
+  transition:height .15s ease;pointer-events:none;
+}
+#ptr-bar svg{width:22px;height:22px;stroke:#fff;stroke-width:2;fill:none;transition:transform .3s}
+#ptr-bar.ready svg{stroke:var(--gold)}
+#ptr-bar.spinning svg{animation:ptr-spin .6s linear infinite}
+@keyframes ptr-spin{to{transform:rotate(360deg)}}
 body::-webkit-scrollbar{display:none}
 *::-webkit-scrollbar{display:none}
 
@@ -363,6 +375,11 @@ body::-webkit-scrollbar{display:none}
 
 </head>
 <body>
+
+<!-- Pull-to-refresh 인디케이터 -->
+<div id="ptr-bar">
+  <svg viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.5"/></svg>
+</div>
 
 <div class="header">
   <!-- 항상 표시: 타이틀(컴팩트 시 부서명) + 버튼 -->
@@ -1174,6 +1191,47 @@ if ('serviceWorker' in navigator) {
     setTimeout(() => location.reload(), 1500);
   });
 }
+
+/* ── PULL-TO-REFRESH ── */
+(function(){
+  const bar = document.getElementById('ptr-bar');
+  const THRESHOLD = 72;
+  let startY = 0, pulling = false, triggered = false;
+
+  document.addEventListener('touchstart', e => {
+    if (window.scrollY === 0) {
+      startY = e.touches[0].clientY;
+      pulling = true;
+      triggered = false;
+    }
+  }, { passive: true });
+
+  document.addEventListener('touchmove', e => {
+    if (!pulling) return;
+    const delta = Math.max(0, e.touches[0].clientY - startY);
+    const h = Math.min(delta * 0.5, 52);
+    bar.style.height = h + 'px';
+    bar.classList.toggle('ready', delta >= THRESHOLD);
+  }, { passive: true });
+
+  document.addEventListener('touchend', () => {
+    if (!pulling) return;
+    pulling = false;
+    if (bar.classList.contains('ready') && !triggered) {
+      triggered = true;
+      bar.classList.remove('ready');
+      bar.classList.add('spinning');
+      bar.style.height = '44px';
+      loadData(true).finally(() => {
+        bar.classList.remove('spinning');
+        bar.style.height = '0';
+      });
+    } else {
+      bar.classList.remove('ready');
+      bar.style.height = '0';
+    }
+  });
+})();
 
 /* ── HEADER COMPACT ON SCROLL ── */
 (function(){
