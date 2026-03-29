@@ -277,14 +277,19 @@ body::-webkit-scrollbar{display:none}
   .consec-list { grid-template-columns: repeat(4, 1fr); }
 }
 
-/* ── TABLET / iPad (768px+, 높이 500px 이상) — 폰 가로 제외, 2열 카드 그리드 ── */
+/* ── TABLET / iPad (768px+, 높이 500px 이상) — 공통 스타일 ── */
 @media (min-width: 768px) and (min-height: 500px) {
   .content { padding: var(--sp) 40px calc(16px + var(--safe-bottom)); max-width: 960px; }
   /* 탭 버튼: 밑줄 스타일로 (흰 박스 제거) */
   .header-tabs { gap: 0; background: none; padding: 0; border-radius: 0; border-top: 1px solid rgba(255,255,255,0.1); }
   .h-tab { flex: 1; font-size: 13px; padding: 10px 8px; border-radius: 0; border-bottom: 3px solid transparent; }
   .h-tab.active { background: rgba(255,255,255,0.08); color: white; border-bottom-color: var(--gold); }
+  .ma-bar-bg { height: 22px; }
+  .chart-bar-bg { height: 20px; }
+}
 
+/* ── TABLET 가로 (768px+, landscape) — 2열 카드 그리드 ── */
+@media (min-width: 768px) and (min-height: 500px) and (orientation: landscape) {
   /* 활성 패널: 카드 2열 그리드 */
   .tab-panel.active {
     display: grid;
@@ -305,8 +310,6 @@ body::-webkit-scrollbar{display:none}
   .card.consec-large .consec-list { grid-template-columns: repeat(auto-fill, minmax(88px, 1fr)); }
   /* consec-large일 때 월별분석(4번)은 8주추이와 나란히 */
   .tab-panel.active > .card.consec-large ~ .card:nth-child(4) { grid-column: auto; }
-  .ma-bar-bg { height: 22px; }
-  .chart-bar-bg { height: 20px; }
 }
 
 /* ── 태블릿 가로 소형 (768px~1099px, min-height 500px) — iPad 9.7" 가로 등 ── */
