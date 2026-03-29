@@ -35,7 +35,7 @@ body{
 }
 /* Pull-to-refresh 인디케이터 */
 #ptr-bar{
-  position:fixed;top:0;left:0;right:0;z-index:49;
+  position:fixed;top:var(--header-h,110px);left:0;right:0;z-index:49;
   display:flex;align-items:center;justify-content:center;
   height:0;overflow:hidden;background:var(--navy2);
   transition:height .15s ease;pointer-events:none;
@@ -51,7 +51,7 @@ body::-webkit-scrollbar{display:none}
 .header{
   background:linear-gradient(135deg,var(--navy) 0%,var(--navy2) 100%);
   padding:calc(10px + var(--safe-top)) var(--sp) 8px;
-  color:#fff;position:sticky;top:0;z-index:50;
+  color:#fff;position:fixed;top:0;left:0;right:0;z-index:50;
   transition:padding .25s;
 }
 .header.compact{padding-top:calc(6px + var(--safe-top));padding-bottom:6px}
@@ -83,7 +83,7 @@ body::-webkit-scrollbar{display:none}
 
 /* CONTENT */
 .content{
-  padding:var(--sp) var(--sp) calc(16px + var(--safe-bottom));
+  padding:var(--header-h,110px) var(--sp) calc(16px + var(--safe-bottom));
   max-width:520px;margin:0 auto;
 }
 .tab-panel{display:none}
@@ -271,14 +271,14 @@ body::-webkit-scrollbar{display:none}
 
 /* ── 넓은 폰 세로 (480px-767px): Galaxy S Ultra, Pixel Pro, iPhone Pro Max ── */
 @media (min-width: 480px) and (max-width: 767px) {
-  .content { padding: var(--sp) 24px calc(16px + var(--safe-bottom)); }
+  .content { padding: var(--header-h,110px) 24px calc(16px + var(--safe-bottom)); }
   /* 480px+: auto-fill 유지 (기본값), 명시적 override 불필요 */
 }
 
 /* ── 폰 가로 (600px+, 높이 499px 이하): Galaxy S 가로, iPhone Pro 가로 ── */
 /* 넓은 화면이지만 짧음 → 탭 레이아웃 없이 2열 카드만 적용 */
 @media (min-width: 600px) and (max-height: 499px) {
-  .content { padding: var(--sp) 20px calc(12px + var(--safe-bottom)); }
+  .content { padding: var(--header-h,110px) 20px calc(12px + var(--safe-bottom)); }
   .tab-panel.active {
     display: grid; grid-template-columns: 1fr 1fr;
     gap: 10px; align-items: start;
@@ -291,7 +291,7 @@ body::-webkit-scrollbar{display:none}
 
 /* ── TABLET / iPad (768px+, 높이 500px 이상) — 공통 스타일 ── */
 @media (min-width: 768px) and (min-height: 500px) {
-  .content { padding: var(--sp) 40px calc(16px + var(--safe-bottom)); max-width: 960px; }
+  .content { padding: var(--header-h,110px) 40px calc(16px + var(--safe-bottom)); max-width: 960px; }
   /* 탭 버튼: 밑줄 스타일로 (흰 박스 제거) */
   .header-tabs { gap: 0; background: none; padding: 0; border-radius: 0; border-top: 1px solid rgba(255,255,255,0.1); }
   .h-tab { flex: 1; font-size: 13px; padding: 10px 8px; border-radius: 0; border-bottom: 3px solid transparent; }
@@ -1233,6 +1233,16 @@ if ('serviceWorker' in navigator) {
   });
 })();
 
+/* ── HEADER HEIGHT → CSS 변수 ── */
+(function(){
+  const hdr = document.querySelector('.header');
+  function updateHeaderH() {
+    document.documentElement.style.setProperty('--header-h', hdr.offsetHeight + 'px');
+  }
+  updateHeaderH();
+  new ResizeObserver(updateHeaderH).observe(hdr);
+})();
+
 /* ── HEADER COMPACT ON SCROLL ── */
 (function(){
   const hdr   = document.querySelector('.header');
@@ -1242,10 +1252,10 @@ if ('serviceWorker' in navigator) {
     const cur = window.scrollY;
     if (cur > 50 && cur > last) {
       hdr.classList.add('compact');
-      title.textContent = TAB_NAMES[activeTab]; // 부서 이름 표시
+      title.textContent = TAB_NAMES[activeTab];
     } else if (cur < last - 5 || cur < 20) {
       hdr.classList.remove('compact');
-      title.textContent = '⛪ 사역 현황';       // 원래 타이틀 복귀
+      title.textContent = '⛪ 사역 현황';
     }
     last = cur;
   }, { passive: true });
