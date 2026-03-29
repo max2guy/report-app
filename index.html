@@ -2545,6 +2545,7 @@ async function uploadToNAS() {
     if (resp.status === 201 || resp.status === 204 || resp.status === 200) {
       toast('✅ NAS 업로드 완료!');
       syncHistoryToGitHub(); // NAS 업로드 성공 시 GitHub 자동 동기화
+      pushReportNotification(); // 뷰어앱 알림
     } else {
       toast('❌ NAS 업로드 실패: ' + resp.status);
     }
