@@ -389,7 +389,7 @@
       ]
     },
     "adult": {
-      "absent": 30,
+      "absent": 31,
       "zones": [
         {
           "zone": "10구역",
@@ -498,7 +498,7 @@
       ]
     },
     "adult": {
-      "absent": 30,
+      "absent": 31,
       "zones": [
         {
           "zone": "10구역",
