@@ -18,3 +18,13 @@
 [main 440f267] auto: 2026-03-26 06:51
  2 files changed, 15 insertions(+)
 [2026-03-26 06:51] 동기화 완료
+[main bdea14a] auto: 2026-03-29 09:11
+ 7 files changed, 1601 insertions(+)
+ create mode 100644 .planning/codebase/ARCHITECTURE.md
+ create mode 100644 .planning/codebase/CONCERNS.md
+ create mode 100644 .planning/codebase/CONVENTIONS.md
+ create mode 100644 .planning/codebase/INTEGRATIONS.md
+ create mode 100644 .planning/codebase/STACK.md
+ create mode 100644 .planning/codebase/STRUCTURE.md
+ create mode 100644 .planning/codebase/TESTING.md
+[2026-03-29 09:11] 동기화 완료
