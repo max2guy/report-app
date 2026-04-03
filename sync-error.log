@@ -87,3 +87,8 @@ hint: have locally. This is usually caused by another repository pushing to
 hint: the same ref. If you want to integrate the remote changes, use
 hint: 'git pull' before pushing again.
 hint: See the 'Note about fast-forwards' in 'git push --help' for details.
+The following paths are ignored by one of your .gitignore files:
+.claude
+hint: Use -f if you really want to add them.
+hint: Disable this message with "git config set advice.addIgnoredFile false"
+fatal: unable to access 'https://github.com/max2guy/report-app.git/': Could not resolve host: github.com
