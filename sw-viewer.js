@@ -31,7 +31,7 @@ self.addEventListener('notificationclick', e => {
   );
 });
 
-const CACHE = 'viewer-v126';
+const CACHE = 'viewer-v127';
 const SHELL = ['./viewer.html', './viewer-manifest.json', './icon-192.png', './icon-512.png', './notification-icon.png', './notification-badge.png'];
 
 self.addEventListener('install', e => {
