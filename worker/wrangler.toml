@@ -1,0 +1,9 @@
+name = "nas-proxy"
+main = "src/index.js"
+compatibility_date = "2026-04-09"
+
+# 실제 운영 도메인을 쓰면 routes를 설정하세요.
+# routes = [{ pattern = "nas-proxy.max2guy.workers.dev", custom_domain = true }]
+
+[observability]
+enabled = true

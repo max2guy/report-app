@@ -9,29 +9,40 @@ firebase.initializeApp({
 });
 const messaging = firebase.messaging();
 messaging.onBackgroundMessage(payload => {
-  const title = payload.data?.title || payload.notification?.title || '알림';
-  const body  = payload.data?.body  || payload.notification?.body  || '';
+  const data = payload.data || {};
+  const title = data.title || payload.notification?.title || '알림';
+  const body  = data.body  || payload.notification?.body  || '';
+  const tag = data.tag || payload.notification?.tag || 'church-report';
+  const targetUrl = data.url || (tag === 'church-viewer' ? './viewer.html' : './');
   self.registration.showNotification(title, {
-    body, icon: './notification-icon.png', badge: './notification-badge.png', tag: 'church-report'
+    body,
+    icon: './notification-icon.png',
+    badge: './notification-badge.png',
+    tag,
+    data: { targetUrl }
   });
 });
 
 /* 알림 클릭 → 앱 열기 */
 self.addEventListener('notificationclick', e => {
   e.notification.close();
+  const tag = e.notification.tag || 'church-report';
+  const targetUrl = e.notification.data?.targetUrl || (tag === 'church-viewer' ? './viewer.html' : './');
   e.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(list => {
       for (const c of list) {
-        if (c.url.includes('/index.html') || c.url.endsWith('/')) {
-          return c.focus();
+        if (targetUrl.includes('viewer.html')) {
+          if (c.url.includes('/viewer.html')) return c.focus();
+          continue;
         }
+        if (c.url.includes('/index.html') || c.url.endsWith('/')) return c.focus();
       }
-      return self.clients.openWindow('./');
+      return self.clients.openWindow(targetUrl);
     })
   );
 });
 
-const CACHE_NAME = 'report-app-v101';
+const CACHE_NAME = 'report-app-v104';
 // 동적 데이터 파일은 제외 — 설치 실패 방지
 const APP_SHELL = [
   './',
@@ -57,7 +68,9 @@ self.addEventListener('activate', e => {
   e.waitUntil(
     caches.keys()
       .then(keys => Promise.all(
-        keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k))
+        keys
+          .filter(k => k.startsWith('report-app-') && k !== CACHE_NAME)
+          .map(k => caches.delete(k))
       ))
       .then(() => self.clients.claim())
   );
@@ -65,6 +78,7 @@ self.addEventListener('activate', e => {
 
 // fetch: 네트워크 우선 → 캐시에 저장 → 실패 시 캐시
 self.addEventListener('fetch', e => {
+  if (e.request.method !== 'GET') return;
   const url = e.request.url;
 
   // 외부 CDN: 캐시 우선

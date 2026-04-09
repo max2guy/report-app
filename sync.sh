@@ -9,6 +9,9 @@ if [ ! -f .gitignore ] || ! grep -q ".claude" .gitignore; then
   echo ".claude/" >> .gitignore
 fi
 
+# 원격 선행 커밋 먼저 반영
+git pull --rebase origin main 2>/dev/null || true
+
 # 변경사항 확인 (.claude 제외)
 git add -A -- ':!.claude/'
 
@@ -16,12 +19,15 @@ git add -A -- ':!.claude/'
 if ! git diff --cached --quiet; then
   TIMESTAMP=$(date "+%Y-%m-%d %H:%M")
   git commit -m "auto: $TIMESTAMP"
-  git pull --rebase origin main 2>/dev/null || true
-  git push origin main
-  echo "[$TIMESTAMP] 동기화 완료"
+  if git push origin main 2>/dev/null; then
+    echo "[$TIMESTAMP] 동기화 완료"
+  else
+    echo "[$TIMESTAMP] push 실패 — 다음 주기에 재시도"
+  fi
 else
-  # 변경사항 없어도 push 밀린 커밋 있으면 push
-  git pull --rebase origin main 2>/dev/null || true
-  git push origin main 2>/dev/null || true
-  echo "[$(date '+%H:%M')] 변경사항 없음"
+  if git push origin main 2>/dev/null; then
+    echo "[$(date '+%H:%M')] 변경사항 없음"
+  else
+    echo "[$(date '+%H:%M')] 변경사항 없음 (push 실패)"
+  fi
 fi

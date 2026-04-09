@@ -978,6 +978,11 @@ textarea { resize: vertical; min-height: 60px; }
           style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:12px;margin-bottom:4px;font-family:monospace"
           oninput="localStorage.setItem('nasUploadPath', this.value)">
         <p style="font-size:11px;color:var(--text-muted);margin:0">파일명은 자동 추가됩니다. 끝에 / 포함.</p>
+        <label style="font-size:12px;color:var(--text-muted);display:block;margin:10px 0 4px">FCM Worker 토큰</label>
+        <input type="password" id="pushProxyToken" placeholder="fcm-send 보호 토큰"
+          style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:12px;font-family:monospace"
+          oninput="localStorage.setItem('pushProxyToken', this.value)">
+        <p style="font-size:11px;color:var(--text-muted);margin:6px 0 0">서버에서만 FCM 발송하도록 `/fcm-send` 호출 시 사용됩니다.</p>
       </div>
     </div>
 
@@ -1033,14 +1038,22 @@ textarea { resize: vertical; min-height: 60px; }
 // ───────────────────────────────
 // APP VERSION
 // ───────────────────────────────
-const APP_VERSION = '0.9.4';
+const APP_VERSION = '0.9.5';
 
 // ───────────────────────────────
 // 출결 통계
 // ───────────────────────────────
-let reportHistory = JSON.parse(localStorage.getItem('reportHistory') || '[]');
+function parseStoredJSON(key, fallback) {
+  try {
+    const raw = localStorage.getItem(key);
+    return raw ? JSON.parse(raw) : fallback;
+  } catch (_) {
+    return fallback;
+  }
+}
+let reportHistory = parseStoredJSON('reportHistory', []);
 // 삭제된 날짜 블랙리스트 — loadHistorySeed/병합 시 재복원 방지
-let deletedHistoryDates = new Set(JSON.parse(localStorage.getItem('deletedHistoryDates') || '[]'));
+let deletedHistoryDates = new Set(parseStoredJSON('deletedHistoryDates', []));
 function saveDeletedDates() {
   localStorage.setItem('deletedHistoryDates', JSON.stringify([...deletedHistoryDates]));
 }
@@ -1467,7 +1480,7 @@ const ZONE_MEMBERS = [
     {name:'이정순',role:'leader'},
     {name:'현명숙',role:'inspector'},{name:'이규훈',role:'member'},
     {name:'권성배',role:'member'},{name:'김연자',role:'member'},{name:'김희수',role:'member'},
-    {name:'송경섭',role:'member'},{name:'송헌숙',role:'member'},{name:'김동호',role:'member'},
+    {name:'송경섭',role:'member'},{name:'송현숙',role:'member'},{name:'김동호',role:'member'},
     {name:'유순하',role:'member'},{name:'박광천',role:'member'},{name:'이재선',role:'member'},
     {name:'조자형',role:'member'},{name:'양태모',role:'member'},{name:'한선분',role:'member'},
   ]},
@@ -1668,6 +1681,32 @@ function toggleAccordion(btnId, contentId) {
 // GITHUB SYNC
 // ───────────────────────────────
 const WORKER_URL = 'https://nas-proxy.max2guy.workers.dev';
+
+async function sendPushViaWorker({ targetRole, title, body, tag, url }) {
+  const pushToken = (localStorage.getItem('pushProxyToken') || '').trim();
+  if (!pushToken) {
+    console.warn('FCM worker token is empty; skip push');
+    return false;
+  }
+  try {
+    const res = await fetch(`${WORKER_URL}/fcm-send`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Push-Token': pushToken
+      },
+      body: JSON.stringify({ targetRole, title, body, tag, url })
+    });
+    if (!res.ok) {
+      const err = await res.text().catch(() => '');
+      throw new Error(`${res.status} ${err}`.trim());
+    }
+    return true;
+  } catch (e) {
+    console.warn('FCM worker send failed', e);
+    return false;
+  }
+}
 
 async function syncHistoryToGitHub(overwrite = false) {
   const repo = (localStorage.getItem('githubRepo') || 'max2guy/report-app').trim();
@@ -2332,6 +2371,8 @@ function openSettings() {
   if (nasPassEl) nasPassEl.value = localStorage.getItem('nasPassword') || '';
   const nasPathEl = document.getElementById('nasUploadPath');
   if (nasPathEl) nasPathEl.value = localStorage.getItem('nasUploadPath') || '/home/Backup/연천장로교회/D/연천장로교회 문서/사무실/2026년/담임목사/';
+  const pushProxyTokenEl = document.getElementById('pushProxyToken');
+  if (pushProxyTokenEl) pushProxyTokenEl.value = localStorage.getItem('pushProxyToken') || '';
   document.getElementById('settingsModal').classList.add('open');
 }
 function closeModal(e, id) {
@@ -3086,9 +3127,13 @@ async function pushReportNotification() {
     };
     // Firebase RTDB에 push → 뷰어의 onValue 리스너가 즉시 수신
     await db.ref('notifications').push(item);
-    // FCM 푸시 (뷰어앱에 알림)
-    getTargetFCMToken('viewerApp').then(tok => {
-      if(tok) sendFCMPush(tok, '📄 새 보고서 도착', `${new Date().toLocaleDateString('ko-KR')} 주일 보고서가 제출되었습니다`);
+    // 서버(Worker)에서만 FCM 발송
+    await sendPushViaWorker({
+      targetRole: 'viewerApp',
+      title: '📄 새 보고서 도착',
+      body: `${new Date().toLocaleDateString('ko-KR')} 주일 보고서가 제출되었습니다`,
+      tag: 'church-viewer',
+      url: './viewer.html'
     });
   } catch(e) { console.log('보고서 알림 전송 실패:', e.message); }
 }
@@ -3111,95 +3156,6 @@ if (!firebase.apps.length) firebase.initializeApp(FCM_FB_CONFIG);
 // Database Reference
 const db = firebase.database();
 const FCM_VAPID = "BPTJTVQPoEC0m4fg9KgVY7dkCQfy1fQgJVnDG8OIysKxZ5f0jQm1wfgaxre3J0lNYdxG5fOs6ZurD3JgtKwSf9k";
-const FCM_SA_EMAIL = "firebase-adminsdk-fbsvc@yeoncheon-church.iam.gserviceaccount.com";
-const FCM_SA_KEY = `-----BEGIN PRIVATE KEY-----
-MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQC6HY7TKufQ34cC
-FtC5pgrqhQ4LiyNjFQvH47R8JvsCOF4tLpUgEvHgXKPKglACJ55Mn8Rc7sXl0lUD
-OBlY99pTDaRb0EuDdM0WfpZBMz0Nu5kAzmE99NhJkCqOhi4J18qbKXmAdapbLSW3
-Bimo9Fw8HchEnXj3FtXVSFzhN7hVyNCjOdj6Y/i4Qg9RnRLZ4qlKeSODYH5UfZBb
-oRdhy0a0b/1ySAtEsQG3JQwZLC6lIqxmcjUIdpoNJHX3rpS1FY84RMR9pPCkoLZZ
-MEdgv2a+5wSQcmAi3myT1sTgpMcAZupMGjtNHqQrcz0eZGi+wmFB9Tog115bFdvi
-wEzmUcj1AgMBAAECggEAActYKFQGZnPz5sLBN2ZQ6PWTGZcOpnK6VC6Epm/FGr6K
-teUi6JYWK+NowYKOcpQ0M/6UU5BfwGP4kC6McVhOYV+adozPCuY84JskKAkY7RbN
-FlNnCkRf3hxcNKyO1BHMW8DuHB1w9i5nadjO3QNMwlhH09WFfYhZqRPor/6BXJ5Y
-n7847E7nOU8naSoM8IbEZJ5RFQAFRqDSeekp7LQkJkAAwfixe3qzryjOVUjpF55v
-XU5lzOOqoqRgZ7rxi+8idWpIUZSEvNGXKTI2aK3PDmYKr671bf+cygl/TC3ZNEDq
-dygsDTtLoEcN9HN3oSBS5cB1skLxG3GOOzfPRNdEgQKBgQDsQzecavOZHlhFr9Pi
-VU4dmwET7522Dq1qgZadtsnVrgsXR4HNmx+tcI9+p3pIhiWOgM26uX6k5EW8qnug
-PkMOrm/1YYZzqWl5nF3a+mRX/c9/mmvaytES8UBr4Xby0cbsCdWxe6TPsT735qXZ
-vevUSUK7KYvTGvoUAOtHqJwKQQKBgQDJqeEldAZ52el+86VbgJRxdpe3zAm12D4K
-ra+Dg2hHeLm2Ki+9J0xiT28zDeyhgBVdv6civjOB913tl759zIKGQhYDopEFyszS
-IRXXeesRXxGK4TxLjpkVtWERNdFcwCrguC8daCBHCx1IuhsKNGGU+gnDfDPTwTls
-IqSKWJJJtQKBgD696vrC/EXhZRe8hcxJUyFRlIuyynMamrr6BwGDFT6FpbRc7P+o
-/lSU28aKu1KfLUIWuounzxYC+PINZB896ZjwghLr/0Sf7L6648HPVO55HK2KWLIV
-wkgBgVYk3e3F/8mXIwSrDS2KqGo0+j5EzWfmvK3vbo51T4wYYmL5R9cBAoGAOlH3
-u8YfLVQY088QjjLUOzAJ1myajk1YO+xY6taw7KJ8SrNOlQxtaa0BQqmPOnF5PGB1
-rHWHHdn0/wY4X9cqFDu+dBSqjhtFOqu4zlUC50YwI5LZxhwaJ44J4VlID+O/Qrfh
-YEbBtun+8Q5pTX0yj0v0UOV1c5LY0W3/Wccdn1UCgYEAvozPeoSqqKVUC7A3xm5+
-i8B2TNUNH1J9gbddK4cspn1Svu8yKiq0ey0+aH6dJMEYjcOWAjJ4MGW08zI+1uX9
-+X+3Axn0b90685Qfj9nm9F8iieQQ4UvgRUA6axa7I7PinWq1jJIK2EDQ6jfj/DGC
-2AkUo2icLoZf3zGeXQzS2ms=
------END PRIVATE KEY-----`;
-
-/* ── FCM: PEM → ArrayBuffer ── */
-function pemToArrayBuffer(pem) {
-  const b64 = pem.replace(/-----[A-Z ]+-----/g,'').replace(/\s/g,'');
-  const bin = atob(b64);
-  const buf = new Uint8Array(bin.length);
-  for(let i=0;i<bin.length;i++) buf[i]=bin.charCodeAt(i);
-  return buf.buffer;
-}
-
-/* ── FCM: 서비스 계정 JWT → OAuth2 액세스 토큰 ── */
-let _fcmAccessToken = null, _fcmTokenExpiry = 0;
-async function getFCMAccessToken() {
-  if(_fcmAccessToken && Date.now() < _fcmTokenExpiry) return _fcmAccessToken;
-  const now = Math.floor(Date.now()/1000);
-  function b64u(str){ return btoa(str).replace(/\+/g,'-').replace(/\//g,'_').replace(/=/g,''); }
-  const hdr = b64u(JSON.stringify({alg:'RS256',typ:'JWT'}));
-  const pld = b64u(JSON.stringify({
-    iss:FCM_SA_EMAIL,
-    scope:'https://www.googleapis.com/auth/firebase.messaging',
-    aud:'https://oauth2.googleapis.com/token',
-    exp:now+3600, iat:now
-  }));
-  const signing = `${hdr}.${pld}`;
-  const key = await crypto.subtle.importKey(
-    'pkcs8', pemToArrayBuffer(FCM_SA_KEY),
-    {name:'RSASSA-PKCS1-v1_5',hash:'SHA-256'}, false, ['sign']
-  );
-  const sig = await crypto.subtle.sign('RSASSA-PKCS1-v1_5', key, new TextEncoder().encode(signing));
-  const sigB64u = btoa(String.fromCharCode(...new Uint8Array(sig))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=/g,'');
-  const jwt = `${signing}.${sigB64u}`;
-  const res = await fetch('https://oauth2.googleapis.com/token',{
-    method:'POST',
-    headers:{'Content-Type':'application/x-www-form-urlencoded'},
-    body:`grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer&assertion=${jwt}`
-  });
-  const data = await res.json();
-  _fcmAccessToken = data.access_token;
-  _fcmTokenExpiry = Date.now() + 55 * 60 * 1000; // 55분 캐시
-  return _fcmAccessToken;
-}
-
-/* ── FCM: 알림 발송 ── */
-async function sendFCMPush(targetToken, title, body) {
-  if(!targetToken) return;
-  try {
-    const at = await getFCMAccessToken();
-    const res = await fetch('https://fcm.googleapis.com/v1/projects/yeoncheon-church/messages:send',{
-      method:'POST',
-      headers:{'Authorization':`Bearer ${at}`,'Content-Type':'application/json'},
-      body:JSON.stringify({message:{
-        token:targetToken,
-        data:{title,body},
-        webpush:{headers:{TTL:'86400'}}
-      }})
-    });
-    if(!res.ok) console.warn('FCM send error', await res.json());
-  } catch(e){ console.warn('FCM push failed',e); }
-}
-
 /* ── FCM: 토큰 DB 저장 ── */
 async function saveFCMTokenToDB(role, fcmToken) {
   if(!fcmToken) return;
@@ -3208,21 +3164,6 @@ async function saveFCMTokenToDB(role, fcmToken) {
   } catch(e) { console.warn('FCM token save failed', e); }
 }
 
-/* ── FCM: 상대방 토큰 조회 ── */
-let _fcmTokenCache = null, _fcmTokenCacheExpiry = 0;
-async function getTargetFCMToken(role) {
-  try {
-    if (_fcmTokenCache && Date.now() < _fcmTokenCacheExpiry) {
-      return _fcmTokenCache[role] || null;
-    }
-    const snap = await db.ref(`fcm-tokens/${role}`).get();
-    const token = snap.val() || null;
-    if (!_fcmTokenCache) _fcmTokenCache = {};
-    _fcmTokenCache[role] = token;
-    _fcmTokenCacheExpiry = Date.now() + 5 * 60 * 1000;
-    return token;
-  } catch(e) { return null; }
-}
 /* ── FCM: 초기화 (보고서 앱용) ── */
 async function initFCM() {
   if(!('Notification' in window)) return;
