@@ -920,7 +920,7 @@ textarea { resize: vertical; min-height: 60px; }
     💾 저장
   </button>
   <button class="btn btn-share" onclick="shareReport()">
-    📤 보고서 생성 · 공유
+    ☁️ NAS 업로드
   </button>
 </div>
 
@@ -2419,24 +2419,13 @@ async function generateReport() {
   collectState();
   if (!state.date) { toast('날짜를 입력하세요'); switchTab(0); return; }
   saveDraft();
-  toast('⏳ 보고서 생성 중...');
+  toast('⏳ NAS 업로드 준비 중...');
   try {
-    const blob = await buildDocx();
-    const dateStr = state.date.replace(/-/g, '');
-    const filename = `주일사역보고서_${dateStr}_${state.reporter}.docx`;
-    await downloadAndSave(blob, filename);
-    // 보고서 생성 시 GitHub 자동 동기화 (백그라운드)
-    syncHistoryToGitHub();
-    pushReportNotification(); // 목사님께 알림
+    await uploadToNAS();
   } catch(e) {
     toast('❌ 생성 실패: ' + e.message);
     console.error(e);
   }
-}
-
-async function downloadAndSave(blob, filename) {
-  triggerDownload(blob, filename);
-  toast('✅ 다운로드 완료');
 }
 
 // ── DS File 공유 (Web Share API Level 2, iOS/Android 크로스플랫폼) ──
@@ -2523,7 +2512,6 @@ async function shareReport() {
 
     body.innerHTML = '';
     body.innerHTML += btn('#1a7f4b','white','nas','☁️ NAS 직접 업로드');
-    body.innerHTML += btn('#f0f4ff','#2c7be5','docx','📥 파일 다운로드 (DOCX)');
 
     document.getElementById('shareSheet').classList.add('open');
   } catch(e) {
@@ -2535,22 +2523,8 @@ async function shareReport() {
 async function doShare(method) {
   closeModal(null, 'shareSheet');
 
-  if (method === 'nas') {
-    await uploadToNAS();
-    return;
-  }
-
-  if (method === 'docx') {
-    try {
-      toast('⏳ DOCX 생성 중...');
-      const blob = await buildDocx();
-      const name = _shareFilenameCache.replace('.json', '.docx');
-      triggerDownload(blob, name);
-      toast('✅ DOCX 다운로드 완료');
-      syncHistoryToGitHub(); // 다운로드 시 GitHub 자동 동기화
-    } catch(e) { toast('❌ ' + e.message); }
-    return;
-  }
+  if (method !== 'nas') return;
+  await uploadToNAS();
 }
 
 async function uploadToNAS() {
@@ -3081,6 +3055,28 @@ function renderStaffInstrList() {
     </div>`).join('');
 }
 
+async function showStatusBarNotification(title, body, targetUrl = './') {
+  if (!('Notification' in window) || Notification.permission !== 'granted') return false;
+  try {
+    if ('serviceWorker' in navigator) {
+      const reg = await navigator.serviceWorker.ready;
+      await reg.showNotification(title, {
+        body,
+        tag: 'church-report-local',
+        data: { targetUrl },
+        icon: './notification-icon.png',
+        badge: './notification-badge.png'
+      });
+      return true;
+    }
+    new Notification(title, { body, icon: './notification-icon.png' });
+    return true;
+  } catch (e) {
+    console.warn('local notification failed', e);
+    return false;
+  }
+}
+
 async function deleteStaffInstr(key) {
   // Firebase RTDB에서 즉시 삭제 → onValue 리스너가 자동으로 UI 갱신
   try {
@@ -3111,6 +3107,8 @@ function startInstrListener() {
       const badge = document.getElementById('staffInboxBadge');
       if (badge) { badge.style.display = 'flex'; badge.textContent = staffUnread; }
       toast('📋 새 지시사항이 있습니다');
+      const msg = ((latest.text || '').trim() || '새 지시사항이 도착했습니다').slice(0, 80);
+      showStatusBarNotification('📋 새 지시사항', msg, './');
     }
   });
 }
@@ -3179,8 +3177,10 @@ async function initFCM() {
     }
     messaging.onMessage(payload => {
       const t = payload.data?.title || payload.notification?.title || '알림';
+      const b = payload.data?.body || payload.notification?.body || '';
       // Firebase RTDB 리스너가 이미 실시간으로 데이터 갱신 중 → 토스트만 표시
       toast(`📋 ${t}`, 3000);
+      showStatusBarNotification(t, b, './');
     });
   } catch(e){ console.warn('FCM init failed',e); }
 }
