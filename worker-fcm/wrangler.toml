@@ -1,0 +1,6 @@
+name = "report-fcm-proxy"
+main = "src/index.js"
+compatibility_date = "2026-04-09"
+
+[observability]
+enabled = true

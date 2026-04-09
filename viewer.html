@@ -450,6 +450,7 @@ body::-webkit-scrollbar{display:none}
 <script>
 const RAW_BASE   = 'https://raw.githubusercontent.com/max2guy/report-app/main';
 const WORKER_URL = 'https://nas-proxy.max2guy.workers.dev';
+const PUSH_WORKER_URL = 'https://report-fcm-proxy.max2guy.workers.dev';
 let viewerLastNotifId = localStorage.getItem('viewerLastNotifId') || '';
 let viewerUnread = 0;
 // 지시사항·알림 인메모리 캐시 — Firebase RTDB real-time listener가 갱신
@@ -463,7 +464,7 @@ async function sendPushViaWorker({ targetRole, title, body, tag, url }) {
     return false;
   }
   try {
-    const res = await fetch(`${WORKER_URL}/fcm-send`, {
+    const res = await fetch(`${PUSH_WORKER_URL}/fcm-send`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

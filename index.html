@@ -1681,6 +1681,7 @@ function toggleAccordion(btnId, contentId) {
 // GITHUB SYNC
 // ───────────────────────────────
 const WORKER_URL = 'https://nas-proxy.max2guy.workers.dev';
+const PUSH_WORKER_URL = 'https://report-fcm-proxy.max2guy.workers.dev';
 
 async function sendPushViaWorker({ targetRole, title, body, tag, url }) {
   const pushToken = (localStorage.getItem('pushProxyToken') || '').trim();
@@ -1689,7 +1690,7 @@ async function sendPushViaWorker({ targetRole, title, body, tag, url }) {
     return false;
   }
   try {
-    const res = await fetch(`${WORKER_URL}/fcm-send`, {
+    const res = await fetch(`${PUSH_WORKER_URL}/fcm-send`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
