@@ -10,6 +10,8 @@
 <link rel="manifest" href="./viewer-manifest.json">
 <link rel="apple-touch-icon" href="./icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
@@ -369,6 +371,126 @@ body::-webkit-scrollbar{display:none}
   /* 3패널 모드: 패널 제목(::before)이 이미 표시 → 탭바 중복, 숨김 */
   .header-tabs { display: none; }
 
+}
+
+/* Premium UI Upgrade */
+:root{
+  --premium-bg0:#061226;
+  --premium-bg1:#0d2447;
+  --premium-bg2:#174078;
+  --premium-panel:rgba(255,255,255,.88);
+  --premium-panel-soft:rgba(255,255,255,.75);
+  --premium-border:rgba(255,255,255,.58);
+  --premium-shadow:0 24px 60px rgba(2,8,23,.24);
+}
+body{
+  font-family:'Plus Jakarta Sans','Noto Sans KR',-apple-system,sans-serif;
+  color:#0f172a;
+  background:
+    radial-gradient(1300px 640px at 8% -12%, rgba(109,156,255,.34), transparent 54%),
+    radial-gradient(1000px 600px at 95% 8%, rgba(104,220,188,.2), transparent 58%),
+    linear-gradient(145deg, var(--premium-bg0) 0%, var(--premium-bg1) 48%, var(--premium-bg2) 100%);
+  background-attachment:fixed;
+}
+.header{
+  border-bottom:1px solid rgba(255,255,255,.22);
+  box-shadow:0 16px 40px rgba(2,6,23,.35);
+  backdrop-filter:blur(15px) saturate(130%);
+}
+.header::after{
+  content:"";
+  position:absolute;
+  inset:auto 0 0 0;
+  height:1px;
+  background:linear-gradient(90deg, rgba(255,255,255,.06), rgba(255,255,255,.7), rgba(255,255,255,.06));
+}
+.header-sub{color:rgba(233,241,255,.86)}
+.header-tabs{
+  background:rgba(255,255,255,.12);
+  border:1px solid rgba(255,255,255,.16);
+}
+.h-tab{color:rgba(242,247,255,.72);letter-spacing:.1px}
+.h-tab.active{
+  color:#0b1f40;
+  box-shadow:0 9px 20px rgba(2,6,23,.26);
+}
+.hdr-btn{
+  border:1px solid rgba(255,255,255,.24);
+  background:linear-gradient(180deg, rgba(255,255,255,.25), rgba(255,255,255,.1));
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.38), 0 8px 18px rgba(3,9,24,.3);
+}
+.hdr-btn:active{transform:translateY(1px)}
+.content{max-width:620px}
+.card{
+  background:linear-gradient(180deg, var(--premium-panel), var(--premium-panel-soft));
+  border:1px solid var(--premium-border);
+  border-radius:18px;
+  box-shadow:var(--premium-shadow);
+  backdrop-filter:blur(9px);
+  margin-bottom:12px;
+  padding:14px 14px;
+}
+.card-title{
+  color:#243859;
+  font-size:12px;
+  letter-spacing:.18px;
+}
+.stat-box{
+  border:1px solid rgba(15,32,68,.08);
+  background:linear-gradient(180deg, #fff, #f4f8ff);
+  border-radius:12px;
+  padding:7px 5px;
+}
+.stat-val{color:#13315b}
+.absent-block{border-top:1px solid rgba(15,32,68,.14)}
+.zone-row{border-bottom:1px solid rgba(15,32,68,.12)}
+.mini-cell{
+  border:1px solid rgba(17,45,88,.12);
+  background:linear-gradient(180deg, #fff, #f6f9ff);
+}
+.date-chip{
+  border:1px solid rgba(20,44,92,.16);
+  background:linear-gradient(180deg, #fff, #f4f7fd);
+}
+.toast{
+  border:1px solid rgba(255,255,255,.26);
+  background:linear-gradient(180deg, rgba(9,21,44,.96), rgba(7,17,36,.95));
+  box-shadow:0 16px 32px rgba(0,0,0,.33);
+}
+.inbox-overlay{background:rgba(3,8,20,.5)}
+.inbox-sheet{
+  border-top-left-radius:22px;
+  border-top-right-radius:22px;
+  border-top:1px solid rgba(255,255,255,.7);
+  background:linear-gradient(180deg, rgba(255,255,255,.97), rgba(246,250,255,.95));
+  box-shadow:0 -18px 48px rgba(2,8,23,.25);
+}
+.inbox-handle{
+  background:linear-gradient(90deg, rgba(99,122,165,.35), rgba(31,59,112,.62), rgba(99,122,165,.35));
+}
+.inbox-compose textarea{
+  border:1px solid rgba(20,43,87,.2);
+  border-radius:12px;
+  background:#fff;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.8);
+}
+.inbox-send-btn{
+  background:linear-gradient(135deg, #153566, #2b5ba8);
+  box-shadow:0 10px 22px rgba(21,53,102,.34);
+}
+.inbox-item{
+  border:1px solid rgba(20,43,87,.1);
+  border-radius:11px;
+  background:linear-gradient(180deg, #fff, #f7faff);
+}
+.inbox-item.unread{
+  border-left:3px solid #c9a84c;
+  background:linear-gradient(180deg, #fffdf4, #fff9e7);
+}
+.tab-panel.active > .card{animation:premium-rise .26s ease both}
+@keyframes premium-rise{
+  from{opacity:0;transform:translateY(10px)}
+  to{opacity:1;transform:translateY(0)}
 }
 
 </style>
