@@ -515,7 +515,13 @@ function renderNotifList() {
     const isUnread = lastSeenIdx === -1 || idx > lastSeenIdx;
     return `
     <div class="inbox-item ${isUnread ? 'unread' : ''}">
-      <div class="inbox-item-meta"><span>${n.date}</span><span>${n.reporter || ''}</span></div>
+      <div class="inbox-item-meta">
+        <span>${n.date}</span>
+        <span style="display:flex;align-items:center;gap:8px">
+          <span>${n.reporter || ''}</span>
+          <button onclick="deleteNotification('${n._key}')" style="background:none;border:none;cursor:pointer;font-size:14px;color:#e53e3e;padding:0" title="삭제">🗑️</button>
+        </span>
+      </div>
       <div class="inbox-item-text">📄 ${n.title}</div>
     </div>`;
   }).join('');
@@ -542,6 +548,16 @@ async function deleteInstruction(key) {
     toast('🗑️ 삭제 완료');
   } catch(e) {
     toast('❌ 삭제 실패: ' + e.message);
+  }
+}
+
+async function deleteNotification(key) {
+  // Firebase RTDB에서 즉시 삭제 → onValue 리스너가 자동으로 UI 갱신
+  try {
+    await db.ref('notifications/' + key).remove();
+    toast('🗑️ 알림 삭제 완료');
+  } catch(e) {
+    toast('❌ 알림 삭제 실패: ' + e.message);
   }
 }
 
@@ -710,7 +726,7 @@ window.addEventListener('load', () => {
 
 <script>
 const DATA_URL = RAW_BASE + '/history.json';
-const VIEWER_VERSION = '0.9.6';
+const VIEWER_VERSION = '0.9.7';
 let allData = [];
 let activeTab = 'youth';
 
