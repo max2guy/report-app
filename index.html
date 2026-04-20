@@ -327,6 +327,12 @@ textarea { resize: vertical; min-height: 60px; }
 .zone-btn-present { border-color: #63b3ed; color: #2b6cb0; }
 .zone-btn-absent  { border-color: #feb2b2; color: #c53030; }
 .zone-btn-add     { border-color: #68d391; color: #276749; background: #f0fff4; }
+.zone-btn-move    { border-color: #b794f4; color: #6b46c1; background: #faf5ff; }
+.zone-btn-move.active {
+  border-color: #6b46c1;
+  background: #6b46c1;
+  color: white;
+}
 .zone-add-row {
   display: none; gap: 6px; margin-top: 8px; align-items: center;
 }
@@ -357,17 +363,11 @@ textarea { resize: vertical; min-height: 60px; }
 .adult-chip.present { background: linear-gradient(135deg,#ebf8ff,#e6fffa); border-color: #63b3ed; color: #2b6cb0; }
 .adult-chip.absent  { background: #fff5f5; border-color: #feb2b2; color: #c53030; text-decoration: line-through; opacity: 0.8; }
 .adult-chip-name { line-height: 1.35; }
-.adult-chip-move {
-  border: none;
-  border-radius: 999px;
-  padding: 2px 7px;
-  font-size: 9px;
-  font-weight: 700;
-  background: rgba(15,32,68,0.12);
-  color: var(--navy);
-  cursor: pointer;
+.adult-chip.transfer-ready {
+  border-color: #b794f4;
+  background: linear-gradient(135deg, #faf5ff, #f3e8ff);
+  box-shadow: 0 0 0 2px rgba(107,70,193,0.12);
 }
-.adult-chip-move:active { transform: scale(0.97); }
 .adult-role-badge {
   font-size: 8px; font-weight: 700; padding: 1px 3px; border-radius: 3px; line-height: 1.3;
 }
@@ -1779,6 +1779,7 @@ let adultAssignments = (() => {
   }
 })();
 let activeAdultTransferKey = '';
+let adultTransferMode = false;
 
 // ───────────────────────────────
 // INIT
@@ -2201,6 +2202,7 @@ function renderAdultGrid() {
         </span>
         <span class="zone-head-btns">
           <button class="zone-btn-all zone-btn-add"     onclick="event.stopPropagation();toggleZoneAddRow(${zi})">인원추가</button>
+          <button class="zone-btn-all zone-btn-move ${adultTransferMode ? 'active' : ''}" onclick="event.stopPropagation();toggleAdultTransferMode()">${adultTransferMode ? '이동중' : '이동'}</button>
           <button class="zone-btn-all zone-btn-present" onclick="event.stopPropagation();setAllZone(${zi},'present')">전원출석</button>
           <button class="zone-btn-all zone-btn-absent"  onclick="event.stopPropagation();setAllZone(${zi},'absent')">전원결석</button>
         </span>
@@ -2227,15 +2229,17 @@ function renderZoneChips(zi) {
   grid.innerHTML = '';
   state.adult.zones[zi].members.forEach((m, mi) => {
     const chip = document.createElement('div');
-    chip.className = `adult-chip ${m.status}`;
+    chip.className = `adult-chip ${m.status}${adultTransferMode ? ' transfer-ready' : ''}`;
     let badge = '';
     if (m.role === 'leader')   badge = '<span class="adult-role-badge leader">장</span>';
     if (m.role === 'inspector') badge = '<span class="adult-role-badge inspector">권</span>';
-    chip.innerHTML = `${badge}<span class="adult-chip-name">${m.name}</span><button class="adult-chip-move" type="button">이동</button>`;
-    chip.onclick = () => toggleAdultMember(zi, mi);
-    chip.querySelector('.adult-chip-move').onclick = (event) => {
-      event.stopPropagation();
-      openAdultTransferModal(m.memberKey);
+    chip.innerHTML = `${badge}<span class="adult-chip-name">${m.name}</span>`;
+    chip.onclick = () => {
+      if (adultTransferMode) {
+        openAdultTransferModal(m.memberKey);
+        return;
+      }
+      toggleAdultMember(zi, mi);
     };
     attachLongPressDelete(chip, () => {
       if (confirm(`${m.name}을(를) 명단에서 삭제할까요?`)) {
@@ -2337,6 +2341,12 @@ function addZoneMember(zi) {
   toast(`✅ ${name} 추가됨`);
 }
 
+function toggleAdultTransferMode() {
+  adultTransferMode = !adultTransferMode;
+  renderAdultGrid();
+  toast(adultTransferMode ? '↔ 이동 모드 활성화: 성도를 눌러 구역을 선택하세요' : '이동 모드 종료');
+}
+
 function openAdultTransferModal(memberKey) {
   activeAdultTransferKey = memberKey;
   renderAdultTransferModal();
@@ -2386,6 +2396,7 @@ function moveAdultMember(memberKey, targetZoneIndex) {
   }
   saveAdultAssignments();
   activeAdultTransferKey = '';
+  adultTransferMode = false;
   closeModal(null, 'adultTransferModal');
   renderAdultGrid();
   scheduleSilentSave();
