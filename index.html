@@ -356,11 +356,66 @@ textarea { resize: vertical; min-height: 60px; }
 }
 .adult-chip.present { background: linear-gradient(135deg,#ebf8ff,#e6fffa); border-color: #63b3ed; color: #2b6cb0; }
 .adult-chip.absent  { background: #fff5f5; border-color: #feb2b2; color: #c53030; text-decoration: line-through; opacity: 0.8; }
+.adult-chip-name { line-height: 1.35; }
+.adult-chip-move {
+  border: none;
+  border-radius: 999px;
+  padding: 2px 7px;
+  font-size: 9px;
+  font-weight: 700;
+  background: rgba(15,32,68,0.12);
+  color: var(--navy);
+  cursor: pointer;
+}
+.adult-chip-move:active { transform: scale(0.97); }
 .adult-role-badge {
   font-size: 8px; font-weight: 700; padding: 1px 3px; border-radius: 3px; line-height: 1.3;
 }
 .adult-role-badge.leader   { background: #2b6cb0; color: white; }
 .adult-role-badge.inspector{ background: #744210; color: white; }
+.transfer-current {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-bottom: 12px;
+  text-align: center;
+}
+.transfer-role-warning {
+  font-size: 12px;
+  color: #975a16;
+  background: #fffbeb;
+  border: 1px solid #f6e2a8;
+  border-radius: 10px;
+  padding: 9px 10px;
+  margin-bottom: 12px;
+}
+.transfer-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+.transfer-zone-btn {
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  background: #f8fafc;
+  padding: 10px 6px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--navy);
+  cursor: pointer;
+}
+.transfer-zone-btn small {
+  display: block;
+  margin-top: 2px;
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+.transfer-zone-btn.current {
+  background: #edf2f7;
+  color: var(--text-muted);
+  border-color: #cbd5e0;
+  cursor: default;
+}
 .zone-total {
   grid-column: 1 / -1; background: linear-gradient(135deg, var(--navy), var(--navy2));
   border-radius: 10px; padding: 12px 16px; color: white;
@@ -1060,6 +1115,15 @@ textarea { resize: vertical; min-height: 60px; }
   </div>
 </div>
 
+<!-- ADULT TRANSFER MODAL -->
+<div class="modal-overlay" id="adultTransferModal" onclick="closeModal(event,'adultTransferModal')">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">↔ 성도 이동</div>
+    <div id="adultTransferBody"></div>
+  </div>
+</div>
+
 <!-- 공유 액션 시트 -->
 <div class="modal-overlay" id="shareSheet" onclick="closeModal(event,'shareSheet')">
   <div class="modal" style="padding-bottom: calc(16px + var(--safe-bottom))">
@@ -1571,6 +1635,121 @@ const ZONE_LEADERS = ZONE_MEMBERS.map(z => [
   z.members.find(m=>m.role==='inspector')?.name || '',
 ]);
 
+function getSeedAdultMemberKey(zi, member) {
+  return `seed:${zi}:${member.role}:${member.name}`;
+}
+
+function getDefaultAdultZoneIndexByKey(memberKey) {
+  if (!memberKey) return null;
+  const parts = String(memberKey).split(':');
+  if ((parts[0] === 'seed' || parts[0] === 'custom') && /^\d+$/.test(parts[1] || '')) {
+    return Number(parts[1]);
+  }
+  return null;
+}
+
+function saveAdultAssignments() {
+  localStorage.setItem(ADULT_ASSIGNMENTS_KEY, JSON.stringify(adultAssignments));
+}
+
+function makeCustomAdultMemberKey(zi, name, role = 'member') {
+  const stamp = Date.now().toString(36);
+  const rand = Math.random().toString(36).slice(2, 6);
+  return `custom:${zi}:${role}:${name}:${stamp}${rand}`;
+}
+
+function buildAdultZonesFromSaved(savedZones) {
+  const built = Array.from({ length: ZONE_MEMBERS.length }, () => ({ members: [] }));
+  const nameRemap = {
+    '김영수': '김영숙',
+    '류흥렬': '류홍렬',
+    '이헌상': '이현상',
+    '김호철': '김효철',
+  };
+  const defaultTemplates = ZONE_MEMBERS.map((zone, zi) => (
+    zone.members.map(member => ({
+      memberKey: getSeedAdultMemberKey(zi, member),
+      name: member.name,
+      role: member.role,
+    }))
+  ));
+  const statusByKey = {};
+  const customMembers = {};
+
+  (savedZones || []).forEach((zone, zi) => {
+    const defaultsForZone = defaultTemplates[zi] || [];
+    const usedDefaultKeys = new Set();
+    (zone?.members || []).forEach((member, index) => {
+      const normalizedName = nameRemap[member.name] || member.name;
+      let memberKey = member.memberKey || '';
+      if (!memberKey) {
+        const matched = defaultsForZone.find(template => (
+          !usedDefaultKeys.has(template.memberKey) &&
+          template.name === normalizedName &&
+          template.role === member.role
+        ));
+        if (matched) {
+          memberKey = matched.memberKey;
+          usedDefaultKeys.add(memberKey);
+        } else {
+          memberKey = `custom:${zi}:${member.role || 'member'}:${normalizedName}:${index}`;
+        }
+      }
+      statusByKey[memberKey] = member.status || 'present';
+      if (String(memberKey).startsWith('custom:')) {
+        customMembers[memberKey] = {
+          memberKey,
+          name: normalizedName,
+          role: member.role || 'member',
+          fallbackZone: zi,
+        };
+      }
+    });
+  });
+
+  defaultTemplates.forEach((zone, zi) => {
+    zone.forEach(template => {
+      const targetZone = Number.isInteger(adultAssignments[template.memberKey]?.zone)
+        ? adultAssignments[template.memberKey].zone
+        : zi;
+      built[targetZone].members.push({
+        memberKey: template.memberKey,
+        name: template.name,
+        role: template.role,
+        status: statusByKey[template.memberKey] || 'present',
+      });
+    });
+  });
+
+  Object.values(customMembers).forEach(member => {
+    const targetZone = Number.isInteger(adultAssignments[member.memberKey]?.zone)
+      ? adultAssignments[member.memberKey].zone
+      : member.fallbackZone;
+    built[targetZone].members.push({
+      memberKey: member.memberKey,
+      name: member.name,
+      role: member.role,
+      status: statusByKey[member.memberKey] || 'present',
+    });
+  });
+
+  return built;
+}
+
+function findAdultMemberByKey(memberKey) {
+  for (let zi = 0; zi < state.adult.zones.length; zi++) {
+    const memberIndex = state.adult.zones[zi].members.findIndex(member => member.memberKey === memberKey);
+    if (memberIndex >= 0) {
+      return {
+        zoneIndex: zi,
+        memberIndex,
+        member: state.adult.zones[zi].members[memberIndex],
+      };
+    }
+  }
+  return null;
+}
+
 // ───────────────────────────────
 // STATE
 // ───────────────────────────────
@@ -1591,6 +1770,15 @@ let settings = {};
 
 // 구역장 전화번호 (localStorage)
 let zonePhones = JSON.parse(localStorage.getItem('zonePhones') || 'null') || Array(12).fill('');
+const ADULT_ASSIGNMENTS_KEY = 'adultAssignments';
+let adultAssignments = (() => {
+  try {
+    return JSON.parse(localStorage.getItem(ADULT_ASSIGNMENTS_KEY) || '{}') || {};
+  } catch (_) {
+    return {};
+  }
+})();
+let activeAdultTransferKey = '';
 
 // ───────────────────────────────
 // INIT
@@ -1618,44 +1806,14 @@ function init() {
     }
     // 교구 멤버 복원: 저장된 상태 vs 기본값
     if (s.adult?.zones?.length === 12) {
-      // ZONE_MEMBERS 기준으로 이름·순서 동기화 (사망 삭제·이름 수정 반영)
-      // 구 이름 → 새 이름 매핑 (이름 변경 시 출결 정보 이전)
-      const nameRemap = {
-        '김영수': '김영숙',
-        '류흥렬': '류홍렬',
-        '이헌상': '이현상',
-        '김호철': '김효철',
-      };
-      state.adult.zones = ZONE_MEMBERS.map((zDef, zi) => {
-        const saved = s.adult.zones[zi] || { members: [] };
-        // 저장된 구역원 맵: 이름 → status (출결 정보 보존용)
-        const statusByName = {};
-        (saved.members || []).forEach(m => { statusByName[m.name] = m.status; });
-        // 구 이름으로 저장된 status도 이전
-        Object.entries(nameRemap).forEach(([oldName, newName]) => {
-          if (statusByName[oldName] !== undefined && statusByName[newName] === undefined) {
-            statusByName[newName] = statusByName[oldName];
-          }
-        });
-        return {
-          members: zDef.members.map(m => ({
-            name: m.name,
-            role: m.role,
-            status: statusByName[m.name] || 'present',
-          }))
-        };
-      });
+      state.adult.zones = buildAdultZonesFromSaved(s.adult.zones);
     } else {
-      state.adult.zones = ZONE_MEMBERS.map(z => ({
-        members: z.members.map(m => ({ name: m.name, role: m.role, status: 'present' }))
-      }));
+      state.adult.zones = buildAdultZonesFromSaved([]);
     }
   } else {
     state.youth.members = DEFAULT_YOUTH.map(n => ({ name: n, status: 'present' }));
     state.young.members = DEFAULT_YOUNG.map(n => ({ name: n, status: 'present' }));
-    state.adult.zones = ZONE_MEMBERS.map(z => ({
-      members: z.members.map(m => ({ name: m.name, role: m.role, status: 'present' }))
-    }));
+    state.adult.zones = buildAdultZonesFromSaved([]);
   }
 
   renderYouthGrid();
@@ -2073,13 +2231,20 @@ function renderZoneChips(zi) {
     let badge = '';
     if (m.role === 'leader')   badge = '<span class="adult-role-badge leader">장</span>';
     if (m.role === 'inspector') badge = '<span class="adult-role-badge inspector">권</span>';
-    chip.innerHTML = `${badge}<span>${m.name}</span>`;
+    chip.innerHTML = `${badge}<span class="adult-chip-name">${m.name}</span><button class="adult-chip-move" type="button">이동</button>`;
     chip.onclick = () => toggleAdultMember(zi, mi);
+    chip.querySelector('.adult-chip-move').onclick = (event) => {
+      event.stopPropagation();
+      openAdultTransferModal(m.memberKey);
+    };
     attachLongPressDelete(chip, () => {
       if (confirm(`${m.name}을(를) 명단에서 삭제할까요?`)) {
         state.adult.zones[zi].members.splice(mi, 1);
-        renderZoneChips(zi);
-        updateAdultStats();
+        if (m.memberKey && adultAssignments[m.memberKey]) {
+          delete adultAssignments[m.memberKey];
+          saveAdultAssignments();
+        }
+        renderAdultGrid();
         scheduleSilentSave();
         toast(`🗑 ${m.name} 삭제됨`);
       }
@@ -2159,12 +2324,72 @@ function addZoneMember(zi) {
   const input = document.getElementById(`zoneAddInput${zi}`);
   const name = (input?.value || '').trim();
   if (!name) return;
-  state.adult.zones[zi].members.push({ name, role: 'member', status: 'present' });
+  state.adult.zones[zi].members.push({
+    memberKey: makeCustomAdultMemberKey(zi, name),
+    name,
+    role: 'member',
+    status: 'present',
+  });
   input.value = '';
   renderZoneChips(zi);
   updateAdultStats();
   scheduleSilentSave();
   toast(`✅ ${name} 추가됨`);
+}
+
+function openAdultTransferModal(memberKey) {
+  activeAdultTransferKey = memberKey;
+  renderAdultTransferModal();
+  document.getElementById('adultTransferModal').classList.add('open');
+}
+
+function renderAdultTransferModal() {
+  const body = document.getElementById('adultTransferBody');
+  const current = findAdultMemberByKey(activeAdultTransferKey);
+  if (!body || !current) {
+    if (body) body.innerHTML = '<p class="transfer-current">이동할 성도를 찾을 수 없습니다.</p>';
+    return;
+  }
+  const member = current.member;
+  const roleLabel = member.role === 'leader' ? '구역장' : member.role === 'inspector' ? '권찰' : '성도';
+  const buttons = ZONE_MEMBERS.map((zone, zi) => {
+    const isCurrent = zi === current.zoneIndex;
+    return `<button class="transfer-zone-btn${isCurrent ? ' current' : ''}" ${isCurrent ? 'disabled' : `onclick="moveAdultMember('${member.memberKey}', ${zi})"`}>${zi + 1}구역<small>${zone.district}교구</small></button>`;
+  }).join('');
+  body.innerHTML = `
+    <p class="transfer-current"><strong>${member.name}</strong> (${roleLabel})<br>현재 ${current.zoneIndex + 1}구역 / ${ZONE_MEMBERS[current.zoneIndex].district}교구</p>
+    ${member.role !== 'member' ? '<div class="transfer-role-warning">장/권 직분자는 이동 시 해당 구역의 대표 표시도 함께 바뀝니다. 이동 전에 한 번 더 확인해 주세요.</div>' : ''}
+    <div class="transfer-grid">${buttons}</div>
+  `;
+}
+
+function moveAdultMember(memberKey, targetZoneIndex) {
+  const current = findAdultMemberByKey(memberKey);
+  if (!current || current.zoneIndex === targetZoneIndex) return;
+  if (!Number.isInteger(targetZoneIndex) || targetZoneIndex < 0 || targetZoneIndex >= state.adult.zones.length) return;
+  const member = current.member;
+  if (member.role !== 'member') {
+    const ok = confirm(`${member.name}은(는) ${member.role === 'leader' ? '구역장' : '권찰'}입니다. ${targetZoneIndex + 1}구역으로 이동할까요?`);
+    if (!ok) return;
+  }
+  state.adult.zones[current.zoneIndex].members.splice(current.memberIndex, 1);
+  state.adult.zones[targetZoneIndex].members.push(member);
+
+  const defaultZone = getDefaultAdultZoneIndexByKey(memberKey);
+  if (defaultZone === targetZoneIndex) {
+    delete adultAssignments[memberKey];
+  } else {
+    adultAssignments[memberKey] = {
+      zone: targetZoneIndex,
+      movedAt: new Date().toISOString(),
+    };
+  }
+  saveAdultAssignments();
+  activeAdultTransferKey = '';
+  closeModal(null, 'adultTransferModal');
+  renderAdultGrid();
+  scheduleSilentSave();
+  toast(`↔ ${member.name} 이동 완료 (${targetZoneIndex + 1}구역)`);
 }
 
 function updateAdultStats() {
@@ -2471,7 +2696,10 @@ function openSettings() {
   document.getElementById('settingsModal').classList.add('open');
 }
 function closeModal(e, id) {
-  if (!e || e.target === e.currentTarget) document.getElementById(id).classList.remove('open');
+  if (!e || e.target === e.currentTarget) {
+    document.getElementById(id).classList.remove('open');
+    if (id === 'adultTransferModal') activeAdultTransferKey = '';
+  }
 }
 
 
@@ -2503,6 +2731,7 @@ function resetApp() {
   localStorage.removeItem('cachedInstructions');
   localStorage.removeItem('lastInstrId');
   localStorage.removeItem('zonePhones');
+  localStorage.removeItem(ADULT_ASSIGNMENTS_KEY);
   toast('🗑️ 초기화 완료, 재시작 중...');
   setTimeout(() => location.reload(), 800);
 }
