@@ -219,7 +219,7 @@ textarea { resize: vertical; min-height: 60px; }
 .sms-queue-msg {
   font-size: 12px; color: var(--text-muted); background: var(--bg);
   border-radius: 8px; padding: 8px 10px; white-space: pre-line; margin-bottom: 8px;
-  line-height: 1.6;
+  line-height: 1.6; overflow-wrap: anywhere; word-break: keep-all;
 }
 .sms-queue-footer { display: flex; justify-content: flex-end; gap: 8px; align-items: center; }
 .sms-sent-badge {
@@ -2443,12 +2443,9 @@ const DISTRICT_LEADERS = [
   { name: '이명숙', label: '1교구', zones: [0,1,2,3,4,5], phoneIdx: 0 },
   { name: '이정순', label: '2교구', zones: [6,7,8,9,10,11], phoneIdx: 6 },
 ];
-const SMS_TEMPLATE_MAX_CHARS = 135;
 
-function clampSMSMessage(text) {
-  const normalized = String(text || '').replace(/\n{3,}/g, '\n\n').trim();
-  if (normalized.length <= SMS_TEMPLATE_MAX_CHARS) return normalized;
-  return `${normalized.slice(0, SMS_TEMPLATE_MAX_CHARS - 1)}…`;
+function formatSMSMessage(text) {
+  return String(text || '').replace(/\n{3,}/g, '\n\n').trim();
 }
 
 function buildSMSMessage(i) {
@@ -2458,7 +2455,7 @@ function buildSMSMessage(i) {
   if (!absentMembers.length) return '';
   const names = absentMembers.map(m => m.name).join(' ');
   const date = state.date || new Date().toISOString().slice(0, 10);
-  return clampSMSMessage(`[${date} 주일 결석 현황]\n${i + 1}구역 결석자 ${absentMembers.length}명\n${names}`);
+  return formatSMSMessage(`[${date} 주일 결석 현황]\n${i + 1}구역 결석자 ${absentMembers.length}명\n${names}`);
 }
 
 function buildDistrictSMSMessage(d) {
@@ -2468,10 +2465,10 @@ function buildDistrictSMSMessage(d) {
     .map(i => {
       const names = state.adult.zones[i].members.filter(m => m.status === 'absent').map(m => m.name).join(' ');
       return `${i + 1}구역: ${names}`;
-    });
+  });
   if (!lines.length) return '';
   const total = d.zones.reduce((acc, i) => acc + (state.adult.zones[i]?.members.filter(m => m.status === 'absent').length || 0), 0);
-  return clampSMSMessage(`[${date} 주일 결석 현황]\n${d.label} 총 결석 ${total}명\n\n${lines.join('\n')}`);
+  return formatSMSMessage(`[${date} 주일 결석 현황]\n${d.label} 총 결석 ${total}명\n\n${lines.join('\n')}`);
 }
 
 const smsSentState = {};
