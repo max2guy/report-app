@@ -47,3 +47,11 @@
  3 files changed, 14 insertions(+)
  create mode 100644 worker-fcm/.wrangler/cache/wrangler-account.json
 [2026-04-10 06:50] push 실패 — 다음 주기에 재시도
+[main ebf7c82] auto: 2026-04-19 23:27
+ 8 files changed, 137 insertions(+)
+ create mode 100644 .planning/.DS_Store
+ create mode 100644 AGENTS.md
+ create mode 100644 CLAUDE.md
+ create mode 100644 worker-fcm/.DS_Store
+ create mode 100644 worker/.DS_Store
+[2026-04-19 23:27] push 실패 — 다음 주기에 재시도
