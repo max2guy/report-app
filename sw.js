@@ -42,7 +42,7 @@ self.addEventListener('notificationclick', e => {
   );
 });
 
-const CACHE_NAME = 'report-app-v110';
+const CACHE_NAME = 'report-app-v111';
 // 동적 데이터 파일은 제외 — 설치 실패 방지
 const APP_SHELL = [
   './',

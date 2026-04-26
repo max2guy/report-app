@@ -1,5 +1,5 @@
 /**
- * Cloudflare Worker: /fcm-send
+ * Cloudflare Worker: /fcm-send, /report-notification
  *
  * Required secrets:
  * - PUSH_PROXY_TOKEN
@@ -16,22 +16,23 @@ export default {
       return new Response(null, { status: 204, headers: corsHeaders() });
     }
 
-    const url = new URL(request.url);
-    if (url.pathname !== "/fcm-send") {
-      return json({ ok: false, error: "not_found" }, 404);
-    }
-
     if (request.method !== "POST") {
       return json({ ok: false, error: "method_not_allowed" }, 405);
     }
 
     try {
-      const provided = request.headers.get("X-Push-Token") || "";
-      if (!provided || provided !== (env.PUSH_PROXY_TOKEN || "")) {
-        return json({ ok: false, error: "unauthorized" }, 401);
+      requireProxyToken(request, env);
+      const url = new URL(request.url);
+      const payload = await request.json();
+
+      if (url.pathname === "/report-notification") {
+        return handleReportNotification(payload, env);
       }
 
-      const payload = await request.json();
+      if (url.pathname !== "/fcm-send") {
+        return json({ ok: false, error: "not_found" }, 404);
+      }
+
       const {
         targetRole,
         title,
@@ -47,7 +48,14 @@ export default {
         );
       }
 
-      const token = await loadTargetToken(env, targetRole);
+      const sa = parseServiceAccount(env.GOOGLE_SERVICE_ACCOUNT_JSON);
+      const accessToken = await getGoogleAccessToken(sa, [
+        "https://www.googleapis.com/auth/firebase.database",
+        "https://www.googleapis.com/auth/firebase.messaging",
+        "https://www.googleapis.com/auth/userinfo.email",
+      ]);
+
+      const token = await loadTargetToken(env, targetRole, accessToken);
       if (!token) {
         return json(
           { ok: false, error: "token_not_found", message: `No token for role ${targetRole}` },
@@ -55,50 +63,32 @@ export default {
         );
       }
 
-      const sa = parseServiceAccount(env.GOOGLE_SERVICE_ACCOUNT_JSON);
-      const accessToken = await getGoogleAccessToken(sa);
-      const projectId = sa.project_id;
-
-      const fcmRes = await fetch(
-        `https://fcm.googleapis.com/v1/projects/${projectId}/messages:send`,
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            message: {
-              token,
-              data: {
-                title: String(title),
-                body: String(body),
-                tag: String(tag),
-                url: String(targetUrl),
-              },
-              webpush: {
-                headers: { TTL: "86400" },
-              },
-            },
-          }),
-        }
-      );
-
-      const fcmJson = await fcmRes.json().catch(() => ({}));
-      if (!fcmRes.ok) {
+      const fcmResult = await sendFcmMessage({
+        sa,
+        accessToken,
+        token,
+        title,
+        body,
+        tag,
+        targetUrl,
+      });
+      if (!fcmResult.ok) {
         return json(
           {
             ok: false,
             error: "fcm_send_failed",
-            status: fcmRes.status,
-            details: fcmJson,
+            status: fcmResult.status,
+            details: fcmResult.details,
           },
           502
         );
       }
 
-      return json({ ok: true, targetRole, result: fcmJson }, 200);
+      return json({ ok: true, targetRole, result: fcmResult.details }, 200);
     } catch (err) {
+      if (err?.message === "unauthorized" || err?.status === 401) {
+        return json({ ok: false, error: "unauthorized" }, 401);
+      }
       return json(
         {
           ok: false,
@@ -111,20 +101,135 @@ export default {
   },
 };
 
-async function loadTargetToken(env, targetRole) {
+function requireProxyToken(request, env) {
+  const provided = request.headers.get("X-Push-Token") || "";
+  if (!provided || provided !== (env.PUSH_PROXY_TOKEN || "")) {
+    const err = new Error("unauthorized");
+    err.status = 401;
+    throw err;
+  }
+}
+
+async function handleReportNotification(payload, env) {
+  const {
+    notification,
+    targetRole = "viewerApp",
+    title = "📄 새 보고서 도착",
+    body = "",
+    tag = "church-viewer",
+    url: targetUrl = "./viewer.html",
+  } = payload || {};
+
+  if (!notification?.id || !notification?.title) {
+    return json(
+      { ok: false, error: "invalid_request", message: "notification.id/title required" },
+      400
+    );
+  }
+
+  const sa = parseServiceAccount(env.GOOGLE_SERVICE_ACCOUNT_JSON);
+  const accessToken = await getGoogleAccessToken(sa, [
+    "https://www.googleapis.com/auth/firebase.database",
+    "https://www.googleapis.com/auth/firebase.messaging",
+    "https://www.googleapis.com/auth/userinfo.email",
+  ]);
+
+  const savedNotification = await writeNotification(env, notification, accessToken);
+  const token = await loadTargetToken(env, targetRole, accessToken);
+  if (!token) {
+    return json({
+      ok: true,
+      notification: savedNotification,
+      push: { ok: false, error: "token_not_found", targetRole },
+    });
+  }
+
+  const fcmResult = await sendFcmMessage({
+    sa,
+    accessToken,
+    token,
+    title,
+    body,
+    tag,
+    targetUrl,
+  });
+
+  return json({
+    ok: true,
+    notification: savedNotification,
+    push: fcmResult.ok
+      ? { ok: true, result: fcmResult.details }
+      : { ok: false, status: fcmResult.status, details: fcmResult.details },
+  });
+}
+
+async function writeNotification(env, notification, accessToken) {
   if (!env.FIREBASE_RTDB_URL) {
     throw new Error("Missing FIREBASE_RTDB_URL secret");
   }
   const base = env.FIREBASE_RTDB_URL.replace(/\/+$/, "");
-  const auth = env.FIREBASE_RTDB_AUTH
-    ? `?auth=${encodeURIComponent(env.FIREBASE_RTDB_AUTH)}`
-    : "";
+  const auth = authQuery(env, accessToken);
+  const res = await fetch(`${base}/notifications.json${auth}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(notification),
+  });
+  const details = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(`RTDB notification write failed: ${res.status}`);
+  }
+  return { key: details.name || "", item: notification };
+}
+
+async function loadTargetToken(env, targetRole, accessToken = "") {
+  if (!env.FIREBASE_RTDB_URL) {
+    throw new Error("Missing FIREBASE_RTDB_URL secret");
+  }
+  const base = env.FIREBASE_RTDB_URL.replace(/\/+$/, "");
+  const auth = authQuery(env, accessToken);
   const res = await fetch(`${base}/fcm-tokens/${encodeURIComponent(targetRole)}.json${auth}`);
   if (!res.ok) {
     throw new Error(`RTDB fetch failed: ${res.status}`);
   }
   const value = await res.json();
   return typeof value === "string" && value.trim() ? value.trim() : null;
+}
+
+function authQuery(env, accessToken = "") {
+  if (env.FIREBASE_RTDB_AUTH) {
+    return `?auth=${encodeURIComponent(env.FIREBASE_RTDB_AUTH)}`;
+  }
+  return accessToken ? `?access_token=${encodeURIComponent(accessToken)}` : "";
+}
+
+async function sendFcmMessage({ sa, accessToken, token, title, body, tag, targetUrl }) {
+  const fcmRes = await fetch(
+    `https://fcm.googleapis.com/v1/projects/${sa.project_id}/messages:send`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        message: {
+          token,
+          data: {
+            title: String(title),
+            body: String(body),
+            tag: String(tag),
+            url: String(targetUrl),
+          },
+          webpush: {
+            headers: { TTL: "86400" },
+          },
+        },
+      }),
+    }
+  );
+
+  const details = await fcmRes.json().catch(() => ({}));
+  return { ok: fcmRes.ok, status: fcmRes.status, details };
 }
 
 function parseServiceAccount(raw) {
@@ -136,13 +241,13 @@ function parseServiceAccount(raw) {
   return parsed;
 }
 
-async function getGoogleAccessToken(sa) {
+async function getGoogleAccessToken(sa, scopes = ["https://www.googleapis.com/auth/firebase.messaging"]) {
   const now = Math.floor(Date.now() / 1000);
   const header = base64UrlEncode(JSON.stringify({ alg: "RS256", typ: "JWT" }));
   const claim = base64UrlEncode(
     JSON.stringify({
       iss: sa.client_email,
-      scope: "https://www.googleapis.com/auth/firebase.messaging",
+      scope: scopes.join(" "),
       aud: "https://oauth2.googleapis.com/token",
       exp: now + 3600,
       iat: now,
@@ -199,8 +304,9 @@ function base64UrlFromBytes(bytes) {
 }
 
 function json(payload, status = 200) {
+  const responseStatus = payload?.error === "unauthorized" ? 401 : status;
   return new Response(JSON.stringify(payload, null, 2), {
-    status,
+    status: responseStatus,
     headers: {
       ...corsHeaders(),
       "Content-Type": "application/json; charset=utf-8",
