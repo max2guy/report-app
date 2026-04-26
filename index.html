@@ -1142,7 +1142,7 @@ textarea { resize: vertical; min-height: 60px; }
 // ───────────────────────────────
 // APP VERSION
 // ───────────────────────────────
-const APP_VERSION = '0.9.8';
+const APP_VERSION = '0.9.9';
 
 // ───────────────────────────────
 // 출결 통계
@@ -2915,7 +2915,7 @@ async function uploadToNAS() {
     if (resp.status === 201 || resp.status === 204 || resp.status === 200) {
       toast('✅ NAS 업로드 완료!');
       syncHistoryToGitHub(); // NAS 업로드 성공 시 GitHub 자동 동기화
-      pushReportNotification(); // 뷰어앱 알림
+      await pushReportNotification(); // 뷰어앱 알림
     } else {
       toast('❌ NAS 업로드 실패: ' + resp.status);
     }
@@ -3480,15 +3480,23 @@ async function pushReportNotification() {
     };
     // Firebase RTDB에 push → 뷰어의 onValue 리스너가 즉시 수신
     await db.ref('notifications').push(item);
+
     // 서버(Worker)에서만 FCM 발송
-    await sendPushViaWorker({
+    const pushSent = await sendPushViaWorker({
       targetRole: 'viewerApp',
       title: '📄 새 보고서 도착',
       body: `${new Date().toLocaleDateString('ko-KR')} 주일 보고서가 제출되었습니다`,
       tag: 'church-viewer',
       url: './viewer.html'
     });
-  } catch(e) { console.log('보고서 알림 전송 실패:', e.message); }
+
+    toast(pushSent ? '✅ NAS 업로드 및 뷰어 알림 완료' : '⚠️ 뷰어앱 목록 알림 완료, 푸시 토큰 확인 필요');
+    return { rtdb: true, push: pushSent };
+  } catch(e) {
+    console.warn('보고서 알림 전송 실패:', e);
+    toast('⚠️ NAS 업로드 완료, 뷰어 알림 실패: ' + e.message);
+    return { rtdb: false, push: false, error: e.message };
+  }
 }
 
 async function requestNotificationPermission() {
