@@ -42,7 +42,7 @@ self.addEventListener('notificationclick', e => {
   );
 });
 
-const CACHE_NAME = 'report-app-v111';
+const CACHE_NAME = 'report-app-v112';
 // 동적 데이터 파일은 제외 — 설치 실패 방지
 const APP_SHELL = [
   './',
@@ -81,8 +81,8 @@ self.addEventListener('fetch', e => {
   if (e.request.method !== 'GET') return;
   const url = e.request.url;
 
-  // 외부 CDN: 캐시 우선
-  if (url.includes('cdnjs') || url.includes('fonts.googleapis') || url.includes('unpkg')) {
+  // 외부 CDN: 캐시 우선 (Chrome 148 HTTP 캐시 파티셔닝 우회)
+  if (url.includes('cdnjs') || url.includes('fonts.googleapis') || url.includes('unpkg') || url.includes('gstatic.com')) {
     e.respondWith(
       caches.match(e.request).then(r => r || fetch(e.request))
     );
