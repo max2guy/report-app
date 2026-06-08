@@ -1,3 +1,4 @@
-.claude/
+# .claude/ 는 Codex 핸드오프를 위해 추적 (CLAUDE.md 전역 규칙)
+# .claude/
 
 worker/.wrangler/
