@@ -42,7 +42,7 @@ self.addEventListener('notificationclick', e => {
   );
 });
 
-const CACHE_NAME = 'report-app-v113';
+const CACHE_NAME = 'report-app-v114';
 // 동적 데이터 파일은 제외 — 설치 실패 방지
 const APP_SHELL = [
   './',
@@ -90,7 +90,10 @@ self.addEventListener('fetch', e => {
         // CORS 요청으로 투명한 응답을 받아 CacheStorage에 저장한다.
         return fetch(new Request(e.request, {mode: 'cors', credentials: 'omit'})).then(res => {
           if (res && res.status === 200) {
-            caches.open(CACHE_NAME).then(c => c.put(e.request, res.clone()));
+            // clone()은 return 전에 동기적으로 호출해야 한다.
+            // 비동기로 호출하면 body가 이미 소비된 뒤라 저장 실패.
+            const resClone = res.clone();
+            caches.open(CACHE_NAME).then(c => c.put(e.request, resClone));
           }
           return res;
         }).catch(() => fetch(e.request)); // CORS 실패 시 원본 요청 폴백
