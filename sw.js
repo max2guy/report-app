@@ -42,7 +42,7 @@ self.addEventListener('notificationclick', e => {
   );
 });
 
-const CACHE_NAME = 'report-app-v112';
+const CACHE_NAME = 'report-app-v113';
 // 동적 데이터 파일은 제외 — 설치 실패 방지
 const APP_SHELL = [
   './',
@@ -84,7 +84,17 @@ self.addEventListener('fetch', e => {
   // 외부 CDN: 캐시 우선 (Chrome 148 HTTP 캐시 파티셔닝 우회)
   if (url.includes('cdnjs') || url.includes('fonts.googleapis') || url.includes('unpkg') || url.includes('gstatic.com')) {
     e.respondWith(
-      caches.match(e.request).then(r => r || fetch(e.request))
+      caches.match(e.request).then(r => {
+        if (r) return r;
+        // CORS mode fetch: no-cors 요청은 opaque response(status 0)라 캐시 불가.
+        // CORS 요청으로 투명한 응답을 받아 CacheStorage에 저장한다.
+        return fetch(new Request(e.request, {mode: 'cors', credentials: 'omit'})).then(res => {
+          if (res && res.status === 200) {
+            caches.open(CACHE_NAME).then(c => c.put(e.request, res.clone()));
+          }
+          return res;
+        }).catch(() => fetch(e.request)); // CORS 실패 시 원본 요청 폴백
+      })
     );
     return;
   }
